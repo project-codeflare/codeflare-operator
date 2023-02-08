@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - mcads
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - mcads/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - mcads/status
+  verbs:
+  - get
+  - patch
+  - update
