@@ -233,3 +233,8 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) podman-push IMG=$(CATALOG_IMG)
+
+## Inserting a dummy unit test so as to set up OpenShift CI in the short-term
+.PHONY: test-unit
+test-unit:
+	return 0
