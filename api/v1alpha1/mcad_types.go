@@ -20,16 +20,37 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MCADSpec defines the desired state of MCAD
 type MCADSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// EnableMonitoring determines if monitoring artifacts are deployed for the MCAD instance.
+	// +kubebuilder:default=true
+	EnableMonitoring bool `json:"enableMonitoring,omitempty"`
 
-	// Foo is an example field of MCAD. Edit mcad_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// MultiCluster determines if MCAD will be routing traffic to multiple clusters.
+	// +kubebuilder:default=false
+	MultiCluster bool `json:"multiCluster,omitempty"`
+
+	// DispatcherMode determines whether the MCAD Controller should be launched in Dispatcher mode.
+	// +kubebuilder:default=false
+	DispatcherMode bool `json:"dispatcherMode,omitempty"`
+
+	// PreemptionEnabled determines if scheduled jobs can be preempted for others
+	// +kubebuilder:default=false
+	PreemptionEnabled bool `json:"preemptionEnabled,omitempty"`
+
+	// AgentConfigs TODO: Add details
+	// +kubebuilder:default=null
+	AgentConfigs string `json:"agentConfigs,omitempty"`
+
+	// QuotaRestURL TODO: Add details
+	// +kubebuilder:default=null
+	QuotaRestURL string `json:"quotaRestURL,omitempty"`
+
+	// PodCreationTimeout TODO: Add details and confirm values
+	// +kubebuilder:default=300
+	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
+	//podCreationTimeout: //int (default blank)
+
 }
 
 // MCADStatus defines the observed state of MCAD
