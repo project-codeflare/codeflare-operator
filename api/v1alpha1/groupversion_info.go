@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the codeflare v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=codeflare.codeflare.dev
+// +kubebuilder:object:generate=true
+// +groupName=codeflare.codeflare.dev
 package v1alpha1
 
 import (
