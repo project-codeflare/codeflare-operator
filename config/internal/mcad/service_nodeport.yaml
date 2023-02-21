@@ -1,0 +1,17 @@
+#{{ if .Values.configMap.quotaRestUrl }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcad-{{.Name}}-quota-http-server
+spec:
+  type: NodePort
+  selector:
+    app: mcad-{{.Name}}
+  ports:
+    # By default and for convenience, the `targetPort` is set to the same value as the `port` field.
+    - port: 8082
+      targetPort: 80
+      # Optional field
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      nodePort: 30082
+#{{ end }}

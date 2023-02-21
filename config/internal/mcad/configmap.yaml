@@ -1,0 +1,14 @@
+#{{ if .Values.configMap.name }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.name }}
+  namespace: {{.Namespace}}
+data:
+  QUOTA_ENABLED: {{ .Values.configMap.quotaEnabled }}
+  DISPATCHER_MODE: {{ .Values.configMap.dispatcherMode }}
+  DISPATCHER_AGENT_CONFIGS: {{ .Values.configMap.agentConfigs }}
+  PREEMPTION: {{ .Values.configMap.preemptionEnabled }}
+  QUOTA_REST_URL: {{ .Values.configMap.quotaRestUrl }}
+  DISPATCH_RESOURCE_RESERVATION_TIMEOUT: {{ .Values.configMap.podCreationTimeout }}
+#{{ end }}
