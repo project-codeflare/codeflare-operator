@@ -3,6 +3,9 @@
 # It should be run by config/default
 resources:
 - bases/codeflare.codeflare.dev_mcads.yaml
+- bases/mcad.ibm.com_appwrappers.yaml
+- bases/mcad.ibm.com_queuejobs.yaml
+- bases/mcad.ibm.com_schedulingspecs.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
