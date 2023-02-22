@@ -237,4 +237,4 @@ catalog-push: ## Push a catalog image.
 ## Inserting a dummy unit test so as to set up OpenShift CI in the short-term
 .PHONY: test-unit
 test-unit:
-	return 0
+	exit 0
