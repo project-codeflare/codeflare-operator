@@ -13,11 +13,13 @@ COPY api/ api/
 COPY controllers/ controllers/
 
 # Build
+USER root
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7
 WORKDIR /
 COPY --from=builder /workspace/manager .
-USER 65532:65532
+COPY config/internal config/internal
+
 
 ENTRYPOINT ["/manager"]
