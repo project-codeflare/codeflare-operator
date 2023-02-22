@@ -1,0 +1,14 @@
+apiVersion: v1
+data:
+  DISPATCHER_MODE: "{{.DispatcherMode}}"
+  DISPATCHER_AGENT_CONFIGS: "{{.AgentConfigs}}"
+  PREEMPTION: "{{.PreemptionEnabled}}"
+  QUOTA_REST_URL: "{{.QuotaRestURL}}"
+  DISPATCH_RESOURCE_RESERVATION_TIMEOUT: "{{.PodCreationTimeout}}"
+kind: ConfigMap
+metadata:
+  name: mcad-{{.Name}}-config
+  namespace: {{.Namespace}}
+  labels:
+    app: mcad-{{.Name}}
+    component: multi-cluster-app-dispatcher
