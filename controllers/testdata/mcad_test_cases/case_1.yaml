@@ -1,0 +1,5 @@
+apiVersion: codeflare.codeflare.dev/v1alpha1
+kind: MCAD
+metadata:
+  name: blank-custom-resource
+spec: {}

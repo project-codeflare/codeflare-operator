@@ -1,0 +1,14 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mcad-blank-custom-resource-config
+  namespace: default
+  labels:
+    app: mcad-blank-custom-resource
+    component: multi-cluster-app-dispatcher
+data:
+  DISPATCHER_AGENT_CONFIGS: 'null'
+  DISPATCHER_MODE: 'false'
+  DISPATCH_RESOURCE_RESERVATION_TIMEOUT: '300'
+  PREEMPTION: 'false'
+  QUOTA_REST_URL: 'null'
