@@ -234,7 +234,6 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) podman-push IMG=$(CATALOG_IMG)
 
-## Inserting a dummy unit test so as to set up OpenShift CI in the short-term
 .PHONY: test-unit
-test-unit:
-	echo "Successful test run"
+test-unit: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out

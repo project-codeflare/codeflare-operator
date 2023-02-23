@@ -93,6 +93,15 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	// FixMe: Hack for stubbing gvk during tests as these are not populated by test suite
+	// Refer to https://github.com/operator-framework/operator-sdk/issues/727#issuecomment-581169171
+	// In production we expect these to be populated
+	if mcadCustomResource.Kind == "" {
+		mcadCustomResource = mcadCustomResource.DeepCopy()
+		gvk := codeflarev1alpha1.GroupVersion.WithKind("MCAD")
+		mcadCustomResource.APIVersion, mcadCustomResource.Kind = gvk.Version, gvk.Kind
+	}
+
 	err = params.ExtractParams(mcadCustomResource)
 	if err != nil {
 		log.Error(err, "Unable to parse MCAD custom resource")
@@ -126,7 +135,7 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	
+
 	return ctrl.Result{}, nil
 }
 
