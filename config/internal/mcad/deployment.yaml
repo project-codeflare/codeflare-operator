@@ -19,15 +19,15 @@ spec:
     spec:
       containers:
         - name: mcad-controller
-        - #{{ if (eq .Values.configMap.multiCluster true) }}
-          args: [ "--v", "10", "--logtostderr", "--secure-port=6443" ]
-          #{{ end }}
-          #{{ if (eq .Values.configMap.multiCluster false) }}
-          args: [ "--v", "{{ .Values.loglevel }}", "--logtostderr" ]
-          #{{ end }}
+        -  # {{ if (eq .Values.configMap.multiCluster true) }}
+          args: ["--v", "10", "--logtostderr", "--secure-port=6443"]
+          # {{ end }}
+          # {{ if (eq .Values.configMap.multiCluster false) }}
+#          args: [ "--v", "{{ .Values.loglevel }}", "--logtostderr" ]
+          # {{ end }}
           command:
             - mcad-controller
-          #{{ if .Values.configMap.name }}
+          # {{ if .Values.configMap.name }}
           envFrom:
             - configMapRef:
                 name: mcad-controller-configmap
@@ -45,7 +45,7 @@ spec:
             limits:
               cpu: '2'
               memory: 2Gi
-            requests:s
+            requests:
               cpu: '2'
               memory: 2Gi
           terminationMessagePath: /dev/termination-log
@@ -53,35 +53,35 @@ spec:
           volumeMounts:
             - name: temp-vol
               mountPath: /tmp
-            #{{ if .Values.volumes.hostPath }}
+            # {{ if .Values.volumes.hostPath }}
             - name: agent-config-vol
               mountPath: /root/kubernetes
-        #{{ if .Values.configMap.quotaRestUrl }}
+        # {{ if .Values.configMap.quotaRestUrl }}
         - name: "quota-httpserver"
           image: "{{ .Values.httpServerImage.repository }}:{{ .Values.httpServerImage.tag }}"
-          imagePullPolicy: {{ .Values.httpServerImage.pullPolicy }}
+          imagePullPolicy: {{.Values.httpServerImage.pullPolicy}}
           ports:
             - containerPort: 80
         - name: "quota-management"
           image: "{{ .Values.httpImage.repository }}:{{ .Values.httpImage.tag }}"
-          imagePullPolicy: {{ .Values.httpImage.pullPolicy }}
+          imagePullPolicy: {{.Values.httpImage.pullPolicy}}
           ports:
             - containerPort: 8081
           volumeMounts:
             - mountPath: /tmp
               name: temp-vol
-            #{{ if .Values.volumes.hostPath }}
+            # {{ if .Values.volumes.hostPath }}
             - name: agent-config-vol
               mountPath: /root/kubernetes
-        #{{ end }}
-        #{{ end }}
+        # {{ end }}
+        # {{ end }}
       nodeSelector:
-        kubernetes.io/hostname: {{ .Values.nodeSelector.hostname }}
+        kubernetes.io/hostname: {{.Values.nodeSelector.hostname}}
       serviceAccountName: mcad-controller-{{.Name}}
       volumes:
         - name: temp-vol
           emptyDir: {}
-        #{{ if .Values.volumes.hostPath }}
+        # {{ if .Values.volumes.hostPath }}
         - name: agent-config-vol
           hostPath:
-            path: {{ .Values.volumes.hostPath }}
+            path: {{.Values.volumes.hostPath}}
