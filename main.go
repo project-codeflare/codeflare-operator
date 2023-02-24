@@ -18,9 +18,10 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -89,6 +90,15 @@ func main() {
 		TemplatesPath: templatesPath,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MCAD")
+		os.Exit(1)
+	}
+	if err = (&controllers.InstaScaleReconciler{
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		Log:           ctrl.Log,
+		TemplatesPath: templatesPath,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "InstaScale")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

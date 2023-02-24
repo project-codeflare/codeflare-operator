@@ -1,0 +1,31 @@
+# permissions for end users to edit instascales.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: instascale-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: codeflare-operator
+    app.kubernetes.io/part-of: codeflare-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: instascale-editor-role
+rules:
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - instascales
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - instascales/status
+  verbs:
+  - get

@@ -2,9 +2,11 @@ package util
 
 import (
 	"fmt"
+	"reflect"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 func notEqualMsg(value string) {
@@ -140,5 +142,33 @@ func DeploymentsAreEqual(dp1 appsv1.Deployment, dp2 appsv1.Deployment) bool {
 		}
 	}
 
+	return true
+}
+
+func ClusterRolesAreEqual(cr1 rbacv1.ClusterRole, cr2 rbacv1.ClusterRole) bool {
+	if !reflect.DeepEqual(cr1.Rules, cr2.Rules) {
+		notEqualMsg("rules")
+		return false
+	}
+	if !reflect.DeepEqual(cr1.ObjectMeta.Name, cr2.ObjectMeta.Name) {
+		notEqualMsg("name")
+		return false
+	}
+	return true
+}
+
+func ClusterRoleBindingsAreEqual(crb1 rbacv1.ClusterRoleBinding, crb2 rbacv1.ClusterRoleBinding) bool {
+	if !reflect.DeepEqual(crb1.Subjects, crb2.Subjects) {
+		notEqualMsg("subjects")
+		return false
+	}
+	if !reflect.DeepEqual(crb1.RoleRef, crb2.RoleRef) {
+		notEqualMsg("roleRef")
+		return false
+	}
+	if !reflect.DeepEqual(crb1.ObjectMeta.Name, crb2.ObjectMeta.Name) {
+		notEqualMsg("name")
+		return false
+	}
 	return true
 }

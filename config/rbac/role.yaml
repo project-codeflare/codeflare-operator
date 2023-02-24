@@ -33,6 +33,32 @@ rules:
 - apiGroups:
   - codeflare.codeflare.dev
   resources:
+  - instascales
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - instascales/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
+  - instascales/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - codeflare.codeflare.dev
+  resources:
   - mcads
   verbs:
   - create
@@ -60,6 +86,24 @@ rules:
   - ""
   resources:
   - configmaps
+  - nodes
+  - persistentvolumeclaims
+  - persistentvolumes
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
   - persistentvolumeclaims
   - persistentvolumes
   - secrets
@@ -80,6 +124,32 @@ rules:
   - persistentvolumes
   verbs:
   - '*'
+- apiGroups:
+  - machine.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mcad.ibm.com
+  resources:
+  - appwrappers
+  - queuejobs
+  - schedulingspecs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

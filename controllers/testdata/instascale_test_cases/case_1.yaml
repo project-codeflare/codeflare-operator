@@ -1,6 +1,5 @@
 apiVersion: codeflare.codeflare.dev/v1alpha1
-kind: MCAD
+kind: InstaScale
 metadata:
-  name: mcad-sample
+  name: example
 spec: {}
-  # TODO(user): Add fields here
