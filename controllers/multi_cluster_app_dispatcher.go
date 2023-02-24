@@ -6,10 +6,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var (
-	foo = codeflarev1alpha1.MCADSpec{EnableMonitoring: true}
-)
-
 var multiClusterAppDispatcherTemplates = []string{
 	"mcad/configmap.yaml.tmpl",
 }
