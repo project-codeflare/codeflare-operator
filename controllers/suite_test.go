@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
-	"github.com/project-codeflare/codeflare-operator/controllers/util"
-	"go.uber.org/zap/zapcore"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/project-codeflare/codeflare-operator/controllers/util"
+	"go.uber.org/zap/zapcore"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -114,6 +117,14 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&InstaScaleReconciler{
+		Client:        k8sClient,
+		Log:           ctrl.Log.WithName("controllers").WithName("instascale-controller"),
+		Scheme:        scheme.Scheme,
+		TemplatesPath: "../config/internal/",
+	}).SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
 	// Start the manager
 	go func() {
 		defer GinkgoRecover()
@@ -137,6 +148,7 @@ var _ = AfterSuite(func() {
 var _ = AfterEach(func() {
 	inNamespace := client.InNamespace(workingNamespace)
 	Expect(k8sClient.DeleteAllOf(context.TODO(), &codeflarev1alpha1.MCAD{}, inNamespace)).ToNot(HaveOccurred())
+	Expect(k8sClient.DeleteAllOf(context.TODO(), &codeflarev1alpha1.InstaScale{}, inNamespace)).ToNot(HaveOccurred())
 
 })
 
@@ -211,4 +223,43 @@ func compareServices(path string, opts mf.Option) {
 	}, timeout, interval).ShouldNot(HaveOccurred())
 
 	Expect(util.ServicesAreEqual(*expectedService, *actualService)).Should(BeTrue())
+}
+
+func compareDeployments(path string, opts mf.Option) {
+	expectedDeployment := &appsv1.Deployment{}
+	Expect(convertToStructuredResource(path, expectedDeployment, opts)).NotTo(HaveOccurred())
+
+	actualDeployment := &appsv1.Deployment{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedDeployment.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualDeployment)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.DeploymentsAreEqual(*expectedDeployment, *actualDeployment)).Should(BeTrue())
+}
+
+func compareClusterRoles(path string, opts mf.Option) {
+	expectedClusterRole := &rbacv1.ClusterRole{}
+	Expect(convertToStructuredResource(path, expectedClusterRole, opts)).NotTo(HaveOccurred())
+
+	actualClusterRole := &rbacv1.ClusterRole{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedClusterRole.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualClusterRole)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.ClusterRolesAreEqual(*expectedClusterRole, *actualClusterRole)).Should(BeTrue())
+}
+
+func compareClusterRoleBindings(path string, opts mf.Option) {
+	expectedClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	Expect(convertToStructuredResource(path, expectedClusterRoleBinding, opts)).NotTo(HaveOccurred())
+
+	actualClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedClusterRoleBinding.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualClusterRoleBinding)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.ClusterRoleBindingsAreEqual(*expectedClusterRoleBinding, *actualClusterRoleBinding)).Should(BeTrue())
 }
