@@ -4,9 +4,14 @@ rules:
   document-start: disable
   indentation:
     indent-sequences: whatever
+  comments:
+    ignore: |
+      config/samples/kustomization.yaml
+      config/crd/kustomization.yaml
+      config/scorecard/kustomization.yaml
+      config/manifests/kustomization.yaml
   comments-indentation: disable
   hyphens:
     max-spaces-after: 4
   truthy:
     check-keys: false
-

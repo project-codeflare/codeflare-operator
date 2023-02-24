@@ -1,4 +1,4 @@
-#{{ if (eq .Values.configMap.multiCluster true) }}
+# {{ if (eq .Values.configMap.multiCluster true) }}
 apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:

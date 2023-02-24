@@ -1,4 +1,4 @@
-#{{ if .Values.serviceAccount }}
+# {{ if .Values.serviceAccount }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -13,5 +13,5 @@ roleRef:
   name: edit
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.serviceAccount }}
+    name: {{.Values.serviceAccount}}
     namespace: kube-system

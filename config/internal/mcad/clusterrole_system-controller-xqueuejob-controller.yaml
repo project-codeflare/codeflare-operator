@@ -39,12 +39,12 @@ rules:
       - patch
       - update
       - watch
-  #{{ if .Values.quotaManagement.rbac.apiGroup }}
-  #{{ if .Values.quotaManagement.rbac.resource }}
+  # {{ if .Values.quotaManagement.rbac.apiGroup }}
+  # {{ if .Values.quotaManagement.rbac.resource }}
   - apiGroups:
-      - {{ .Values.quotaManagement.rbac.apiGroup }}
+      - {{.Values.quotaManagement.rbac.apiGroup}}
     resources:
-      - {{ .Values.quotaManagement.rbac.resource }}
+      - {{.Values.quotaManagement.rbac.resource}}
     verbs:
       - get
       - list
@@ -53,14 +53,14 @@ rules:
       - update
       - patch
       - delete
-  #{{ end }}
-  #{{ end }}
-  #{{ if .Values.coscheduler.rbac.apiGroup }}
-  #{{ if .Values.coscheduler.rbac.resource }}
+  # {{ end }}
+  # {{ end }}
+  # {{ if .Values.coscheduler.rbac.apiGroup }}
+  # {{ if .Values.coscheduler.rbac.resource }}
   - apiGroups:
-      - {{ .Values.coscheduler.rbac.apiGroup }}
+      - {{.Values.coscheduler.rbac.apiGroup}}
     resources:
-      - {{ .Values.coscheduler.rbac.resource }}
+      - {{.Values.coscheduler.rbac.resource}}
     verbs:
       - get
       - list
@@ -69,5 +69,5 @@ rules:
       - update
       - patch
       - delete
-#{{ end }}
-#{{ end }}
+# {{ end }}
+# {{ end }}
