@@ -25,6 +25,7 @@ import (
 
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -144,6 +145,9 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&codeflarev1alpha1.MCAD{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
 

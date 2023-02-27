@@ -8,6 +8,10 @@ import (
 
 var multiClusterAppDispatcherTemplates = []string{
 	"mcad/configmap.yaml.tmpl",
+	"mcad/service.yaml.tmpl",
+	"mcad/serviceaccount.yaml.tmpl",
+	"mcad/service.yaml.tmpl",
+	"mcad/rolebinding_custom-metrics-auth-reader.yaml.tmpl",
 }
 
 func (r *MCADReconciler) ReconcileMCAD(ctx context.Context, mcad *codeflarev1alpha1.MCAD, req ctrl.Request, params *MCADParams) error {
