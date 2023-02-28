@@ -18,7 +18,11 @@ package controllers
 
 import (
 	"context"
+	"github.com/project-codeflare/codeflare-operator/controllers/util"
 	"go.uber.org/zap/zapcore"
+	corev1 "k8s.io/api/core/v1"
+	k8srbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"testing"
 	"time"
@@ -52,7 +56,7 @@ var (
 )
 
 const (
-	WorkingNamespace = "default"
+	workingNamespace = "default"
 	timeout          = time.Second * 30
 	interval         = time.Millisecond * 10
 )
@@ -132,7 +136,7 @@ var _ = AfterSuite(func() {
 
 // Cleanup resources to not contaminate between tests
 var _ = AfterEach(func() {
-	inNamespace := client.InNamespace(WorkingNamespace)
+	inNamespace := client.InNamespace(workingNamespace)
 	Expect(k8sClient.DeleteAllOf(context.TODO(), &codeflarev1alpha1.MCAD{}, inNamespace)).ToNot(HaveOccurred())
 
 })
@@ -142,7 +146,7 @@ func convertToStructuredResource(path string, out interface{}, opts mf.Option) e
 	if err != nil {
 		return err
 	}
-	m, err = m.Transform(mf.InjectNamespace(WorkingNamespace))
+	m, err = m.Transform(mf.InjectNamespace(workingNamespace))
 	if err != nil {
 		return err
 	}
@@ -154,4 +158,58 @@ func convertToStructuredResource(path string, out interface{}, opts mf.Option) e
 		return err
 	}
 	return nil
+}
+
+func compareConfigMaps(path string, opts mf.Option) {
+	expectedConfigMap := &corev1.ConfigMap{}
+	Expect(convertToStructuredResource(path, expectedConfigMap, opts)).NotTo(HaveOccurred())
+
+	actualConfigMap := &corev1.ConfigMap{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedConfigMap.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualConfigMap)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.ConfigMapsAreEqual(*expectedConfigMap, *actualConfigMap)).Should(BeTrue())
+}
+
+func compareRoleBindings(path string, opts mf.Option) {
+	expectedRB := &k8srbacv1.RoleBinding{}
+	Expect(convertToStructuredResource(path, expectedRB, opts)).NotTo(HaveOccurred())
+	expectedRB.Subjects[0].Namespace = workingNamespace
+
+	actualRB := &k8srbacv1.RoleBinding{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedRB.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualRB)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.RoleBindingsAreEqual(*expectedRB, *actualRB)).Should(BeTrue())
+}
+
+func compareServiceAccounts(path string, opts mf.Option) {
+	expectedSA := &corev1.ServiceAccount{}
+	Expect(convertToStructuredResource(path, expectedSA, opts)).NotTo(HaveOccurred())
+	expectedSA.Namespace = workingNamespace
+
+	actualSA := &corev1.ServiceAccount{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedSA.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualSA)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.ServiceAccountsAreEqual(*expectedSA, *actualSA)).Should(BeTrue())
+}
+
+func compareServices(path string, opts mf.Option) {
+	expectedService := &corev1.Service{}
+	Expect(convertToStructuredResource(path, expectedService, opts)).NotTo(HaveOccurred())
+
+	actualService := &corev1.Service{}
+	Eventually(func() error {
+		namespacedNamed := types.NamespacedName{Name: expectedService.Name, Namespace: workingNamespace}
+		return k8sClient.Get(ctx, namespacedNamed, actualService)
+	}, timeout, interval).ShouldNot(HaveOccurred())
+
+	Expect(util.ServicesAreEqual(*expectedService, *actualService)).Should(BeTrue())
 }

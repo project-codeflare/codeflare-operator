@@ -1,0 +1,26 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: mcad-blank-custom-resource-metrics
+  namespace: default
+spec:
+  clusterIP: 172.31.181.101
+  ipFamilies:
+    - IPv4
+  ports:
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 6443
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  internalTrafficPolicy: Cluster
+  clusterIPs:
+    - 172.31.181.101
+  type: ClusterIP
+  ipFamilyPolicy: SingleStack
+  sessionAffinity: None
+  selector:
+    app: mcad-blank-custom-resource
