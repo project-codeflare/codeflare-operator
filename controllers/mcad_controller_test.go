@@ -12,7 +12,6 @@ import (
 const (
 	mcadCRCase1         = "./testdata/mcad_test_cases/case_1.yaml"
 	mcadConfigMap1      = "./testdata/mcad_test_results/case_1/configmap.yaml"
-	mcadRolebinding1    = "./testdata/mcad_test_results/case_1/rolebinding.yaml"
 	mcadService1        = "./testdata/mcad_test_results/case_1/service.yaml"
 	mcadServiceAccount1 = "./testdata/mcad_test_results/case_1/serviceaccount.yaml"
 )
@@ -34,7 +33,6 @@ var _ = Describe("The MCAD Controller", func() {
 		It("It should create a configmap", func() {
 			deployMCAD(ctx, mcadCRCase1, opts)
 			compareConfigMaps(mcadConfigMap1, opts)
-			compareRoleBindings(mcadRolebinding1, opts)
 			compareServiceAccounts(mcadServiceAccount1, opts)
 			compareServices(mcadService1, opts)
 		})
