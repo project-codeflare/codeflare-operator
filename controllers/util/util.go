@@ -4,7 +4,6 @@ import (
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8srbacv1 "k8s.io/api/rbac/v1"
 	"reflect"
 )
 
@@ -25,22 +24,22 @@ func ConfigMapsAreEqual(expected corev1.ConfigMap, actual corev1.ConfigMap) bool
 	return true
 }
 
-func RoleBindingsAreEqual(rb1 k8srbacv1.RoleBinding, rb2 k8srbacv1.RoleBinding) bool {
-
-	if !reflect.DeepEqual(rb1.ObjectMeta.Labels, rb2.ObjectMeta.Labels) {
-		notEqualMsg("Rolebinding labels")
-		return false
-	}
-	if !reflect.DeepEqual(rb1.Subjects, rb2.Subjects) {
-		notEqualMsg("Rolebinding subjects")
-		return false
-	}
-	if !reflect.DeepEqual(rb1.RoleRef, rb2.RoleRef) {
-		notEqualMsg("Rolebinding role references")
-		return false
-	}
-	return true
-}
+//func RoleBindingsAreEqual(rb1 k8srbacv1.RoleBinding, rb2 k8srbacv1.RoleBinding) bool {
+//
+//	if !reflect.DeepEqual(rb1.ObjectMeta.Labels, rb2.ObjectMeta.Labels) {
+//		notEqualMsg("Rolebinding labels")
+//		return false
+//	}
+//	if !reflect.DeepEqual(rb1.Subjects, rb2.Subjects) {
+//		notEqualMsg("Rolebinding subjects")
+//		return false
+//	}
+//	if !reflect.DeepEqual(rb1.RoleRef, rb2.RoleRef) {
+//		notEqualMsg("Rolebinding role references")
+//		return false
+//	}
+//	return true
+//}
 
 func ServiceAccountsAreEqual(sa1 corev1.ServiceAccount, sa2 corev1.ServiceAccount) bool {
 	if !reflect.DeepEqual(sa1.ObjectMeta.Labels, sa2.ObjectMeta.Labels) {

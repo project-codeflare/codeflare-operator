@@ -21,7 +21,6 @@ import (
 	"github.com/project-codeflare/codeflare-operator/controllers/util"
 	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
-	k8srbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"testing"
@@ -173,19 +172,19 @@ func compareConfigMaps(path string, opts mf.Option) {
 	Expect(util.ConfigMapsAreEqual(*expectedConfigMap, *actualConfigMap)).Should(BeTrue())
 }
 
-func compareRoleBindings(path string, opts mf.Option) {
-	expectedRB := &k8srbacv1.RoleBinding{}
-	Expect(convertToStructuredResource(path, expectedRB, opts)).NotTo(HaveOccurred())
-	expectedRB.Subjects[0].Namespace = workingNamespace
-
-	actualRB := &k8srbacv1.RoleBinding{}
-	Eventually(func() error {
-		namespacedNamed := types.NamespacedName{Name: expectedRB.Name, Namespace: workingNamespace}
-		return k8sClient.Get(ctx, namespacedNamed, actualRB)
-	}, timeout, interval).ShouldNot(HaveOccurred())
-
-	Expect(util.RoleBindingsAreEqual(*expectedRB, *actualRB)).Should(BeTrue())
-}
+//func compareRoleBindings(path string, opts mf.Option) {
+//	expectedRB := &k8srbacv1.RoleBinding{}
+//	Expect(convertToStructuredResource(path, expectedRB, opts)).NotTo(HaveOccurred())
+//	expectedRB.Subjects[0].Namespace = workingNamespace
+//
+//	actualRB := &k8srbacv1.RoleBinding{}
+//	Eventually(func() error {
+//		namespacedNamed := types.NamespacedName{Name: expectedRB.Name, Namespace: workingNamespace}
+//		return k8sClient.Get(ctx, namespacedNamed, actualRB)
+//	}, timeout, interval).ShouldNot(HaveOccurred())
+//
+//	Expect(util.RoleBindingsAreEqual(*expectedRB, *actualRB)).Should(BeTrue())
+//}
 
 func compareServiceAccounts(path string, opts mf.Option) {
 	expectedSA := &corev1.ServiceAccount{}
