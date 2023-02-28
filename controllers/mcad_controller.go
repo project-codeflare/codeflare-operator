@@ -45,7 +45,7 @@ type MCADReconciler struct {
 
 func (r *MCADReconciler) Apply(owner mf.Owner, params *MCADParams, template string, fns ...mf.Transformer) error {
 
-	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template)
+	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template, r.Log)
 	if err != nil {
 		return fmt.Errorf("error loading template yaml: %w", err)
 	}
