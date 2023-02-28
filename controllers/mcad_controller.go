@@ -67,6 +67,40 @@ func (r *MCADReconciler) Apply(owner mf.Owner, params *MCADParams, template stri
 	return nil
 }
 
+func (r *MCADReconciler) ApplyWithoutOwner(params *MCADParams, template string, fns ...mf.Transformer) error {
+	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template, r.Log)
+	if err != nil {
+		return fmt.Errorf("error loading template yaml: %w", err)
+	}
+
+	tmplManifest, err = tmplManifest.Transform(fns...)
+	if err != nil {
+		return err
+	}
+
+	if err = tmplManifest.Apply(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *MCADReconciler) DeleteResource(params *MCADParams, template string, fns ...mf.Transformer) error {
+	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template, r.Log)
+	if err != nil {
+		return fmt.Errorf("error loading template yaml: %w", err)
+	}
+
+	tmplManifest, err = tmplManifest.Transform(fns...)
+	if err != nil {
+		return err
+	}
+
+	if err = tmplManifest.Delete(); err != nil {
+		return err
+	}
+	return nil
+}
+
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/finalizers,verbs=update
@@ -118,7 +152,7 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	} else {
 		if controllerutil.ContainsFinalizer(mcadCustomResource, finalizerName) {
-			if err := r.cleanUpClusterResources(ctx, req, mcadCustomResource, params); err != nil {
+			if err := r.cleanUpOwnerLessResources(ctx, req, mcadCustomResource, params); err != nil {
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(mcadCustomResource, finalizerName)
@@ -152,7 +186,10 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // cleanUpClusterResources will be responsible for deleting objects that do not have owner references set
-func (r *MCADReconciler) cleanUpClusterResources(ctx context.Context, req ctrl.Request, mcad *codeflarev1alpha1.MCAD, params *MCADParams) error {
-
+func (r *MCADReconciler) cleanUpOwnerLessResources(ctx context.Context, req ctrl.Request, mcad *codeflarev1alpha1.MCAD, params *MCADParams) error {
+	err := r.deleteOwnerLessObjects(params)
+	if err != nil {
+		return err
+	}
 	return nil
 }
