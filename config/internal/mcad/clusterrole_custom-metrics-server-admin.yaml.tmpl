@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: custom-metrics-server-resources
+  name: {{.Name}}-mcad-custom-metrics-server-admin-role
 rules:
   - apiGroups:
       - custom.metrics.k8s.io
