@@ -31,6 +31,20 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - codeflare.codeflare.dev
   resources:
   - instascales
@@ -83,6 +97,22 @@ rules:
   - patch
   - update
 - apiGroups:
+  - coordination.k8s.io
+  resources:
+  - kube-scheduler
+  - leases
+  verbs:
+  - create
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - bindings
+  - pods/binding
+  verbs:
+  - create
+- apiGroups:
   - ""
   resources:
   - configmaps
@@ -120,10 +150,87 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - endpoints
+  - kube-scheduler
+  verbs:
+  - create
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - kube-scheduler
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - lists
+  - namespaces
+  - pods
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - persistentvolumeclaims
   - persistentvolumes
   verbs:
   - '*'
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - custom.metrics.k8s.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  - kube-scheduler
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - extensions
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - machine.openshift.io
   resources:
@@ -131,6 +238,23 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mcad.ibm.com
+  resources:
+  - appwrappers
+  - appwrappers/finalizers
+  - appwrappers/status
+  - queuejobs
+  - schedulingspecs
+  verbs:
+  - create
+  - delete
+  - deletecollection
   - get
   - list
   - patch
@@ -149,6 +273,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -174,4 +306,27 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - scheduling.sigs.k8s.io
+  resources:
+  - podgroups
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  - csinodes
+  - csistoragecapacities
+  verbs:
+  - get
+  - list
   - watch

@@ -3,14 +3,13 @@ kind: ClusterRole
 metadata:
   annotations:
     rbac.authorization.kubernetes.io/autoupdate: "true"
-  name: system:controller:xqueuejob-controller
+  name: {{.Name}}-mcad-controller-role
   labels:
     kubernetes.io/bootstrapping: rbac-defaults
 rules:
   - apiGroups:
       - mcad.ibm.com
     resources:
-      - xqueuejobs
       - queuejobs
       - schedulingspecs
       - appwrappers
@@ -30,6 +29,7 @@ rules:
     resources:
       - persistentvolumes
       - namespaces
+      - lists
     verbs:
       - create
       - delete
@@ -39,12 +39,10 @@ rules:
       - patch
       - update
       - watch
-  # {{ if .Values.quotaManagement.rbac.apiGroup }}
-  # {{ if .Values.quotaManagement.rbac.resource }}
   - apiGroups:
-      - {{.Values.quotaManagement.rbac.apiGroup}}
+      - scheduling.sigs.k8s.io
     resources:
-      - {{.Values.quotaManagement.rbac.resource}}
+      - podgroups
     verbs:
       - get
       - list
@@ -53,21 +51,3 @@ rules:
       - update
       - patch
       - delete
-  # {{ end }}
-  # {{ end }}
-  # {{ if .Values.coscheduler.rbac.apiGroup }}
-  # {{ if .Values.coscheduler.rbac.resource }}
-  - apiGroups:
-      - {{.Values.coscheduler.rbac.apiGroup}}
-    resources:
-      - {{.Values.coscheduler.rbac.resource}}
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-# {{ end }}
-# {{ end }}

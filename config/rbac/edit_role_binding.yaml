@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: hpa-controller-custom-metrics
+  name: manager-edit-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: custom-metrics-server-resources
+  name: edit
 subjects:
   - kind: ServiceAccount
-    name: horizontal-pod-autoscaler
-    namespace: {{.Namespace}}
+    name: controller-manager
+    namespace: system

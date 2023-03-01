@@ -104,12 +104,27 @@ func (r *MCADReconciler) DeleteResource(params *MCADParams, template string, fns
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/finalizers,verbs=update
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=mcad.ibm.com,resources=queuejobs;schedulingspecs;appwrappers;appwrappers/finalizers;appwrappers/status,verbs=get;list;watch;create;update;patch;delete;deletecollection
+//+kubebuilder:rbac:groups=core,resources=pods;lists;namespaces,verbs=get;list;watch;create;update;patch;delete;deletecollection
+//+kubebuilder:rbac:groups=core,resources=bindings;pods/binding,verbs=create
+//+kubebuilder:rbac:groups=core,resources=kube-scheduler,verbs=get;update
+//+kubebuilder:rbac:groups=core,resources=endpoints;kube-scheduler,verbs=create;get;update
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch;update
+//+kubebuilder:rbac:groups=core,resources=pods/status,verbs=patch;update
+//+kubebuilder:rbac:groups=core,resources=replicationcontrollers,verbs=get;list;watch
+//+kubebuilder:rbac:groups=scheduling.sigs.k8s.io,resources=podgroups,verbs=get;list;watch;create;update;patch;delete;deletecollection
+//+kubebuilder:rbac:groups=apps,resources=deployments;replicasets;statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=*,resources=deployments;services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets;configmaps;services;serviceaccounts;persistentvolumes;persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=persistentvolumes;persistentvolumeclaims,verbs=*
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups=custom.metrics.k8s.io,resources=*,verbs=*
+//+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases;kube-scheduler,verbs=create;update;get
+//+kubebuilder:rbac:groups=events.k8s.io,resources=events;kube-scheduler,verbs=create;update;patch
+//+kubebuilder:rbac:groups=extensions,resources=replicasets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers;csinodes;csistoragecapacities,verbs=get;list;watch
 
 func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("namespace", req.Namespace)
