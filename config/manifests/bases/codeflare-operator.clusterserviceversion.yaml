@@ -1,0 +1,62 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: codeflare-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: InstaScale is the Schema for the instascales API
+      displayName: Insta Scale
+      kind: InstaScale
+      name: instascales.codeflare.codeflare.dev
+      version: v1alpha1
+    - description: MCAD is the Schema for the mcads API
+      displayName: MCAD
+      kind: MCAD
+      name: mcads.codeflare.codeflare.dev
+      version: v1alpha1
+  description: CodeFlare allows you to scale complex pipelines anywhere
+  displayName: CodeFlare Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Pipelines
+  - Scaling
+  - MCAD
+  - App
+  - InstaScale
+  - Jobs
+  links:
+  - name: Codeflare Operator
+    url: https://codeflare-operator.domain
+  maintainers:
+  - email: aasthana@redhat.com
+    name: Anish Asthana
+  - email: kpostlet@redhat.com
+    name: Kevin Postlethwait
+  - email: meyceoz@redhat.com
+    name: Mustafa Eyceoz
+  maturity: alpha
+  provider:
+    name: CodeFlare
+    url: https://github.com/project-codeflare
+  version: 0.0.1
