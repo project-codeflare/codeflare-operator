@@ -5,7 +5,6 @@ Here are a few things to go over before getting started with CodeFlare Operator 
 ## Environment setup
 
 The following should be installed in your working environment:
-installation/)
  - Go 1.18.X
    - [Download release](https://go.dev/dl/)
    - [Install Instructions](https://go.dev/doc/install)
@@ -13,16 +12,16 @@ installation/)
  - GCC
 
 ## Basic Overview
-Under the `api` dir, the MCAD and InstaScale custom resources are defined:
+The main entrypoint for the operator is `main.go`
+
+The MCAD and InstaScale custom resources are defined under the `api` dir:
  - See `mcad_types.go` and `instascale_types.go`
 
-Under `config/internal` are where the MCAD and InstaScale resource templates can be found:
+The MCAD and InstaScale resource templates can be found under `config/internal`:
  - Sorted under `mcad` and `insascale` subdirs
 
-The code for MCAD/InstaScale resource reconsilliation can be found in the `controllers` dir:
+The code for MCAD/InstaScale resource reconcilliation can be found in the `controllers` dir:
  - See `mcad_controller.go` and `instascale_controller.go`
-
-The main entrypoint for the operator is `main.go`
 
 ## Building and Deployment
 If changes are made in the `api` dir, run: `make manifests`
@@ -44,6 +43,7 @@ For deploying onto a cluster:
 The CodeFlare Operator currently has unit tests and pre-commit checks
  - To enable and view pre-commit checks: `pre-commit install`
  - To run unit tests, run `make test-unit`
+ - Note that both are required for CI to pass on pull requests
 
 To write and inspect unit tests:
  - MCAD and InstaScale unit tests under `mcad_controller_test.go` and `instascale_controller_test.go` in the `controllers` dir
