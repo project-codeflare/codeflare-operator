@@ -36,7 +36,6 @@ spec:
             description: MCADSpec defines the desired state of MCAD
             properties:
               agentConfigs:
-                default: "null"
                 description: 'AgentConfigs TODO: Add details'
                 type: string
               dispatcherMode:
@@ -55,7 +54,7 @@ spec:
                   to multiple clusters.
                 type: boolean
               podCreationTimeout:
-                default: 300
+                default: -1
                 description: 'PodCreationTimeout TODO: Add details and confirm values'
                 type: integer
               preemptionEnabled:
@@ -64,7 +63,6 @@ spec:
                   preempted for others
                 type: boolean
               quotaRestURL:
-                default: "null"
                 description: 'QuotaRestURL TODO: Add details'
                 type: string
             type: object
