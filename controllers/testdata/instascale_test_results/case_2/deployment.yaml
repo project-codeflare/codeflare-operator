@@ -1,28 +1,28 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: instascale-example
+  name: instascale-example2
   namespace: codeflare-operator-system
   labels:
-    app: instascale-example
+    app: instascale-example2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: instascale-example
+      app: instascale-example2
   template:
     metadata:
       labels:
-        app: instascale-example
+        app: instascale-example2
     spec:
       containers:
         - name: instascale
           image: 'quay.io/project-codeflare/instascale-controller:latest'
           resources:
             limits:
-              cpu: '2'
-              memory: 2G
+              cpu: '1'
+              memory: 1G
             requests:
-              cpu: '200m'
-              memory: 200M
-      serviceAccountName: instascale-example-sa
+              cpu: '1'
+              memory: 1G
+      serviceAccountName: instascale-example2-sa

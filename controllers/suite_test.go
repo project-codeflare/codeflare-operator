@@ -161,9 +161,6 @@ func convertToStructuredResource(path string, out interface{}, opts mf.Option) e
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	err = scheme.Scheme.Convert(&m.Resources()[0], out, nil)
 	if err != nil {
 		return err
