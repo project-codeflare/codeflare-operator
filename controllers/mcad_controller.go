@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
@@ -44,7 +45,6 @@ type MCADReconciler struct {
 }
 
 func (r *MCADReconciler) Apply(owner mf.Owner, params *MCADParams, template string, fns ...mf.Transformer) error {
-
 	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template, r.Log)
 	if err != nil {
 		return fmt.Errorf("error loading template yaml: %w", err)
@@ -81,6 +81,7 @@ func (r *MCADReconciler) ApplyWithoutOwner(params *MCADParams, template string, 
 	if err = tmplManifest.Apply(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
