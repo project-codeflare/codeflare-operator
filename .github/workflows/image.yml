@@ -21,6 +21,8 @@ jobs:
     - name: Grab New Version Tag
       run: |
         echo "tag=$(cat VERSION)" >> $GITHUB_ENV
+        echo ${{ secrets.QUAY_ID }}
+        echo "should be above"
 
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
