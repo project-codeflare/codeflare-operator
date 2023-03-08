@@ -18,11 +18,5 @@ spec:
       containers:
       - image: quay.io/project-codeflare/instascale-controller:latest
         name: instascale
-        resources:
-          limits:
-            cpu: "2"
-            memory: "2G"
-          requests:
-            cpu: "2"
-            memory: "2G"
+        resources: {{.ControllerResources}}
       serviceAccountName: instascale-{{.Name}}-sa
