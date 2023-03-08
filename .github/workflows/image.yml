@@ -1,0 +1,47 @@
+# This workflow will build images for the codeflare-operator, then push the images to the `project-codeflare` quay repo
+
+name: Image
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "VERSION"
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Grab New Version Tag
+      run: |
+        echo "tag=$(cat VERSION)" >> $GITHUB_ENV
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.QUAY_ID }}
+        password: ${{ secrets.QUAY_TOKEN }}
+        registry: quay.io
+
+    - name: Login to Red Hat Registry
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.RH_REG_ID }}
+        password: ${{ secrets.RH_REG_TOKEN }}
+        registry: registry.redhat.io
+
+    - name: Image Build
+      run: |
+        make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${{ env.tag }}
+        podman tag quay.io/project-codeflare/codeflare-operator:${{ env.tag }} quay.io/project-codeflare/codeflare-operator:latest
+        make bundle-build -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:${{ env.tag }}
+        podman tag quay.io/project-codeflare/codeflare-operator-bundle:${{ env.tag }} quay.io/project-codeflare/codeflare-operator-bundle:latest
+
+    - name: Image Push
+      run: |
+        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:${{ env.tag }}
+        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:latest
+        make bundle-push -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:${{ env.tag }}
+        make bundle-push -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:latest
