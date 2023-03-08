@@ -39,18 +39,14 @@ type MCADSpec struct {
 	PreemptionEnabled bool `json:"preemptionEnabled,omitempty"`
 
 	// AgentConfigs TODO: Add details
-	// +kubebuilder:default=null
 	AgentConfigs string `json:"agentConfigs,omitempty"`
 
 	// QuotaRestURL TODO: Add details
-	// +kubebuilder:default=null
 	QuotaRestURL string `json:"quotaRestURL,omitempty"`
 
 	// PodCreationTimeout TODO: Add details and confirm values
-	// +kubebuilder:default=300
+	// +kubebuilder:default=-1
 	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
-	//podCreationTimeout: //int (default blank)
-
 }
 
 // MCADStatus defines the observed state of MCAD

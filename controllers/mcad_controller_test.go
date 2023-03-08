@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	mfc "github.com/manifestival/controller-runtime-client"
 	mf "github.com/manifestival/manifestival"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +15,13 @@ const (
 	mcadConfigMap1      = "./testdata/mcad_test_results/case_1/configmap.yaml"
 	mcadService1        = "./testdata/mcad_test_results/case_1/service.yaml"
 	mcadServiceAccount1 = "./testdata/mcad_test_results/case_1/serviceaccount.yaml"
+)
+
+const (
+	mcadCRCase2         = "./testdata/mcad_test_cases/case_2.yaml"
+	mcadConfigMap2      = "./testdata/mcad_test_results/case_2/configmap.yaml"
+	mcadService2        = "./testdata/mcad_test_results/case_2/service.yaml"
+	mcadServiceAccount2 = "./testdata/mcad_test_results/case_2/serviceaccount.yaml"
 )
 
 func deployMCAD(ctx context.Context, path string, opts mf.Option) {
@@ -38,4 +46,13 @@ var _ = Describe("The MCAD Controller", func() {
 		})
 	})
 
+	Context("In a namespace, when a populated MCAD Custom Resource is deployed", func() {
+
+		It("It should create a configmap", func() {
+			deployMCAD(ctx, mcadCRCase2, opts)
+			compareConfigMaps(mcadConfigMap2, opts)
+			compareServiceAccounts(mcadServiceAccount2, opts)
+			compareServices(mcadService2, opts)
+		})
+	})
 })
