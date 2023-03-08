@@ -12,11 +12,13 @@ import (
 
 const (
 	instascaleCRCase1             = "./testdata/instascale_test_cases/case_1.yaml"
+	instascaleCRCase2             = "./testdata/instascale_test_cases/case_2.yaml"
 	instascaleConfigMap1          = "./testdata/instascale_test_results/case_1/configmap.yaml"
 	instascaleServiceAccount1     = "./testdata/instascale_test_results/case_1/serviceaccount.yaml"
 	instascaleClusterRole1        = "./testdata/instascale_test_results/case_1/clusterrole.yaml"
 	instascaleClusterRoleBinding1 = "./testdata/instascale_test_results/case_1/clusterrolebinding.yaml"
 	instascaleDeployment1         = "./testdata/instascale_test_results/case_1/deployment.yaml"
+	instascaleDeployment2         = "./testdata/instascale_test_results/case_2/deployment.yaml"
 )
 
 func deployInstaScale(ctx context.Context, path string, opts mf.Option) {
@@ -42,5 +44,11 @@ var _ = Describe("The Instascale Controller", func() {
 			compareClusterRoleBindings(instascaleClusterRoleBinding1, opts)
 		})
 	})
+	Context("In a namespace, InstaScale ControllerResources is given", func() {
 
+		It("It should deploy InstaScale with the given ControllerResources", func() {
+			deployInstaScale(ctx, instascaleCRCase2, opts)
+			compareDeployments(instascaleDeployment2, opts)
+		})
+	})
 })
