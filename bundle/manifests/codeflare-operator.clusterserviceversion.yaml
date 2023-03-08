@@ -32,7 +32,7 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.24.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     operatorframework.io/suggested-namespace: openshift-operators
-    containerImage: quay.io/project-codeflare/codeflare-operator:0.0.1
+    containerImage: quay.io/project-codeflare/codeflare-operator:v0.0.1
     createdAt: "2023-03-08"
     repository: https://github.com/project-codeflare/codeflare-operator
   name: codeflare-operator.v0.0.1
@@ -454,7 +454,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: quay.io/project-codeflare/codeflare-operator:0.0.1
+                image: quay.io/project-codeflare/codeflare-operator:v0.0.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
