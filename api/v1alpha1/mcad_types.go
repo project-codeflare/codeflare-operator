@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,6 +48,11 @@ type MCADSpec struct {
 	// PodCreationTimeout TODO: Add details and confirm values
 	// +kubebuilder:default=-1
 	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
+	//podCreationTimeout: //int (default blank)
+
+	// ControllerResources TODO: Add details
+	// +kubebuilder:default={}
+	ControllerResources v1.ResourceRequirements `json:"controllerResources,omitempty" protobuf:"bytes,8,opt"`
 }
 
 // MCADStatus defines the observed state of MCAD
