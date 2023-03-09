@@ -13,6 +13,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install operator-sdk
+      run: |
+        export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+        export OS=$(uname | awk '{print tolower($0)}')
+        export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.27.0
+        curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+        chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+
+
     - name: Grab New Version Tag
       id: tag_name
       run: |
@@ -34,6 +43,8 @@ jobs:
 
     - name: Image Build
       run: |
+        make build
+        make bundle
         make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
         podman tag quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator:latest
         make bundle-build -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:${SOURCE_TAG}
