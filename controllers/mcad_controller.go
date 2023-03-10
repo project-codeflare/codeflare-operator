@@ -19,15 +19,18 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
 
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -186,13 +189,43 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	err = updateReadyStatus(ctx, r, req, mcadCustomResource)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.Client.Status().Update(context.Background(), mcadCustomResource)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func updateReadyStatus(ctx context.Context, r *MCADReconciler, req ctrl.Request, mcadCustomResource *codeflarev1alpha1.MCAD) error {
+	deployment := &appsv1.Deployment{}
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("mcad-controller-%s", req.Name), Namespace: req.Namespace}, deployment)
+	if err != nil {
+		return err
+	}
+	r.Log.Info("Checking if deployment is ready.")
+	isDeploymentReady := false
+	for _, condition := range deployment.Status.Conditions {
+		r.Log.Info(fmt.Sprintf("%v: %v", condition.Type, condition.Status))
+		if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
+			isDeploymentReady = true
+			r.Log.Info("Deployment ready")
+			break
+		}
+	}
+	mcadCustomResource.Status.Ready = isDeploymentReady
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&codeflarev1alpha1.MCAD{}).
+		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
