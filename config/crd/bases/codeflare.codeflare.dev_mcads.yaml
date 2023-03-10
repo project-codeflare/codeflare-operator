@@ -70,6 +70,13 @@ spec:
             type: object
           status:
             description: MCADStatus defines the observed state of MCAD
+            properties:
+              ready:
+                description: Ready indicates whether the application is ready to serve
+                  requests
+                type: boolean
+            required:
+            - ready
             type: object
         type: object
     served: true
