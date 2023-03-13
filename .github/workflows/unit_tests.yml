@@ -1,0 +1,34 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/opendatahub/pre-commit-go-toolchain:v0.2  # https://github.com/opendatahub-io/data-science-pipelines-operator/blob/main/.github
+      env:
+        XDG_CACHE_HOME: /cache
+        GOCACHE: /cache/go-build
+        GOMODCACHE: /cache/go-mod
+        PRE_COMMIT_HOME: /cache/pre-commit
+      volumes:
+        - /cache
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Activate cache
+        uses: actions/cache@v2
+        with:
+          path: /cache
+          key: ${{ runner.os }}-cache-${{ hashFiles('**/go.sum', '.pre-commit-config.yaml') }}
+
+      - name: Build code and run unit tests
+        run: make test-unit
