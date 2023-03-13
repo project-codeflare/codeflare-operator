@@ -25,6 +25,7 @@ import (
 	authv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,6 +34,7 @@ import (
 	mf "github.com/manifestival/manifestival"
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
+	"github.com/project-codeflare/codeflare-operator/controllers/util"
 )
 
 // InstaScaleReconciler reconciles a InstaScale object
@@ -155,7 +157,27 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	err = updateInstascaleReadyStatus(ctx, r, req, instascaleCustomResource)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.Client.Status().Update(context.Background(), instascaleCustomResource)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func updateInstascaleReadyStatus(ctx context.Context, r *InstaScaleReconciler, req ctrl.Request, instascaleCustomResource *codeflarev1alpha1.InstaScale) error {
+	deployment := &appsv1.Deployment{}
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("instascale-%s", req.Name), Namespace: req.Namespace}, deployment)
+	if err != nil {
+		return err
+	}
+	r.Log.Info("Checking if deployment is ready.")
+	instascaleCustomResource.Status.Ready = util.IsDeploymentReady(deployment)
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

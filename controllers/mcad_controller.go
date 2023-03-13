@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
+	"github.com/project-codeflare/codeflare-operator/controllers/util"
 
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -189,7 +190,7 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	err = updateReadyStatus(ctx, r, req, mcadCustomResource)
+	err = updateMCADReadyStatus(ctx, r, req, mcadCustomResource)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -201,23 +202,14 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-func updateReadyStatus(ctx context.Context, r *MCADReconciler, req ctrl.Request, mcadCustomResource *codeflarev1alpha1.MCAD) error {
+func updateMCADReadyStatus(ctx context.Context, r *MCADReconciler, req ctrl.Request, mcadCustomResource *codeflarev1alpha1.MCAD) error {
 	deployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("mcad-controller-%s", req.Name), Namespace: req.Namespace}, deployment)
 	if err != nil {
 		return err
 	}
-	r.Log.Info("Checking if deployment is ready.")
-	isDeploymentReady := false
-	for _, condition := range deployment.Status.Conditions {
-		r.Log.Info(fmt.Sprintf("%v: %v", condition.Type, condition.Status))
-		if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
-			isDeploymentReady = true
-			r.Log.Info("Deployment ready")
-			break
-		}
-	}
-	mcadCustomResource.Status.Ready = isDeploymentReady
+	r.Log.Info("Checking if MCAD deployment is ready.")
+	mcadCustomResource.Status.Ready = util.IsDeploymentReady(deployment)
 	return nil
 }
 

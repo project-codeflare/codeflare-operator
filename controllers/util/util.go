@@ -172,3 +172,12 @@ func ClusterRoleBindingsAreEqual(crb1 rbacv1.ClusterRoleBinding, crb2 rbacv1.Clu
 	}
 	return true
 }
+
+func IsDeploymentReady(deployment *appsv1.Deployment) bool {
+	for _, condition := range deployment.Status.Conditions {
+		if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
