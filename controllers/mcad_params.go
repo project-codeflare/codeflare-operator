@@ -30,9 +30,9 @@ func (c *ControllerResources) String() string {
 	raw, err := json.Marshal(c)
 	if err != nil {
 		return "{}"
-	} else {
-		return string(raw)
 	}
+	return string(raw)
+
 }
 
 // ExtractParams is currently a straight-up copy. We can add in more complex validation at a later date

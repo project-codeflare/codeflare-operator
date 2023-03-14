@@ -1,0 +1,12 @@
+apiVersion: codeflare.codeflare.dev/v1alpha1
+kind: MCAD
+metadata:
+  name: resource-defined-custom-resource
+spec:
+  controllerResources:
+    limits:
+      cpu: '2'
+      memory: 2G
+    requests:
+      cpu: '2'
+      memory: 2G
