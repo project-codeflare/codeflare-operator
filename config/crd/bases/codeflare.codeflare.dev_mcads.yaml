@@ -39,7 +39,8 @@ spec:
                 description: 'AgentConfigs TODO: Add details'
                 type: string
               controllerResources:
-                description: 'ControllerResources TODO: Add details'
+                description: ControllerResources defines the cpu and memory resource
+                  requirements for the MCAD Controller
                 properties:
                   claims:
                     description: "Claims lists the names of resources, defined in

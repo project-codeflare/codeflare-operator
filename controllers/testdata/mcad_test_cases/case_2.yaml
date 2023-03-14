@@ -6,3 +6,10 @@ spec:
   podCreationTimeout: 300
   quotaRestURL: 'bar.com'
   agentConfigs: 'foo'
+  controllerResources:
+    limits:
+      cpu: '2'
+      memory: 2G
+    requests:
+      cpu: '2'
+      memory: 2G
