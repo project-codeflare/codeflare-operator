@@ -55,8 +55,10 @@ type MCADSpec struct {
 
 // MCADStatus defines the observed state of MCAD
 type MCADStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Ready indicates whether the application is ready to serve requests
+	Ready bool `json:"ready"`
 }
 
 //+kubebuilder:object:root=true
