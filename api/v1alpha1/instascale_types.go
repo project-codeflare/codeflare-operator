@@ -42,6 +42,7 @@ type InstaScaleStatus struct {
 //+kubebuilder:subresource:status
 
 // InstaScale is the Schema for the instascales API
+// +operator-sdk:csv:customresourcedefinitions:displayName="InstaScale"
 type InstaScale struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
