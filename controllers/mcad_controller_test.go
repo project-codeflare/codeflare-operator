@@ -15,9 +15,6 @@ const (
 	mcadConfigMap1      = "./testdata/mcad_test_results/case_1/configmap.yaml"
 	mcadService1        = "./testdata/mcad_test_results/case_1/service.yaml"
 	mcadServiceAccount1 = "./testdata/mcad_test_results/case_1/serviceaccount.yaml"
-)
-
-const (
 	mcadCRCase2         = "./testdata/mcad_test_cases/case_2.yaml"
 	mcadConfigMap2      = "./testdata/mcad_test_results/case_2/configmap.yaml"
 	mcadService2        = "./testdata/mcad_test_results/case_2/service.yaml"

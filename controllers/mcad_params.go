@@ -1,11 +1,8 @@
 package controllers
 
 import (
-	"encoding/json"
-
 	mf "github.com/manifestival/manifestival"
 	mcadv1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
-	v1 "k8s.io/api/core/v1"
 )
 
 type MCADParams struct {
@@ -22,18 +19,9 @@ type MCADParams struct {
 	ControllerResources ControllerResources
 }
 
-type ControllerResources struct {
-	v1.ResourceRequirements
-}
-
-func (c *ControllerResources) String() string {
-	raw, err := json.Marshal(c)
-	if err != nil {
-		return "{}"
-	} else {
-		return string(raw)
-	}
-}
+// type ControllerResources struct {
+// 	v1.ResourceRequirements
+// }
 
 // ExtractParams is currently a straight-up copy. We can add in more complex validation at a later date
 func (p *MCADParams) ExtractParams(mcad *mcadv1alpha1.MCAD) error {
