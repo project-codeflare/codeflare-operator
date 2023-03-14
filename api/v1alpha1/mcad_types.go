@@ -50,7 +50,7 @@ type MCADSpec struct {
 	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
 	//podCreationTimeout: //int (default blank)
 
-	// ControllerResources TODO: Add details
+	// ControllerResources defines the cpu and memory resource requirements for the MCAD Controller
 	// +kubebuilder:default={}
 	ControllerResources v1.ResourceRequirements `json:"controllerResources,omitempty" protobuf:"bytes,8,opt"`
 }
