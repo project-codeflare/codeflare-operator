@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,6 +31,9 @@ type InstaScaleSpec struct {
 	// maxScaleoutAllowed determines the max number of machines that can be scaled up by InstaScale
 	// +kubebuilder:default=15
 	MaxScaleoutAllowed int `json:"maxScaleoutAllowed,omitempty"`
+
+	// controllerResources determines the container resources for the InstaScale controller deployment
+	ControllerResources *v1.ResourceRequirements `json:"controllerResources,omitempty"`
 }
 
 // InstaScaleStatus defines the observed state of InstaScale
