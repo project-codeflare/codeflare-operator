@@ -6,8 +6,8 @@ metadata:
   labels:
     kubernetes.io/bootstrapping: rbac-defaults
     app.kubernetes.io/managed-by: MCAD
-    my-crd.example.com/cr-name: {{.Name}}
-    my-crd.example.com/cr-namespace: {{.Namespace}}
+    codeflare.codeflare.dev/cr-name: {{.Name}}
+    codeflare.codeflare.dev/cr-namespace: {{.Namespace}}
   name: {{.Name}}-mcad-edit-crb
 roleRef:
   apiGroup: rbac.authorization.k8s.io

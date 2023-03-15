@@ -5,8 +5,8 @@ metadata:
   name: v1beta1.custom.metrics.k8s.io
   labels:
     app.kubernetes.io/managed-by: MCAD
-    my-crd.example.com/cr-name: {{.Name}}
-    my-crd.example.com/cr-namespace: {{.Namespace}}
+    codeflare.codeflare.dev/cr-name: {{.Name}}
+    codeflare.codeflare.dev/cr-namespace: {{.Namespace}}
 spec:
   service:
     name: mcad-{{.Name}}-metrics

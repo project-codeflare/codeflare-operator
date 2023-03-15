@@ -23,11 +23,16 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	authv1 "k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
@@ -160,6 +165,22 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstaScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	crFromLabels := handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+		labels := o.GetLabels()
+		if labels["app.kubernetes.io/managed-by"] == "InstaScale" {
+			crName := labels["codeflare.codeflare.dev/cr-name"]
+			crNamespace := labels["codeflare.codeflare.dev/cr-namespace"]
+			if crName != "" {
+				return []reconcile.Request{
+					{NamespacedName: types.NamespacedName{
+						Name:      crName,
+						Namespace: crNamespace,
+					}},
+				}
+			}
+		}
+		return nil
+	})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&codeflarev1alpha1.InstaScale{}).
 		Owns(&corev1.ConfigMap{}).
@@ -167,6 +188,14 @@ func (r *InstaScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&authv1.ClusterRole{}).
 		Owns(&authv1.ClusterRoleBinding{}).
 		Owns(&appsv1.Deployment{}).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRole{}},
+			crFromLabels,
+		).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRoleBinding{}},
+			crFromLabels,
+		).
 		Complete(r)
 }
 
