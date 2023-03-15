@@ -6,6 +6,10 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{.Name}}-mcad-custom-metrics-server-admin-role
+  labels:
+    app.kubernetes.io/managed-by: MCAD
+    my-crd.example.com/cr-name: {{.Name}}
+    my-crd.example.com/cr-namespace: {{.Namespace}}
 subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler

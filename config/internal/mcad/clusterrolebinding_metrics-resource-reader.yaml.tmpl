@@ -2,6 +2,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{.Name}}-mcad-metrics-resource-reader-crb
+  labels:
+    app.kubernetes.io/managed-by: MCAD
+    my-crd.example.com/cr-name: {{.Name}}
+    my-crd.example.com/cr-namespace: {{.Namespace}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

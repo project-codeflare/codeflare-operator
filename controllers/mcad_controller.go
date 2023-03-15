@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
@@ -28,9 +29,13 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const finalizerName = "codeflare.codeflare.dev/finalizer"
@@ -191,12 +196,36 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	crFromLabels := handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+		labels := o.GetLabels()
+		if labels["app.kubernetes.io/managed-by"] == "MCAD" {
+			crName := labels["my-crd.example.com/cr-name"]
+			crNamespace := labels["my-crd.example.com/cr-namespace"]
+			if crName != "" {
+				return []reconcile.Request{
+					{NamespacedName: types.NamespacedName{
+						Name:      crName,
+						Namespace: crNamespace,
+					}},
+				}
+			}
+		}
+		return nil
+	})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&codeflarev1alpha1.MCAD{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRole{}},
+			crFromLabels,
+		).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRoleBinding{}},
+			crFromLabels,
+		).
 		Complete(r)
 }
 

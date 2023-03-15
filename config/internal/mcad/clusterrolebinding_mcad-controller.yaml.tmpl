@@ -5,6 +5,9 @@ metadata:
     rbac.authorization.kubernetes.io/autoupdate: "true"
   labels:
     kubernetes.io/bootstrapping: rbac-defaults
+    app.kubernetes.io/managed-by: MCAD
+    my-crd.example.com/cr-name: {{.Name}}
+    my-crd.example.com/cr-namespace: {{.Namespace}}
   name: {{.Name}}-mcad-controller-crb
 roleRef:
   apiGroup: rbac.authorization.k8s.io
