@@ -229,8 +229,8 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	crFromLabels := handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
 		labels := o.GetLabels()
 		if labels["app.kubernetes.io/managed-by"] == "MCAD" {
-			crName := labels["my-crd.example.com/cr-name"]
-			crNamespace := labels["my-crd.example.com/cr-namespace"]
+			crName := labels["codeflare.codeflare.dev/cr-name"]
+			crNamespace := labels["codeflare.codeflare.dev/cr-namespace"]
 			if crName != "" {
 				return []reconcile.Request{
 					{NamespacedName: types.NamespacedName{
