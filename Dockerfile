@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM registry.redhat.io/ubi8/go-toolset:1.18.9-8 as builder
+FROM registry.redhat.io/ubi8/go-toolset:1.18.9-13 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -17,6 +17,10 @@ USER root
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7
+RUN true \
+    && microdnf update \
+    && microdnf clean all \
+    && true
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY config/internal config/internal
