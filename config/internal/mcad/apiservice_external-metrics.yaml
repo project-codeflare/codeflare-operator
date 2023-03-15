@@ -3,6 +3,10 @@ apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService
 metadata:
   name: v1beta1.external.metrics.k8s.io
+  labels:
+    app.kubernetes.io/managed-by: MCAD
+    my-crd.example.com/cr-name: {{.Name}}
+    my-crd.example.com/cr-namespace: {{.Namespace}}
 spec:
   service:
     name: mcad-{{.Name}}-metrics

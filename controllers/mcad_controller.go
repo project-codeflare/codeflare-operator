@@ -34,6 +34,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const finalizerName = "codeflare.codeflare.dev/finalizer"
@@ -223,6 +226,22 @@ func updateReadyStatus(ctx context.Context, r *MCADReconciler, req ctrl.Request,
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	crFromLabels := handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+		labels := o.GetLabels()
+		if labels["app.kubernetes.io/managed-by"] == "MCAD" {
+			crName := labels["my-crd.example.com/cr-name"]
+			crNamespace := labels["my-crd.example.com/cr-namespace"]
+			if crName != "" {
+				return []reconcile.Request{
+					{NamespacedName: types.NamespacedName{
+						Name:      crName,
+						Namespace: crNamespace,
+					}},
+				}
+			}
+		}
+		return nil
+	})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&codeflarev1alpha1.MCAD{}).
 		Owns(&appsv1.Deployment{}).
@@ -230,6 +249,14 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRole{}},
+			crFromLabels,
+		).
+		Watches(
+			&source.Kind{Type: &rbacv1.ClusterRoleBinding{}},
+			crFromLabels,
+		).
 		Complete(r)
 }
 
