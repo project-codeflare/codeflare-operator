@@ -36,7 +36,8 @@ spec:
             description: MCADSpec defines the desired state of MCAD
             properties:
               agentConfigs:
-                description: 'AgentConfigs TODO: Add details'
+                description: AgentConfigs determine paths to agent config file:deploymentName
+                  separted by commas(,).
                 type: string
               controllerResources:
                 description: ControllerResources defines the cpu and memory resource
@@ -102,7 +103,8 @@ spec:
                 type: boolean
               podCreationTimeout:
                 default: -1
-                description: 'PodCreationTimeout TODO: Add details and confirm values'
+                description: PodCreationTimeout determins timeout in milliseconds
+                  for pods to be created after dispatching job.
                 type: integer
               preemptionEnabled:
                 default: false
@@ -110,7 +112,7 @@ spec:
                   preempted for others
                 type: boolean
               quotaRestURL:
-                description: 'QuotaRestURL TODO: Add details'
+                description: QuotaRestURL determines URL for Rest quota management.
                 type: string
             type: object
           status:
