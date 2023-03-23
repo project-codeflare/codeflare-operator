@@ -25,6 +25,7 @@ import (
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
 
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -218,6 +219,7 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Owns(&appsv1.Deployment{}).
 		Watches(
 			&source.Kind{Type: &rbacv1.ClusterRole{}},
 			crFromLabels,
