@@ -249,6 +249,7 @@ func (r *MCADReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
+		Owns(&appsv1.Deployment{}).
 		Watches(
 			&source.Kind{Type: &rbacv1.ClusterRole{}},
 			crFromLabels,
