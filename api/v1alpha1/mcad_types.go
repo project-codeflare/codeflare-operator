@@ -39,13 +39,13 @@ type MCADSpec struct {
 	// +kubebuilder:default=false
 	PreemptionEnabled bool `json:"preemptionEnabled,omitempty"`
 
-	// AgentConfigs determine paths to agent config file:deploymentName separted by commas(,).
+	// AgentConfigs determine paths to agent config file:deploymentName separated by commas(,).
 	AgentConfigs string `json:"agentConfigs,omitempty"`
 
 	// QuotaRestURL determines URL for Rest quota management.
 	QuotaRestURL string `json:"quotaRestURL,omitempty"`
 
-	// PodCreationTimeout determins timeout in milliseconds for pods to be created after dispatching job.
+	// PodCreationTimeout determines timeout in milliseconds for pods to be created after dispatching job.
 	// +kubebuilder:default=-1
 	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
 	//podCreationTimeout: //int (default blank)

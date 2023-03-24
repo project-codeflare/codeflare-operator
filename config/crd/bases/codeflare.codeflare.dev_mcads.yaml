@@ -37,7 +37,7 @@ spec:
             properties:
               agentConfigs:
                 description: AgentConfigs determine paths to agent config file:deploymentName
-                  separted by commas(,).
+                  separated by commas(,).
                 type: string
               controllerResources:
                 description: ControllerResources defines the cpu and memory resource
@@ -103,7 +103,7 @@ spec:
                 type: boolean
               podCreationTimeout:
                 default: -1
-                description: PodCreationTimeout determins timeout in milliseconds
+                description: PodCreationTimeout determines timeout in milliseconds
                   for pods to be created after dispatching job.
                 type: integer
               preemptionEnabled:
