@@ -93,6 +93,11 @@ spec:
                 description: maxScaleoutAllowed determines the max number of machines
                   that can be scaled up by InstaScale
                 type: integer
+              useMachinePools:
+                default: false
+                description: useMachinePools determines whether InstaScale should
+                  use MachineSets or MachinePools for scaling
+                type: boolean
             type: object
           status:
             description: InstaScaleStatus defines the observed state of InstaScale

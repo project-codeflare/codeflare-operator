@@ -96,7 +96,7 @@ func DeploymentsAreEqual(dp1 appsv1.Deployment, dp2 appsv1.Deployment) bool {
 	}
 
 	if !reflect.DeepEqual(dp1.Spec.Template.ObjectMeta, dp2.Spec.Template.ObjectMeta) {
-		notEqualMsg("selector")
+		notEqualMsg("Object MetaData")
 		return false
 	}
 
