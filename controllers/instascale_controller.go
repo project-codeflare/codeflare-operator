@@ -72,10 +72,7 @@ func (r *InstaScaleReconciler) Apply(owner mf.Owner, params *InstaScaleParams, t
 		return err
 	}
 
-	if err = tmplManifest.Apply(); err != nil {
-		return err
-	}
-	return nil
+	return tmplManifest.Apply()
 }
 
 // TODO: Review node permissions, instascale should only require read
@@ -142,7 +139,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else {
 		if controllerutil.ContainsFinalizer(instascaleCustomResource, finalizerName) {
-			if err := r.cleanUpClusterResources(ctx, req, instascaleCustomResource, params); err != nil {
+			if err := r.cleanUpClusterResources(params); err != nil {
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(instascaleCustomResource, finalizerName)
@@ -156,7 +153,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	log.V(1).Info("ReconcileInstaScale called.")
-	err = r.ReconcileInstaScale(ctx, instascaleCustomResource, req, params)
+	err = r.ReconcileInstaScale(instascaleCustomResource, params)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -231,14 +228,11 @@ func (r *InstaScaleReconciler) DeleteResource(params *InstaScaleParams, template
 		return err
 	}
 
-	if err = tmplManifest.Delete(); err != nil {
-		return err
-	}
-	return nil
+	return tmplManifest.Delete()
 }
 
 // cleanUpClusterResources will be responsible for deleting objects that do not have owner references set
-func (r *InstaScaleReconciler) cleanUpClusterResources(ctx context.Context, req ctrl.Request, instascale *codeflarev1alpha1.InstaScale, params *InstaScaleParams) error {
+func (r *InstaScaleReconciler) cleanUpClusterResources(params *InstaScaleParams) error {
 	for _, template := range instascaleClusterScopedTemplates {
 		err := r.DeleteResource(params, template)
 		if err != nil {

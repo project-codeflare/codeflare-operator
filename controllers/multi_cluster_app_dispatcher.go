@@ -1,9 +1,7 @@
 package controllers
 
 import (
-	"context"
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var multiClusterAppDispatcherTemplates = []string{
@@ -25,7 +23,7 @@ var ownerLessmultiClusterAppDispatcherTemplates = []string{
 	"mcad/clusterrolebinding_metrics-resource-reader.yaml.tmpl",
 }
 
-func (r *MCADReconciler) ReconcileMCAD(ctx context.Context, mcad *codeflarev1alpha1.MCAD, req ctrl.Request, params *MCADParams) error {
+func (r *MCADReconciler) ReconcileMCAD(mcad *codeflarev1alpha1.MCAD, params *MCADParams) error {
 
 	for _, template := range multiClusterAppDispatcherTemplates {
 		r.Log.Info("Applying " + template)

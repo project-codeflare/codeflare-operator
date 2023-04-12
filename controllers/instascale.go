@@ -1,10 +1,7 @@
 package controllers
 
 import (
-	"context"
-
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var instascaleTemplates = []string{
@@ -15,7 +12,7 @@ var instascaleTemplates = []string{
 	"instascale/deployment.yaml.tmpl",
 }
 
-func (r *InstaScaleReconciler) ReconcileInstaScale(ctx context.Context, instascale *codeflarev1alpha1.InstaScale, req ctrl.Request, params *InstaScaleParams) error {
+func (r *InstaScaleReconciler) ReconcileInstaScale(instascale *codeflarev1alpha1.InstaScale, params *InstaScaleParams) error {
 
 	for _, template := range instascaleTemplates {
 		err := r.Apply(instascale, params, template)

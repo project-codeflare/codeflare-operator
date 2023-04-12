@@ -15,6 +15,7 @@ type InstaScaleParams struct {
 	Owner               mf.Owner
 	EnableMonitoring    bool
 	MaxScaleoutAllowed  int
+	UseMachinePools     bool
 	ControllerResources ControllerResources
 }
 type ControllerResources struct {
@@ -34,6 +35,7 @@ func (p *InstaScaleParams) ExtractParams(instascale *instascalev1alpha1.InstaSca
 	p.Owner = instascale
 	p.EnableMonitoring = instascale.Spec.EnableMonitoring
 	p.MaxScaleoutAllowed = instascale.Spec.MaxScaleoutAllowed
+	p.UseMachinePools = instascale.Spec.UseMachinePools
 	if instascale.Spec.ControllerResources == nil {
 		p.ControllerResources = ControllerResources{
 			v1.ResourceRequirements{

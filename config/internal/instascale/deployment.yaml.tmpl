@@ -16,7 +16,9 @@ spec:
         app: instascale-{{.Name}}
     spec:
       containers:
-      - image: quay.io/project-codeflare/instascale-controller:v0.0.3
+      - args:
+        - "--configs-namespace={{.Namespace}}"
+        image: quay.io/project-codeflare/instascale-controller:v0.0.3
         name: instascale
         resources: {{.ControllerResources}}
       serviceAccountName: instascale-{{.Name}}-sa

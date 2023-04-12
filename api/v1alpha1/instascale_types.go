@@ -32,6 +32,10 @@ type InstaScaleSpec struct {
 	// +kubebuilder:default=15
 	MaxScaleoutAllowed int `json:"maxScaleoutAllowed,omitempty"`
 
+	// useMachinePools determines whether InstaScale should use MachineSets or MachinePools for scaling
+	// +kubebuilder:default=false
+	UseMachinePools bool `json:"useMachinePools,omitempty"`
+
 	// controllerResources determines the container resources for the InstaScale controller deployment
 	ControllerResources *v1.ResourceRequirements `json:"controllerResources,omitempty"`
 }
