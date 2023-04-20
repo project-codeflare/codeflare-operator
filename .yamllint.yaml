@@ -1,3 +1,5 @@
+ignore: |
+  bundle/manifests/mcad.ibm.com*
 extends: default
 rules:
   line-length: disable
@@ -10,6 +12,7 @@ rules:
       config/crd/kustomization.yaml
       config/scorecard/kustomization.yaml
       config/manifests/kustomization.yaml
+
   comments-indentation: disable
   hyphens:
     max-spaces-after: 4
