@@ -10,4 +10,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: codeflare-operator-controller-manager
-  namespace: openshift-operators
+  namespace: codeflare-operator-system
