@@ -1,0 +1,59 @@
+# This workflow will build the CodeFlare Operator image and push it to the project-codeflare image registry
+
+name: Image
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install operator-sdk
+      run: |
+        export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+        export OS=$(uname | awk '{print tolower($0)}')
+        export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.27.0
+        curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+        chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+
+
+    - name: Grab New Version Tag
+      id: tag_name
+      run: |
+        echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.QUAY_ID }}
+        password: ${{ secrets.QUAY_TOKEN }}
+        registry: quay.io
+
+    - name: Login to Red Hat Registry
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.RH_REG_ID }}
+        password: ${{ secrets.RH_REG_TOKEN }}
+        registry: registry.redhat.io
+
+    - name: Image Build
+      run: |
+        make build
+        make bundle
+        make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
+        podman tag quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator:latest
+      env:
+        SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
+
+    - name: Image Push
+      run: |
+        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
+        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:latest
+      env:
+        SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}

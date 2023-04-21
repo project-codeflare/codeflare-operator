@@ -1,8 +1,9 @@
-# This workflow will build images for the codeflare-operator, then push the images to the `project-codeflare` quay repo
+# This workflow will build the CodeFlare Operator bundle and push it to the project-codeflare image registry
 
 name: Image
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "*"
@@ -41,21 +42,17 @@ jobs:
         password: ${{ secrets.RH_REG_TOKEN }}
         registry: registry.redhat.io
 
-    - name: Image Build
+    - name: Bundle Image Build
       run: |
         make build
         make bundle
-        make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
-        podman tag quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator:latest
         make bundle-build -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:${SOURCE_TAG}
         podman tag quay.io/project-codeflare/codeflare-operator-bundle:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator-bundle:latest
       env:
         SOURCE_TAG: ${{ steps.tag_name.outputs.SOURCE_TAG }}
 
-    - name: Image Push
+    - name: Bundle Push
       run: |
-        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
-        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:latest
         make bundle-push -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:${SOURCE_TAG}
         make bundle-push -e BUNDLE_IMG=quay.io/project-codeflare/codeflare-operator-bundle:latest
       env:
