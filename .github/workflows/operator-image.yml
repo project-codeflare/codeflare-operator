@@ -1,6 +1,6 @@
 # This workflow will build the CodeFlare Operator image and push it to the project-codeflare image registry
 
-name: Image
+name: Operator Image
 
 on:
   workflow_dispatch:
