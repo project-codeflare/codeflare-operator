@@ -45,11 +45,11 @@ jobs:
         make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
         podman tag quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator:latest
       env:
-        SOURCE_TAG: ${{ github.event.inputs.tags }}
+        SOURCE_TAG: ${{ github.event.inputs.tag }}
 
     - name: Image Push
       run: |
         make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
         make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:latest
       env:
-        SOURCE_TAG: ${{ github.event.inputs.tags }}
+        SOURCE_TAG: ${{ github.event.inputs.tag }}
