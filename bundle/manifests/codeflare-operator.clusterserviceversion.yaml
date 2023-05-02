@@ -553,3 +553,4 @@ spec:
     name: CodeFlare
     url: https://github.com/project-codeflare
   version: 0.0.2
+  replaces: codeflare-operator.v0.0.1
