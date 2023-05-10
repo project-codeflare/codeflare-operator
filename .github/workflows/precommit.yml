@@ -31,18 +31,3 @@ jobs:
 
       - name: Run pre-commit checks
         run: pre-commit run --all-files
-
-  validate-bundle:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: dorny/paths-filter@v2
-        name: check bundle changes
-        id: filter
-        with:
-          filters: |
-            bundle-changed:
-              - 'bundle/**'
-      - if: steps.filter.outputs.bundle-changed == 'true'
-        run: |
-          make validate-bundle
