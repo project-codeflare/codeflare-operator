@@ -4,9 +4,7 @@
 resources:
 - bases/codeflare.codeflare.dev_mcads.yaml
 - bases/codeflare.codeflare.dev_instascales.yaml
-- bases/mcad.ibm.com_appwrappers.yaml
-- bases/mcad.ibm.com_queuejobs.yaml
-- bases/mcad.ibm.com_schedulingspecs.yaml
+- mcad
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
