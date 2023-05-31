@@ -187,17 +187,30 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
+GH_CLI ?= $(LOCALBIN)/gh
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.4
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 OPERATOR_SDK_VERSION ?= v1.27.0
+GH_CLI_VERSION ?= 2.30.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
+
+GH_CLI_DL_URL := https://github.com/cli/cli/releases/download/v$(GH_CLI_VERSION)
+GH_CLI_DL_FILENAME := gh_$(GH_CLI_VERSION)_$(shell go env GOOS)_$(shell go env GOARCH)
+.PHONY: install-gh-cli
+install-gh-cli: $(GH_CLI)
+$(GH_CLI): $(LOCALBIN)
+	curl -L $(GH_CLI_DL_URL)/$(GH_CLI_DL_FILENAME).tar.gz --output $(GH_CLI_DL_FILENAME).tar.gz
+	tar -xvzf $(GH_CLI_DL_FILENAME).tar.gz
+	cp $(GH_CLI_DL_FILENAME)/bin/gh $(GH_CLI)
+	rm -rf $(GH_CLI_DL_FILENAME)
+	rm $(GH_CLI_DL_FILENAME).tar.gz
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -236,6 +249,15 @@ bundle-build: bundle ## Build the bundle image.
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
 	$(MAKE) image-push IMG=$(BUNDLE_IMG)
+
+.PHONY: openshift-community-operator-releases
+openshift-community-operator-release: install-gh-cli bundle ## build bundle and create PR in OpenShift community operators repository
+	gh repo clone git@github.com:project-codeflare/community-operators-prod.git
+	cd community-operators-prod && git pull upstream main && git push origin main
+	cp -r bundle community-operators-prod/operators/codeflare-operator/$(VERSION)
+	cd community-operators-prod && git checkout -b codeflare-release-$(VERSION) && git add operators/codeflare-operator/$(VERSION)/* && git commit -m "add bundle manifests codeflare version $(VERSION)" && git push origin codeflare-release-$(VERSION)
+	gh pr create --repo redhat-openshift-ecosystem/community-operators-prod --title "CodeFlare $(VERSION)" --body "New release of codeflare operator" --head project-codeflare:codeflare-release-$(VERSION) --base main
+	rm -rf community-operators-prod
 
 .PHONY: opm
 OPM = ./bin/opm
