@@ -8,21 +8,23 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: manager
   namespace: system
   labels:
     control-plane: controller-manager
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/name: codeflare-operator
+      app.kubernetes.io/part-of: codeflare
   replicas: 1
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: controller-manager
+        app.kubernetes.io/name: codeflare-operator
+        app.kubernetes.io/part-of: codeflare
     spec:
       securityContext:
         runAsNonRoot: true
