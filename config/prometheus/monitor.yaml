@@ -4,7 +4,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     control-plane: controller-manager
-  name: controller-manager-metrics-monitor
+  name: manager-metrics
   namespace: system
 spec:
   endpoints:
@@ -16,4 +16,5 @@ spec:
         insecureSkipVerify: true
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/name: codeflare-operator
+      app.kubernetes.io/part-of: codeflare
