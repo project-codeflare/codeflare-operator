@@ -38,6 +38,17 @@ type InstaScaleSpec struct {
 
 	// controllerResources determines the container resources for the InstaScale controller deployment
 	ControllerResources *v1.ResourceRequirements `json:"controllerResources,omitempty"`
+
+	// The container image for the InstaScale controller deployment.
+	// If specified, the provided container image must be compatible with the running CodeFlare operator.
+	// Using an incompatible, or unrelated container image, will result in an undefined behavior.
+	// A CodeFlare operator upgrade will not upgrade the InstaScale controller, that'll keep running this
+	// specified container image.
+	// If not specified, the latest version compatible with the running CodeFlare operator is used.
+	// A CodeFlare operator upgrade may upgrade the InstaScale controller to a newer container image.
+	//
+	// +optional
+	ControllerImage string `json:"controllerImage,omitempty"`
 }
 
 // InstaScaleStatus defines the observed state of InstaScale
@@ -48,8 +59,8 @@ type InstaScaleStatus struct {
 	Ready bool `json:"ready"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // InstaScale is the Schema for the instascales API
 // +operator-sdk:csv:customresourcedefinitions:displayName="InstaScale"
@@ -61,7 +72,7 @@ type InstaScale struct {
 	Status InstaScaleStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // InstaScaleList contains a list of InstaScale
 type InstaScaleList struct {
