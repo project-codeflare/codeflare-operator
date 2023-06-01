@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"path"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -36,6 +38,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
+
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
 	"github.com/project-codeflare/codeflare-operator/controllers/util"
@@ -55,8 +58,7 @@ var instascaleClusterScopedTemplates = []string{
 }
 
 func (r *InstaScaleReconciler) Apply(owner mf.Owner, params *InstaScaleParams, template string, fns ...mf.Transformer) error {
-
-	tmplManifest, err := config.Manifest(r.Client, r.TemplatesPath+template, params, template, r.Log)
+	tmplManifest, err := config.Manifest(r.Client, path.Join(r.TemplatesPath, template), params, template, r.Log)
 	if err != nil {
 		return fmt.Errorf("error loading template yaml: %w", err)
 	}
@@ -77,17 +79,17 @@ func (r *InstaScaleReconciler) Apply(owner mf.Owner, params *InstaScaleParams, t
 
 // TODO: Review node permissions, instascale should only require read
 
-//+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales/finalizers,verbs=update
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=*,resources=deployments;services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=secrets;configmaps;nodes;services;serviceaccounts;persistentvolumes;persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=persistentvolumes;persistentvolumeclaims,verbs=*
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups=machine.openshift.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mcad.ibm.com,resources=appwrappers;queuejobs;schedulingspecs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=instascales/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=deployments;services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets;configmaps;nodes;services;serviceaccounts;persistentvolumes;persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=persistentvolumes;persistentvolumeclaims,verbs=*
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mcad.ibm.com,resources=appwrappers;queuejobs;schedulingspecs,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -124,11 +126,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		instascaleCustomResource.APIVersion, instascaleCustomResource.Kind = gvk.Version, gvk.Kind
 	}
 
-	err = params.ExtractParams(instascaleCustomResource)
-	if err != nil {
-		log.Error(err, "Unable to parse InstaScale custom resource")
-		return ctrl.Result{}, err
-	}
+	params.ExtractParams(instascaleCustomResource)
 
 	if instascaleCustomResource.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(instascaleCustomResource, finalizerName) {
@@ -152,7 +150,6 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	log.V(1).Info("ReconcileInstaScale called.")
 	err = r.ReconcileInstaScale(instascaleCustomResource, params)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -162,7 +159,8 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.Client.Status().Update(context.Background(), instascaleCustomResource)
+
+	err = r.Client.Status().Update(ctx, instascaleCustomResource)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
