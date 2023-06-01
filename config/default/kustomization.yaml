@@ -9,8 +9,9 @@ namespace: openshift-operators
 namePrefix: codeflare-operator-
 
 # Labels to add to all resources and selectors.
-# commonLabels:
-#  someName: someValue
+commonLabels:
+  app.kubernetes.io/name: codeflare-operator
+  app.kubernetes.io/part-of: codeflare
 
 bases:
 - ../crd
