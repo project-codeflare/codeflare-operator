@@ -31,13 +31,6 @@ jobs:
         password: ${{ secrets.QUAY_TOKEN }}
         registry: quay.io
 
-    - name: Login to Red Hat Registry
-      uses: redhat-actions/podman-login@v1
-      with:
-        username: ${{ secrets.RH_REG_ID }}
-        password: ${{ secrets.RH_REG_TOKEN }}
-        registry: registry.redhat.io
-
     - name: Image Build
       run: |
         make build
