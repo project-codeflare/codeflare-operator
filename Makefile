@@ -161,7 +161,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v3.8.7
+KUSTOMIZE_VERSION ?= v4.5.4
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 OPERATOR_SDK_VERSION ?= v1.27.0
 
@@ -253,9 +253,3 @@ catalog-push: ## Push a catalog image.
 .PHONY: test-unit
 test-unit: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
-
-.PHONY: sync-crd
-sync-crd:
-	curl -L -o bundle/manifests/mcad.ibm.com_appwrappers.yaml  https://raw.githubusercontent.com/project-codeflare/multi-cluster-app-dispatcher/main/config/crd/bases/mcad.ibm.com_appwrappers.yaml
-	curl -L -o bundle/manifests/mcad.ibm.com_queuejobs.yaml  https://raw.githubusercontent.com/project-codeflare/multi-cluster-app-dispatcher/main/config/crd/bases/mcad.ibm.com_queuejobs.yaml
-	curl -L -o bundle/manifests/mcad.ibm.com_schedulingspecs.yaml https://raw.githubusercontent.com/project-codeflare/multi-cluster-app-dispatcher/main/config/crd/bases/mcad.ibm.com_schedulingspecs.yaml

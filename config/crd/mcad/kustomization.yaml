@@ -1,0 +1,2 @@
+resources:
+  - github.com/project-codeflare/multi-cluster-app-dispatcher/config/crd?ref=main
