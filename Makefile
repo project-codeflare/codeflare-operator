@@ -230,7 +230,7 @@ bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle man
 	$(MAKE) validate-bundle
 
 .PHONY: bundle-build
-bundle-build: ## Build the bundle image.
+bundle-build: bundle ## Build the bundle image.
 	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
