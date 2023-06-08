@@ -10,7 +10,7 @@ PREVIOUS_VERSION ?= 0.0.3
 VERSION ?= 0.0.3-dev
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.0.3
+INSTASCALE_VERSION ?= v0.0.4
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")

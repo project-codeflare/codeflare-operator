@@ -5,5 +5,5 @@ package controllers
 // ***********************
 
 const (
-	InstaScaleImage = "quay.io/project-codeflare/instascale-controller:v0.0.3"
+	InstaScaleImage = "quay.io/project-codeflare/instascale-controller:v0.0.4"
 )
