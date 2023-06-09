@@ -31,8 +31,8 @@ If changes are made to any Go code (like in the `controllers` dir for example), 
  - This will check and build/compile the modified code
 
 For building and pushing a new version of the operator image:
- - `make image-build -e IMG_TAG_BASE=<image-repo/image-name> VERSION=<semver>`
- - `make image-push -e IMG_TAG_BASE=<image-repo/image-name> VERSION=<semver>`
+ - `make image-build -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<semver>`
+ - `make image-push -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<semver>`
 
 For deploying onto a cluster:
  - First, either set `KUBECONFIG` or ensure you are logged into a cluster in your environment
@@ -40,11 +40,11 @@ For deploying onto a cluster:
  - `make deploy -e IMG=<image-repo/image-name>`
 
 For building and pushing a new version of the bundled operator image:
- - `make bundle-build -e IMG_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
- - `make bundle-push -e IMG_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
+ - `make bundle-build -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
+ - `make bundle-push -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
 
 To create a new openshift-community-operator-release:
- - `make openshift-community-operator-release -e IMG_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
+ - `make openshift-community-operator-release -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
 
 ## Testing
 The CodeFlare Operator currently has unit tests and pre-commit checks
