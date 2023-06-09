@@ -7,10 +7,3 @@ resources:
 - ../scorecard
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-patches:
-- patch: '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "quay.io/project-codeflare/codeflare-operator:v0.0.1" }]'
-  target:
-    kind: ClusterServiceVersion
-- patch: '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "quay.io/project-codeflare/codeflare-operator:v0.0.2" }]'
-  target:
-    kind: ClusterServiceVersion
