@@ -255,7 +255,7 @@ openshift-community-operator-release: install-gh-cli bundle ## build bundle and 
 	gh repo clone git@github.com:project-codeflare/community-operators-prod.git
 	cd community-operators-prod && git pull upstream main && git push origin main
 	cp -r bundle community-operators-prod/operators/codeflare-operator/$(VERSION)
-	cd community-operators-prod && git checkout -b codeflare-release-$(VERSION) && git add operators/codeflare-operator/$(VERSION)/* && git commit -m "add bundle manifests codeflare version $(VERSION)" && git push origin codeflare-release-$(VERSION)
+	cd community-operators-prod && git checkout -b codeflare-release-$(VERSION) && git add operators/codeflare-operator/$(VERSION)/* && git commit -s -m "add bundle manifests codeflare version $(VERSION)" && git push origin codeflare-release-$(VERSION)
 	gh pr create --repo redhat-openshift-ecosystem/community-operators-prod --title "CodeFlare $(VERSION)" --body "New release of codeflare operator" --head project-codeflare:codeflare-release-$(VERSION) --base main
 	rm -rf community-operators-prod
 
