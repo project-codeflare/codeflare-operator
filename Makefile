@@ -6,8 +6,8 @@
 # best if we could detect this. If we cannot, we need to document it somewhere.
 # then we can add a patch in the `PHONY: bundle`
 
-PREVIOUS_VERSION ?= 0.0.3
-VERSION ?= 0.0.4
+PREVIOUS_VERSION ?= 0.0.0-dev
+VERSION ?= 0.0.0-dev
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
 INSTASCALE_VERSION ?= v0.0.4
