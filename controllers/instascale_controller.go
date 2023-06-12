@@ -39,7 +39,7 @@ import (
 	"github.com/go-logr/logr"
 	mf "github.com/manifestival/manifestival"
 
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	"github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
 	"github.com/project-codeflare/codeflare-operator/controllers/util"
 )
@@ -106,7 +106,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log.V(1).Info("InstaScale reconciler called.")
 
 	params := &InstaScaleParams{}
-	instascaleCustomResource := &codeflarev1alpha1.InstaScale{}
+	instascaleCustomResource := &v1alpha1.InstaScale{}
 
 	err := r.Get(ctx, req.NamespacedName, instascaleCustomResource)
 	if err != nil && apierrs.IsNotFound(err) {
@@ -122,7 +122,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// In production we expect these to be populated
 	if instascaleCustomResource.Kind == "" {
 		instascaleCustomResource = instascaleCustomResource.DeepCopy()
-		gvk := codeflarev1alpha1.GroupVersion.WithKind("InstaScale")
+		gvk := v1alpha1.SchemeGroupVersion.WithKind("InstaScale")
 		instascaleCustomResource.APIVersion, instascaleCustomResource.Kind = gvk.Version, gvk.Kind
 	}
 
@@ -168,7 +168,7 @@ func (r *InstaScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func updateInstascaleReadyStatus(ctx context.Context, r *InstaScaleReconciler, req ctrl.Request, instascaleCustomResource *codeflarev1alpha1.InstaScale) error {
+func updateInstascaleReadyStatus(ctx context.Context, r *InstaScaleReconciler, req ctrl.Request, instascaleCustomResource *v1alpha1.InstaScale) error {
 	deployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("instascale-%s", req.Name), Namespace: req.Namespace}, deployment)
 	if err != nil {
@@ -198,7 +198,7 @@ func (r *InstaScaleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	})
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&codeflarev1alpha1.InstaScale{}).
+		For(&v1alpha1.InstaScale{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&authv1.ClusterRole{}).

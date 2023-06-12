@@ -125,6 +125,38 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+.PHONY: generate-client ## Generate client packages
+generate-client: code-generator
+	rm -rf client
+	$(APPLYCONFIGURATION_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/applyconfiguration" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(CLIENT_GEN) \
+		--input="codeflare/v1alpha1" \
+		--input-base="github.com/project-codeflare/codeflare-operator/api" \
+		--apply-configuration-package="github.com/project-codeflare/codeflare-operator/client/applyconfiguration" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--clientset-name "versioned"  \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/clientset" \
+		--output-base="." \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(LISTER_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-base="." \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/listers" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(INFORMER_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--versioned-clientset-package="github.com/project-codeflare/codeflare-operator/client/clientset/versioned" \
+		--listers-package="github.com/project-codeflare/codeflare-operator/client/listers" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-base="." \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/informer" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -185,6 +217,10 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+APPLYCONFIGURATION_GEN ?= $(LOCALBIN)/applyconfiguration-gen
+CLIENT_GEN ?= $(LOCALBIN)/client-gen
+LISTER_GEN ?= $(LOCALBIN)/lister-gen
+INFORMER_GEN ?= $(LOCALBIN)/informer-gen
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -192,6 +228,7 @@ GH_CLI ?= $(LOCALBIN)/gh
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.4
+CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 OPERATOR_SDK_VERSION ?= v1.27.0
 GH_CLI_VERSION ?= 2.30.0
@@ -212,6 +249,29 @@ $(GH_CLI): $(LOCALBIN)
 	cp $(GH_CLI_DL_FILENAME)/bin/gh $(GH_CLI)
 	rm -rf $(GH_CLI_DL_FILENAME)
 	rm $(GH_CLI_DL_FILENAME).tar.gz
+
+.PHONY: code-generator
+code-generator: $(APPLYCONFIGURATION_GEN) $(CLIENT_GEN) $(LISTER_GEN) $(INFORMER_GEN)
+
+.PHONY: applyconfiguration-gen
+applyconfiguration-gen: $(APPLYCONFIGURATION_GEN)
+$(APPLYCONFIGURATION_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/applyconfiguration-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/applyconfiguration-gen@$(CODEGEN_VERSION)
+
+.PHONY: client-gen
+client-gen: $(CLIENT_GEN)
+$(CLIENT_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/client-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/client-gen@$(CODEGEN_VERSION)
+
+.PHONY: lister-gen
+lister-gen: $(LISTER_GEN)
+$(LISTER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/lister-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/lister-gen@$(CODEGEN_VERSION)
+
+.PHONY: informer-gen
+informer-gen: $(INFORMER_GEN)
+$(INFORMER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/informer-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/informer-gen@$(CODEGEN_VERSION)
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
