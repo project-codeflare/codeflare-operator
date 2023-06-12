@@ -48,7 +48,7 @@ type MCADSpec struct {
 	// PodCreationTimeout determines timeout in milliseconds for pods to be created after dispatching job.
 	// +kubebuilder:default=-1
 	PodCreationTimeout int `json:"podCreationTimeout,omitempty"`
-	//podCreationTimeout: //int (default blank)
+	// podCreationTimeout: //int (default blank)
 
 	// ControllerResources defines the cpu and memory resource requirements for the MCAD Controller
 	// +kubebuilder:default={}
@@ -63,8 +63,9 @@ type MCADStatus struct {
 	Ready bool `json:"ready"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +genclient
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // MCAD is the Schema for the mcads API
 type MCAD struct {
@@ -75,15 +76,11 @@ type MCAD struct {
 	Status MCADStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // MCADList contains a list of MCAD
 type MCADList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []MCAD `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&MCAD{}, &MCADList{})
 }

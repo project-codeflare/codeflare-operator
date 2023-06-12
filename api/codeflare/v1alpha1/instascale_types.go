@@ -59,6 +59,7 @@ type InstaScaleStatus struct {
 	Ready bool `json:"ready"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
@@ -79,8 +80,4 @@ type InstaScaleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []InstaScale `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&InstaScale{}, &InstaScaleList{})
 }

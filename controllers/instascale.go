@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 )
 
 var instascaleTemplates = []string{

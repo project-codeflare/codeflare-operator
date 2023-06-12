@@ -9,7 +9,7 @@ import (
 	mfc "github.com/manifestival/controller-runtime-client"
 	mf "github.com/manifestival/manifestival"
 
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 )
 
 const (
