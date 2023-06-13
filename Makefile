@@ -1,13 +1,15 @@
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
-# - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
+# - use the VERSION as arg of the bundle target (e.g make bundle VERSION=v0.0.2)
+# - use environment variables to overwrite this value (e.g export VERSION=v0.0.2)
 # best if we could detect this. If we cannot, we need to document it somewhere.
 # then we can add a patch in the `PHONY: bundle`
+# BUNDLE_VERSION is declared as bundle versioning doesn't use semver
 
-PREVIOUS_VERSION ?= 0.0.0-dev
-VERSION ?= 0.0.0-dev
+PREVIOUS_VERSION ?= v0.0.0-dev
+VERSION ?= v0.0.0-dev
+BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
 INSTASCALE_VERSION ?= v0.0.4
@@ -18,6 +20,11 @@ MCAD_VERSION ?= v1.31.0
 MCAD_REF ?= release-${MCAD_VERSION}
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
+
+# OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
+# OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
+OPERATORS_REPO_ORG ?= redhat-openshift-ecosystem
+OPERATORS_REPO_FORK_ORG ?= project-codeflare
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -56,10 +63,10 @@ INSTASCALE_IMAGE ?= $(IMAGE_ORG_BASE)/instascale-controller:$(INSTASCALE_VERSION
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
+BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(VERSION)
 
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
-BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(BUNDLE_VERSION) $(BUNDLE_METADATA_OPTS)
 
 # USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
 # You can enable this value if you would like to use SHA Based Digests
@@ -70,7 +77,7 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= ${IMAGE_TAG_BASE}:v${VERSION}
+IMG ?= ${IMAGE_TAG_BASE}:${VERSION}
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.2
 
@@ -312,7 +319,7 @@ bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle man
 	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
-	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.v$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
+	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(MAKE) validate-bundle
 	git restore config/*
@@ -325,13 +332,13 @@ bundle-build: bundle ## Build the bundle image.
 bundle-push: ## Push the bundle image.
 	$(MAKE) image-push IMG=$(BUNDLE_IMG)
 
-.PHONY: openshift-community-operator-releases
+.PHONY: openshift-community-operator-release
 openshift-community-operator-release: install-gh-cli bundle ## build bundle and create PR in OpenShift community operators repository
-	gh repo clone git@github.com:project-codeflare/community-operators-prod.git
-	cd community-operators-prod && git pull upstream main && git push origin main
-	cp -r bundle community-operators-prod/operators/codeflare-operator/$(VERSION)
-	cd community-operators-prod && git checkout -b codeflare-release-$(VERSION) && git add operators/codeflare-operator/$(VERSION)/* && git commit -s -m "add bundle manifests codeflare version $(VERSION)" && git push origin codeflare-release-$(VERSION)
-	gh pr create --repo redhat-openshift-ecosystem/community-operators-prod --title "CodeFlare $(VERSION)" --body "New release of codeflare operator" --head project-codeflare:codeflare-release-$(VERSION) --base main
+	git clone https://$(GH_TOKEN)@github.com/$(OPERATORS_REPO_FORK_ORG)/community-operators-prod.git
+	cd community-operators-prod && git remote add upstream https://github.com/$(OPERATORS_REPO_ORG)/community-operators-prod.git && git pull upstream main && git push origin main
+	cp -r bundle community-operators-prod/operators/codeflare-operator/$(BUNDLE_VERSION)
+	cd community-operators-prod && git checkout -b codeflare-release-$(BUNDLE_VERSION) && git add operators/codeflare-operator/$(BUNDLE_VERSION)/* && git commit -m "add bundle manifests codeflare version $(BUNDLE_VERSION)" && git push origin codeflare-release-$(BUNDLE_VERSION)
+	gh pr create --repo $(OPERATORS_REPO_FORK_ORG)/community-operators-prod --title "CodeFlare $(BUNDLE_VERSION)" --body "New release of codeflare operator" --head $(OPERATORS_REPO_ORG):codeflare-release-$(BUNDLE_VERSION) --base main
 	rm -rf community-operators-prod
 
 .PHONY: opm
@@ -356,7 +363,7 @@ endif
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 
 # The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
+CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:$(VERSION)
 
 # Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
 ifneq ($(origin CATALOG_BASE_IMG), undefined)

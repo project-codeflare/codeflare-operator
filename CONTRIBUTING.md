@@ -44,7 +44,7 @@ For building and pushing a new version of the bundled operator image:
  - `make bundle-push -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
 
 To create a new openshift-community-operator-release:
- - `make openshift-community-operator-release -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace>`
+ - `make openshift-community-operator-release -e IMAGE_TAG_BASE=<image-repo/image-name> VERSION=<new semver> PREVIOUS_VERSION=<semver to replace> GH_TOKEN=<GitHub token for pushing bundle content to forked repository>`
 
 ## Testing
 The CodeFlare Operator currently has unit tests and pre-commit checks
