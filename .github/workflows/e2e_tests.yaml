@@ -1,0 +1,180 @@
+name: e2e
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release-*'
+    paths-ignore:
+      - 'docs/**'
+      - '**.adoc'
+      - '**.md'
+      - 'LICENSE'
+  push:
+    branches:
+      - main
+      - 'release-*'
+    paths-ignore:
+      - 'docs/**'
+      - '**.adoc'
+      - '**.md'
+      - 'LICENSE'
+
+concurrency:
+  group: ${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  kubernetes:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Cleanup
+        run: |
+          ls -lart
+          echo "Initial status:"
+          df -h
+
+          echo "Cleaning up resources:"
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker rmi $(docker image ls -aq)
+
+          echo "Final status:"
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Init directories
+        run: |
+          TEMP_DIR="$(pwd)/tmp"
+          mkdir -p "${TEMP_DIR}"
+          echo "TEMP_DIR=${TEMP_DIR}" >> $GITHUB_ENV
+
+          mkdir -p "$(pwd)/bin"
+          echo "$(pwd)/bin" >> $GITHUB_PATH
+
+      - name: Set Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: v1.18
+
+      - name: Container image registry
+        run: |
+          podman run -d -p 5000:5000 --name registry registry:2.8.1
+
+          export REGISTRY_ADDRESS=$(hostname -i):5000
+          echo "REGISTRY_ADDRESS=${REGISTRY_ADDRESS}" >> $GITHUB_ENV
+          echo "Container image registry started at ${REGISTRY_ADDRESS}"
+
+          KIND_CONFIG_FILE=${{ env.TEMP_DIR }}/kind.yaml
+          echo "KIND_CONFIG_FILE=${KIND_CONFIG_FILE}" >> $GITHUB_ENV
+          envsubst < ./test/e2e/kind.yaml > ${KIND_CONFIG_FILE}
+
+          sudo --preserve-env=REGISTRY_ADDRESS sh -c 'cat > /etc/containers/registries.conf.d/local.conf <<EOF
+          [[registry]]
+          prefix = "$REGISTRY_ADDRESS"
+          insecure = true
+          location = "$REGISTRY_ADDRESS"
+          EOF'
+
+      - name: Setup KinD cluster
+        uses: helm/kind-action@v1.5.0
+        with:
+          name: cluster
+          version: v0.17.0
+          config: ${{ env.KIND_CONFIG_FILE }}
+
+      - name: Print cluster info
+        run: |
+          echo "KinD cluster:"
+          kubectl cluster-info
+          kubectl describe nodes
+
+      - name: Deploy CodeFlare stack
+        id: deploy
+        run: |
+          KUBERAY_VERSION=$(make get-kuberay-version)
+          echo Deploying KubeRay ${KUBERAY_VERSION}
+          kubectl create -k "github.com/ray-project/kuberay/ray-operator/config/default?ref=${KUBERAY_VERSION}&timeout=90s"
+
+          echo Deploying CodeFlare operator
+          IMG="${REGISTRY_ADDRESS}"/codeflare-operator
+          make image-push -e IMG="${IMG}"
+          make deploy -e IMG="${IMG}"
+          kubectl wait --timeout=120s --for=condition=Available=true deployment -n openshift-operators codeflare-operator-manager
+
+          echo Deploying MCAD controller
+          kubectl create ns codeflare-system
+          cat <<EOF | kubectl apply -n codeflare-system -f -
+          apiVersion: codeflare.codeflare.dev/v1alpha1
+          kind: MCAD
+          metadata:
+            name: mcad
+          spec:
+            controllerResources: {}
+          EOF
+
+          cat <<EOF | kubectl apply -n codeflare-system -f -
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRole
+          metadata:
+            name: mcad-controller-rayclusters
+          rules:
+            - apiGroups:
+                - ray.io
+              resources:
+                - rayclusters
+                - rayclusters/finalizers
+                - rayclusters/status
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+          EOF
+
+          cat <<EOF | kubectl apply -n codeflare-system -f -
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          metadata:
+            name: mcad-controller-rayclusters
+          subjects:
+            - kind: ServiceAccount
+              name: mcad-controller-mcad
+              namespace: codeflare-system
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: mcad-controller-rayclusters
+          EOF
+
+          kubectl wait --timeout=120s --for=condition=Available=true deployment -n codeflare-system mcad-controller-mcad
+
+      - name: Run e2e tests
+        run: |
+          make test-e2e
+
+      - name: Print CodeFlare operator logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          echo "Printing CodeFlare operator logs"
+          kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator
+
+      - name: Print MCAD controller logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          echo "Printing MCAD controller logs"
+          kubectl logs -n codeflare-system --tail -1 -l component=multi-cluster-application-dispatcher

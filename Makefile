@@ -21,6 +21,9 @@ MCAD_REF ?= release-${MCAD_VERSION}
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
 
+# KUBERAY_VERSION defines the default version of the KubeRay operator
+KUBERAY_VERSION ?= v0.5.0
+
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
 OPERATORS_REPO_ORG ?= redhat-openshift-ecosystem
@@ -199,7 +202,7 @@ image-build: test-unit ## Build container image with the manager.
 	podman build -t ${IMG} .
 
 .PHONY: image-push
-image-push: ## Push container image with the manager.
+image-push: image-build ## Push container image with the manager.
 	podman push ${IMG}
 
 ##@ Deployment
@@ -383,5 +386,13 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) image-push IMG=$(CATALOG_IMG)
 
 .PHONY: test-unit
-test-unit: defaults manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+test-unit: defaults manifests generate fmt vet envtest ## Run unit tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(go list ./... | grep -v /test/) -coverprofile cover.out
+
+.PHONY: test-e2e
+test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
+	go test -timeout 30m -v ./test/e2e
+
+.PHONY: get-kuberay-version
+get-kuberay-version:
+	@echo $(KUBERAY_VERSION)
