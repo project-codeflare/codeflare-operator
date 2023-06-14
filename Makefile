@@ -12,6 +12,9 @@ VERSION ?= 0.0.0-dev
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
 INSTASCALE_VERSION ?= v0.0.4
 
+# MCAD_VERSION defines the default version of the MCAD controller
+MCAD_VERSION ?= v1.31.0
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -200,6 +203,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_VERSION=$(MCAD_VERSION)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	git restore config/*
@@ -297,6 +301,7 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_VERSION=$(MCAD_VERSION)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.v$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
