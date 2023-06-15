@@ -342,7 +342,7 @@ OPERATOR_SDK_DL_URL := https://github.com/operator-framework/operator-sdk/releas
 .PHONY: install-operator-sdk
 install-operator-sdk: $(OPERATOR_SDK) ## Download fixed version operator-sdk binary for consist outcome
 $(OPERATOR_SDK): $(LOCALBIN)
-	curl -L $(OPERATOR_SDK_DL_URL)/operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH) --output-dir $(LOCALBIN) --output operator-sdk
+	curl -L $(OPERATOR_SDK_DL_URL)/operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH) --output $(LOCALBIN)/operator-sdk
 	chmod +x $(OPERATOR_SDK)
 
 .PHONY: validate-bundle
@@ -366,7 +366,7 @@ bundle-build: bundle ## Build the bundle image.
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	$(MAKE) image-push IMG=$(BUNDLE_IMG)
+	podman push $(BUNDLE_IMG) $(BUNDLE_PUSH_OPT)
 
 .PHONY: openshift-community-operator-release
 openshift-community-operator-release: install-gh-cli bundle ## build bundle and create PR in OpenShift community operators repository
@@ -413,10 +413,21 @@ endif
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool podman --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
+# Build a catalog image by adding bundle images to existing catalog using the operator package manager tool, 'opm'.
+.PHONY: catalog-build-from-index
+catalog-build-from-index: opm ## Build a catalog image.
+	mkdir catalog
+	$(OPM) render $(CATALOG_BASE_IMG) -o yaml > catalog/bundles.yaml
+	$(OPM) render $(BUNDLE_IMG) $(OPM_BUNDLE_OPT) > catalog/codeflare-operator-bundle.yaml
+	sed -i -E "s/(.*)(- name: codeflare-operator.$(PREVIOUS_VERSION).*)/\1- name: codeflare-operator.$(VERSION)\n  replaces: codeflare-operator.$(PREVIOUS_VERSION)\n\2/" catalog/bundles.yaml
+	$(OPM) validate catalog
+	$(OPM) generate dockerfile catalog
+	podman build . -f catalog.Dockerfile -t $(CATALOG_IMG)
+
 # Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) image-push IMG=$(CATALOG_IMG)
+	podman push $(CATALOG_IMG) $(CATALOG_PUSH_OPT)
 
 .PHONY: test-unit
 test-unit: defaults manifests generate fmt vet envtest ## Run unit tests.
@@ -429,3 +440,18 @@ test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.
 	KUBERAY_VERSION=$(KUBERAY_VERSION) test/e2e/setup.sh
+
+# Wait until Subscription is in "AtLatestKnown" state
+.PHONY: subscription-ready
+subscription-ready:
+	timeout 300 bash -c 'while [[ "$$(kubectl get subscription/'$(SUBSCRIPTION_NAME)' -n '$(SUBSCRIPTION_NAMESPACE)' -o json | jq -r .status.state)" != "AtLatestKnown" ]]; do sleep 5 && echo "$$(kubectl get subscription/'$(SUBSCRIPTION_NAME)' -n '$(SUBSCRIPTION_NAMESPACE)' -o json | jq -r .status.state)" ; done'
+
+# Default timeout for waiting actions
+TIMEOUT ?= 180
+
+# Wait until Deployment is in "Available" state
+.PHONY: deployment-available
+deployment-available:
+	# Wait until Deployment exists first, then use kubectl wait
+	timeout $(TIMEOUT) bash -c 'until [[ $$(kubectl get deployment/'$(DEPLOYMENT_NAME)' -n '$(DEPLOYMENT_NAMESPACE)') ]]; do sleep 5 && echo "$$(kubectl get deployment/'$(DEPLOYMENT_NAME)' -n '$(DEPLOYMENT_NAMESPACE)')"; done'
+	kubectl wait --timeout=$(TIMEOUT)s --for=condition=Available=true deployment/$(DEPLOYMENT_NAME) -n $(DEPLOYMENT_NAMESPACE)
