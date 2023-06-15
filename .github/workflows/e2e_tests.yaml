@@ -54,15 +54,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Init directories
-        run: |
-          TEMP_DIR="$(pwd)/tmp"
-          mkdir -p "${TEMP_DIR}"
-          echo "TEMP_DIR=${TEMP_DIR}" >> $GITHUB_ENV
-
-          mkdir -p "$(pwd)/bin"
-          echo "$(pwd)/bin" >> $GITHUB_PATH
-
       - name: Set Go
         uses: actions/setup-go@v3
         with:
@@ -73,37 +64,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Container image registry
-        run: |
-          podman run -d -p 5000:5000 --name registry registry:2.8.1
-
-          export REGISTRY_ADDRESS=$(hostname -i):5000
-          echo "REGISTRY_ADDRESS=${REGISTRY_ADDRESS}" >> $GITHUB_ENV
-          echo "Container image registry started at ${REGISTRY_ADDRESS}"
-
-          KIND_CONFIG_FILE=${{ env.TEMP_DIR }}/kind.yaml
-          echo "KIND_CONFIG_FILE=${KIND_CONFIG_FILE}" >> $GITHUB_ENV
-          envsubst < ./test/e2e/kind.yaml > ${KIND_CONFIG_FILE}
-
-          sudo --preserve-env=REGISTRY_ADDRESS sh -c 'cat > /etc/containers/registries.conf.d/local.conf <<EOF
-          [[registry]]
-          prefix = "$REGISTRY_ADDRESS"
-          insecure = true
-          location = "$REGISTRY_ADDRESS"
-          EOF'
-
-      - name: Setup KinD cluster
-        uses: helm/kind-action@v1.5.0
-        with:
-          cluster_name: cluster
-          version: v0.17.0
-          config: ${{ env.KIND_CONFIG_FILE }}
-
-      - name: Print cluster info
-        run: |
-          echo "KinD cluster:"
-          kubectl cluster-info
-          kubectl describe nodes
+      - name: Setup and start KinD cluster
+        uses: ./.github/actions/kind
 
       - name: Deploy CodeFlare stack
         id: deploy
@@ -120,8 +82,8 @@ jobs:
       - name: Run e2e tests
         run: |
           export CODEFLARE_TEST_TIMEOUT_SHORT=1m
-          export CODEFLARE_TEST_TIMEOUT_MEDIUM=3m
-          export CODEFLARE_TEST_TIMEOUT_LONG=8m
+          export CODEFLARE_TEST_TIMEOUT_MEDIUM=5m
+          export CODEFLARE_TEST_TIMEOUT_LONG=10m
 
           export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
           echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
