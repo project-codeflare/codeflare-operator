@@ -14,6 +14,10 @@ INSTASCALE_VERSION ?= v0.0.4
 
 # MCAD_VERSION defines the default version of the MCAD controller
 MCAD_VERSION ?= v1.31.0
+# MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
+MCAD_REF ?= release-${MCAD_VERSION}
+MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
+MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -203,7 +207,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_VERSION=$(MCAD_VERSION)
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	git restore config/*
@@ -301,7 +305,7 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_VERSION=$(MCAD_VERSION)
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.v$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
