@@ -27,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rs/xid"
-
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
@@ -63,7 +61,6 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	// RayCluster
-	clusterID := xid.New()
 	rayCluster := &rayv1alpha1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1alpha1.GroupVersion.String(),
@@ -72,9 +69,6 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "raycluster-autoscaler",
 			Namespace: namespace.Name,
-			Labels: map[string]string{
-				RayJobDefaultClusterSelectorKey: clusterID.String(),
-			},
 		},
 		Spec: rayv1alpha1.RayClusterSpec{
 			RayVersion:              "2.0.0",
@@ -264,7 +258,7 @@ torchmetrics==0.9.1
 torchvision==0.12.0
 `)),
 			ClusterSelector: map[string]string{
-				RayJobDefaultClusterSelectorKey: clusterID.String(),
+				RayJobDefaultClusterSelectorKey: rayCluster.Name,
 			},
 			ShutdownAfterJobFinishes: false,
 		},
