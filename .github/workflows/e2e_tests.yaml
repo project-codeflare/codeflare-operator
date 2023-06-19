@@ -178,3 +178,9 @@ jobs:
         run: |
           echo "Printing MCAD controller logs"
           kubectl logs -n codeflare-system --tail -1 -l component=multi-cluster-application-dispatcher
+
+      - name: Print KubeRay operator logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          echo "Printing KubeRay operator logs"
+          kubectl logs -n ray-system --tail -1 -l app.kubernetes.io/name=kuberay
