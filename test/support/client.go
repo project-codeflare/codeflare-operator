@@ -27,18 +27,21 @@ import (
 
 	codeflareclient "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
 	mcadclient "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/client/clientset/controller-versioned"
+	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 )
 
 type Client interface {
 	Core() kubernetes.Interface
 	CodeFlare() codeflareclient.Interface
 	MCAD() mcadclient.Interface
+	Ray() rayclient.Interface
 }
 
 type testClient struct {
 	core      kubernetes.Interface
 	codeflare codeflareclient.Interface
 	mcad      mcadclient.Interface
+	ray       rayclient.Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -53,6 +56,10 @@ func (t *testClient) CodeFlare() codeflareclient.Interface {
 
 func (t *testClient) MCAD() mcadclient.Interface {
 	return t.mcad
+}
+
+func (t *testClient) Ray() rayclient.Interface {
+	return t.ray
 }
 
 func newTestClient() (Client, error) {
@@ -79,9 +86,15 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	rayClient, err := rayclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &testClient{
 		core:      kubeClient,
 		codeflare: codeFlareClient,
 		mcad:      mcadClient,
+		ray:       rayClient,
 	}, nil
 }

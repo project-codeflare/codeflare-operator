@@ -18,6 +18,7 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/base64"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -26,10 +27,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
+	"github.com/rs/xid"
 
 	. "github.com/project-codeflare/codeflare-operator/test/support"
+	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
+	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 )
 
 func TestJobSubmissionInRayCluster(t *testing.T) {
@@ -39,7 +41,29 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
+	// Job script
+	mnist, err := scripts.ReadFile("mnist.py")
+	test.Expect(err).NotTo(HaveOccurred())
+
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.GroupName,
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mnist",
+			Namespace: namespace.Name,
+		},
+		BinaryData: map[string][]byte{
+			"mnist.py": mnist,
+		},
+		Immutable: Ptr(true),
+	}
+	configMap, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), configMap, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
 	// RayCluster
+	clusterID := xid.New()
 	rayCluster := &rayv1alpha1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1alpha1.GroupVersion.String(),
@@ -48,6 +72,9 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "raycluster-autoscaler",
 			Namespace: namespace.Name,
+			Labels: map[string]string{
+				RayJobDefaultClusterSelectorKey: clusterID.String(),
+			},
 		},
 		Spec: rayv1alpha1.RayClusterSpec{
 			RayVersion:              "2.0.0",
@@ -108,6 +135,24 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 									Limits: corev1.ResourceList{
 										corev1.ResourceCPU:    resource.MustParse("1"),
 										corev1.ResourceMemory: resource.MustParse("1G"),
+									},
+								},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "mnist",
+										MountPath: "/home/ray/jobs",
+									},
+								},
+							},
+						},
+						Volumes: []corev1.Volume{
+							{
+								Name: "mnist",
+								VolumeSource: corev1.VolumeSource{
+									ConfigMap: &corev1.ConfigMapVolumeSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: configMap.Name,
+										},
 									},
 								},
 							},
@@ -195,9 +240,38 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 		},
 	}
 
-	_, err := test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
+	_, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
 	test.Expect(err).NotTo(HaveOccurred())
 
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
+
+	rayJob := &rayv1alpha1.RayJob{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rayv1alpha1.GroupVersion.String(),
+			Kind:       "RayJob",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mnist",
+			Namespace: namespace.Name,
+		},
+		Spec: rayv1alpha1.RayJobSpec{
+			Entrypoint: "python /home/ray/jobs/mnist.py",
+			RuntimeEnv: base64.StdEncoding.EncodeToString([]byte(`
+pytorch_lightning==1.5.10
+ray_lightning
+torchmetrics==0.9.1
+torchvision==0.12.0
+`)),
+			ClusterSelector: map[string]string{
+				RayJobDefaultClusterSelectorKey: clusterID.String(),
+			},
+			ShutdownAfterJobFinishes: false,
+		},
+	}
+	_, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	test.Eventually(RayJob(test, namespace, rayJob.Name), TestTimeoutLong).
+		Should(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
 }
