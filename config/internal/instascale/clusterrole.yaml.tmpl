@@ -24,11 +24,19 @@ rules:
 - apiGroups:
   - ""
   resourceNames:
-    - instascale-ocm-secret
+  - instascale-ocm-secret
   resources:
-    - secrets
+  - secrets
   verbs:
-    - get
+  - get
+
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
 
 - apiGroups:
   - apps
