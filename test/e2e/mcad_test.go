@@ -252,10 +252,16 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 		Spec: rayv1alpha1.RayJobSpec{
 			Entrypoint: "python /home/ray/jobs/mnist.py",
 			RuntimeEnv: base64.StdEncoding.EncodeToString([]byte(`
-pytorch_lightning==1.5.10
-ray_lightning
-torchmetrics==0.9.1
-torchvision==0.12.0
+{
+  "pip": [
+    "pytorch_lightning==1.5.10",
+    "ray_lightning",
+    "torchmetrics==0.9.1",
+    "torchvision==0.12.0"
+  ],
+  "env_vars": {
+  }
+}
 `)),
 			ClusterSelector: map[string]string{
 				RayJobDefaultClusterSelectorKey: rayCluster.Name,
