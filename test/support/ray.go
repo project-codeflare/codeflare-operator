@@ -1,6 +1,8 @@
 package support
 
 import (
+	"encoding/json"
+
 	"github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,4 +23,19 @@ func RayJob(t Test, namespace *corev1.Namespace, name string) func(g gomega.Gome
 
 func RayJobStatus(job *rayv1alpha1.RayJob) rayv1alpha1.JobStatus {
 	return job.Status.JobStatus
+}
+
+func GetRayJobLogs(t Test, job *rayv1alpha1.RayJob) string {
+	t.T().Helper()
+	response := t.Client().Core().CoreV1().RESTClient().
+		Get().
+		AbsPath("/api/v1/namespaces", job.Namespace, "services", "http:"+job.Status.RayClusterName+"-head-svc:dashboard", "proxy", "api", "jobs", job.Status.JobId, "logs").Do(t.Ctx())
+	t.Expect(response.Error()).NotTo(gomega.HaveOccurred())
+
+	body := map[string]string{}
+	bytes, _ := response.Raw()
+	t.Expect(json.Unmarshal(bytes, &body)).To(gomega.Succeed())
+	t.Expect(body).To(gomega.HaveKey("logs"))
+
+	return body["logs"]
 }

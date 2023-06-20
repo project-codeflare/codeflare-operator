@@ -269,9 +269,14 @@ func TestJobSubmissionInRayCluster(t *testing.T) {
 			ShutdownAfterJobFinishes: false,
 		},
 	}
-	_, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
 	test.Eventually(RayJob(test, namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
+
+	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Get(test.Ctx(), rayJob.Name, metav1.GetOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	test.T().Log(GetRayJobLogs(test, rayJob))
 }
