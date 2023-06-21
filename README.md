@@ -1,4 +1,5 @@
 # codeflare-operator
+
 Operator for installation and lifecycle management of CodeFlare distributed workload stack, starting with MCAD and InstaScale
 
 <!-- Don't delete these comments, they are used to generate Compatibility Matrix table for release automation -->
@@ -14,7 +15,36 @@ CodeFlare Stack Compatibility Matrix
 | KubeRay                      | v0.5.0  |
 <!-- Compatibility Matrix end -->
 
-## Release process
+## Development
+
+### Testing
+
+The e2e tests can be executed locally by running the following commands:
+
+1. Setup the test cluster:
+
+    ```bash
+    # Create a KinD cluster
+    $ kind create cluster --image kindest/node:v1.25.8
+    # Install the CRDs
+    $ make install
+    ```
+
+2. Start the operator locally:
+
+    ```bash
+    $ make run
+    ```
+
+3. In a separate terminal, run the e2e suite:
+
+    ```bash
+    $ make test-e2e
+    ```
+
+   Alternatively, You can run the e2e test(s) from your IDE / debugger.
+
+## Release
 
 Prerequisite:
 - Build and release [MCAD](https://github.com/project-codeflare/multi-cluster-app-dispatcher)
