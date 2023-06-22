@@ -182,15 +182,17 @@ torchvision==0.12.0
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
+	defer troubleshooting(test, job)
+
 	test.T().Logf("Waiting for Job %s/%s to complete successfully", job.Namespace, job.Name)
-	test.Eventually(Job(test, namespace, job.Name), TestTimeoutLong).
+	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).
 		Should(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
 
 	// Refresh the job to get the generated pod selector
-	job = GetJob(test, namespace, job.Name)
+	job = GetJob(test, job.Namespace, job.Name)
 
 	// Get the job Pod
-	pods := GetPods(test, namespace, metav1.ListOptions{
+	pods := GetPods(test, job.Namespace, metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
 	)
 	test.Expect(pods).To(HaveLen(1))
@@ -198,4 +200,26 @@ torchvision==0.12.0
 	// Print the job logs
 	test.T().Logf("Printing Job %s/%s logs", job.Namespace, job.Name)
 	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
+}
+
+func troubleshooting(test Test, job *batchv1.Job) {
+	if !test.T().Failed() {
+		return
+	}
+	job = GetJob(test, job.Namespace, job.Name)
+
+	test.T().Errorf("Job %s/%s hasn't completed in time: %s", job.Namespace, job.Name, job)
+
+	pods := GetPods(test, job.Namespace, metav1.ListOptions{
+		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
+	)
+
+	if len(pods) == 0 {
+		test.T().Errorf("Job %s/%s has no pods scheduled", job.Namespace, job.Name)
+	} else {
+		for i, pod := range pods {
+			test.T().Logf("Printing Pod %s/%s logs", pod.Namespace, pod.Name)
+			test.T().Log(GetPodLogs(test, &pods[i], corev1.PodLogOptions{}))
+		}
+	}
 }
