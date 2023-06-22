@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
@@ -179,4 +180,16 @@ torchvision==0.12.0
 
 	test.Eventually(Job(test, namespace, job.Name), TestTimeoutLong).
 		Should(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
+
+	// Refresh the job to get the generated pod selector
+	job = GetJob(test, namespace, job.Name)
+
+	// Get the job Pod
+	pods := GetPods(test, namespace, metav1.ListOptions{
+		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
+	)
+	test.Expect(pods).To(HaveLen(1))
+
+	// Print the job logs
+	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
 }

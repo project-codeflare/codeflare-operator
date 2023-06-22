@@ -31,3 +31,8 @@ func Job(t Test, namespace *corev1.Namespace, name string) func(g gomega.Gomega)
 		return job
 	}
 }
+
+func GetJob(t Test, namespace *corev1.Namespace, name string) *batchv1.Job {
+	t.T().Helper()
+	return Job(t, namespace, name)(t)
+}

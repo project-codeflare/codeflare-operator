@@ -18,8 +18,12 @@ package support
 
 import (
 	"encoding/json"
+	"io"
 
 	"github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -30,4 +34,26 @@ func Raw(t Test, obj runtime.Object) runtime.RawExtension {
 	return runtime.RawExtension{
 		Raw: data,
 	}
+}
+
+func GetPods(t Test, namespace *corev1.Namespace, options metav1.ListOptions) []corev1.Pod {
+	t.T().Helper()
+	pods, err := t.Client().Core().CoreV1().Pods(namespace.Name).List(t.Ctx(), options)
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	return pods.Items
+}
+
+func GetPodLogs(t Test, pod *corev1.Pod, options corev1.PodLogOptions) string {
+	t.T().Helper()
+	stream, err := t.Client().Core().CoreV1().Pods(pod.GetNamespace()).GetLogs(pod.GetName(), &options).Stream(t.Ctx())
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+
+	defer func() {
+		t.Expect(stream.Close()).To(gomega.Succeed())
+	}()
+
+	bytes, err := io.ReadAll(stream)
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+
+	return string(bytes)
 }
