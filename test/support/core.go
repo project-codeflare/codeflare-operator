@@ -36,9 +36,9 @@ func Raw(t Test, obj runtime.Object) runtime.RawExtension {
 	}
 }
 
-func GetPods(t Test, namespace *corev1.Namespace, options metav1.ListOptions) []corev1.Pod {
+func GetPods(t Test, namespace string, options metav1.ListOptions) []corev1.Pod {
 	t.T().Helper()
-	pods, err := t.Client().Core().CoreV1().Pods(namespace.Name).List(t.Ctx(), options)
+	pods, err := t.Client().Core().CoreV1().Pods(namespace).List(t.Ctx(), options)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return pods.Items
 }

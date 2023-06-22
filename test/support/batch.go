@@ -20,19 +20,18 @@ import (
 	"github.com/onsi/gomega"
 
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Job(t Test, namespace *corev1.Namespace, name string) func(g gomega.Gomega) *batchv1.Job {
+func Job(t Test, namespace, name string) func(g gomega.Gomega) *batchv1.Job {
 	return func(g gomega.Gomega) *batchv1.Job {
-		job, err := t.Client().Core().BatchV1().Jobs(namespace.Name).Get(t.Ctx(), name, metav1.GetOptions{})
+		job, err := t.Client().Core().BatchV1().Jobs(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		return job
 	}
 }
 
-func GetJob(t Test, namespace *corev1.Namespace, name string) *batchv1.Job {
+func GetJob(t Test, namespace, name string) *batchv1.Job {
 	t.T().Helper()
 	return Job(t, namespace, name)(t)
 }
