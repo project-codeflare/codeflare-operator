@@ -38,7 +38,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	// Job script
+	// MNIST training script
 	mnist, err := scripts.ReadFile("mnist.py")
 	test.Expect(err).NotTo(HaveOccurred())
 
@@ -66,39 +66,21 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			Kind:       "RayCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "raycluster-autoscaler",
+			Name:      "raycluster",
 			Namespace: namespace.Name,
 		},
 		Spec: rayv1alpha1.RayClusterSpec{
-			RayVersion:              "2.0.0",
-			EnableInTreeAutoscaling: Ptr(true),
-			AutoscalerOptions: &rayv1alpha1.AutoscalerOptions{
-				UpscalingMode:      Ptr[rayv1alpha1.UpscalingMode]("Default"),
-				IdleTimeoutSeconds: Ptr(int32(60)),
-				ImagePullPolicy:    Ptr(corev1.PullAlways),
-				Resources: &corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("250m"),
-						corev1.ResourceMemory: resource.MustParse("512Mi"),
-					},
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("250m"),
-						corev1.ResourceMemory: resource.MustParse("512Mi"),
-					},
-				},
-			},
+			RayVersion: "2.0.0",
 			HeadGroupSpec: rayv1alpha1.HeadGroupSpec{
 				RayStartParams: map[string]string{
 					"dashboard-host": "0.0.0.0",
-					"block":          "true",
 				},
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
-								Name:            "ray-head",
-								Image:           "rayproject/ray:2.0.0",
-								ImagePullPolicy: corev1.PullAlways,
+								Name:  "ray-head",
+								Image: "rayproject/ray:2.0.0",
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 6379,
@@ -155,13 +137,11 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			},
 			WorkerGroupSpecs: []rayv1alpha1.WorkerGroupSpec{
 				{
-					Replicas:    Ptr(int32(1)),
-					MinReplicas: Ptr(int32(1)),
-					MaxReplicas: Ptr(int32(3)),
-					GroupName:   "small-group",
-					RayStartParams: map[string]string{
-						"block": "true",
-					},
+					Replicas:       Ptr(int32(1)),
+					MinReplicas:    Ptr(int32(1)),
+					MaxReplicas:    Ptr(int32(2)),
+					GroupName:      "small-group",
+					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
 							InitContainers: []corev1.Container{
@@ -173,9 +153,8 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 							},
 							Containers: []corev1.Container{
 								{
-									Name:            "machine-learning",
-									Image:           "rayproject/ray:2.0.0",
-									ImagePullPolicy: corev1.PullAlways,
+									Name:  "ray-worker",
+									Image: "rayproject/ray:2.0.0",
 									Lifecycle: &corev1.Lifecycle{
 										PreStop: &corev1.LifecycleHandler{
 											Exec: &corev1.ExecAction{
