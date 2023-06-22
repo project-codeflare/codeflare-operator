@@ -44,7 +44,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.GroupName,
+			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
