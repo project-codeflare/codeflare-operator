@@ -165,6 +165,10 @@ jobs:
 
       - name: Run e2e tests
         run: |
+          export CODEFLARE_TEST_TIMEOUT_SHORT=1m
+          export CODEFLARE_TEST_TIMEOUT_MEDIUM=3m
+          export CODEFLARE_TEST_TIMEOUT_LONG=8m
+
           make test-e2e
 
       - name: Print CodeFlare operator logs
