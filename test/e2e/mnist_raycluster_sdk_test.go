@@ -23,39 +23,38 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	. "github.com/project-codeflare/codeflare-operator/test/support"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 )
 
-func TestMNISTPyTorchMCAD(t *testing.T) {
+func TestMNISTRayClusterSDK(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
+
+	test.T().Skip("Requires https://github.com/project-codeflare/codeflare-sdk/pull/146")
 
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	// MNIST training script
-	mnist := &corev1.ConfigMap{
+	// SDK script
+	sdk := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
+			Name:      "sdk",
 			Namespace: namespace.Name,
 		},
 		BinaryData: map[string][]byte{
-			"mnist.py": ReadFile(test, "mnist.py"),
+			"sdk.py": ReadFile(test, "sdk.py"),
 		},
 		Immutable: Ptr(true),
 	}
-	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
+	sdk, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), sdk, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
+	test.T().Logf("Created ConfigMap %s/%s successfully", sdk.Namespace, sdk.Name)
 
 	// pip requirements
 	requirements := &corev1.ConfigMap{
@@ -68,11 +67,7 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 			Namespace: namespace.Name,
 		},
 		BinaryData: map[string][]byte{
-			"requirements.txt": []byte(`
-pytorch_lightning==1.5.10
-torchmetrics==0.9.1
-torchvision==0.12.0
-`),
+			"requirements.txt": ReadFile(test, "requirements.txt"),
 		},
 		Immutable: Ptr(true),
 	}
@@ -80,29 +75,29 @@ torchvision==0.12.0
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created ConfigMap %s/%s successfully", requirements.Namespace, requirements.Name)
 
-	// Batch Job
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
 			Kind:       "Job",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
+			Name:      "sdk",
 			Namespace: namespace.Name,
 		},
 		Spec: batchv1.JobSpec{
-			Completions: Ptr(int32(1)),
-			Parallelism: Ptr(int32(1)),
+			Completions:  Ptr(int32(1)),
+			Parallelism:  Ptr(int32(1)),
+			BackoffLimit: Ptr(int32(0)),
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:    "job",
-							Image:   "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime",
-							Command: []string{"/bin/sh", "-c", "pip install -r /test/runtime/requirements.txt && torchrun /test/job/mnist.py"},
+							Name:    "sdk",
+							Image:   "quay.io/opendatahub/notebooks:jupyter-minimal-ubi8-python-3.8-4c8f26e",
+							Command: []string{"/bin/sh", "-c", "pip install -r /test/runtime/requirements.txt && python /test/job/sdk.py"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "mnist",
+									Name:      "sdk",
 									MountPath: "/test/job",
 								},
 								{
@@ -114,11 +109,11 @@ torchvision==0.12.0
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "mnist",
+							Name: "sdk",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: mnist.Name,
+										Name: sdk.Name,
 									},
 								},
 							},
@@ -139,62 +134,12 @@ torchvision==0.12.0
 			},
 		},
 	}
-
-	// Create an AppWrapper resource
-	aw := &mcadv1beta1.AppWrapper{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
-			Namespace: namespace.Name,
-		},
-		Spec: mcadv1beta1.AppWrapperSpec{
-			AggrResources: mcadv1beta1.AppWrapperResourceList{
-				GenericItems: []mcadv1beta1.AppWrapperGenericResource{
-					{
-						DesiredAvailable: 1,
-						CustomPodResources: []mcadv1beta1.CustomPodResourceTemplate{
-							{
-								Replicas: 1,
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("250m"),
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("500m"),
-									corev1.ResourceMemory: resource.MustParse("1G"),
-								},
-							},
-						},
-						GenericTemplate: Raw(test, job),
-					},
-				},
-			},
-		},
-	}
-
-	_, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
+	job, err = test.Client().Core().BatchV1().Jobs(namespace.Name).Create(test.Ctx(), job, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
-
-	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
-		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
 	defer JobTroubleshooting(test, job)
 
 	test.T().Logf("Waiting for Job %s/%s to complete successfully", job.Namespace, job.Name)
-	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).
+	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutMedium).
 		Should(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
-
-	// Refresh the job to get the generated pod selector
-	job = GetJob(test, job.Namespace, job.Name)
-
-	// Get the job Pod
-	pods := GetPods(test, job.Namespace, metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
-	)
-	test.Expect(pods).To(HaveLen(1))
-
-	// Print the job logs
-	test.T().Logf("Printing Job %s/%s logs", job.Namespace, job.Name)
-	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
 }

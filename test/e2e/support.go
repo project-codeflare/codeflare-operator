@@ -16,7 +16,19 @@ limitations under the License.
 
 package e2e
 
-import "embed"
+import (
+	"embed"
 
-//go:embed *.py
-var scripts embed.FS
+	"github.com/onsi/gomega"
+
+	"github.com/project-codeflare/codeflare-operator/test/support"
+)
+
+//go:embed *.py *.txt
+var files embed.FS
+
+func ReadFile(t support.Test, fileName string) []byte {
+	file, err := files.ReadFile(fileName)
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	return file
+}

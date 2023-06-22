@@ -39,10 +39,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	namespace := test.NewTestNamespace()
 
 	// MNIST training script
-	mnist, err := scripts.ReadFile("mnist.py")
-	test.Expect(err).NotTo(HaveOccurred())
-
-	mnistScript := &corev1.ConfigMap{
+	mnist := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
@@ -52,13 +49,13 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			Namespace: namespace.Name,
 		},
 		BinaryData: map[string][]byte{
-			"mnist.py": mnist,
+			"mnist.py": ReadFile(test, "mnist.py"),
 		},
 		Immutable: Ptr(true),
 	}
-	mnistScript, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnistScript, metav1.CreateOptions{})
+	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", mnistScript.Namespace, mnistScript.Name)
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// RayCluster
 	rayCluster := &rayv1alpha1.RayCluster{
@@ -127,7 +124,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 								VolumeSource: corev1.VolumeSource{
 									ConfigMap: &corev1.ConfigMapVolumeSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: mnistScript.Name,
+											Name: mnist.Name,
 										},
 									},
 								},
