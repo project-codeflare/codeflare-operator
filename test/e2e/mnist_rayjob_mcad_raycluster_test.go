@@ -42,7 +42,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	mnist, err := scripts.ReadFile("mnist.py")
 	test.Expect(err).NotTo(HaveOccurred())
 
-	configMap := &corev1.ConfigMap{
+	mnistScript := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
@@ -56,8 +56,9 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 		},
 		Immutable: Ptr(true),
 	}
-	configMap, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), configMap, metav1.CreateOptions{})
+	mnistScript, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnistScript, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnistScript.Namespace, mnistScript.Name)
 
 	// RayCluster
 	rayCluster := &rayv1alpha1.RayCluster{
@@ -126,7 +127,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 								VolumeSource: corev1.VolumeSource{
 									ConfigMap: &corev1.ConfigMapVolumeSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: configMap.Name,
+											Name: mnistScript.Name,
 										},
 									},
 								},
@@ -212,9 +213,11 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 		},
 	}
 
-	_, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
+	aw, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
 
+	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
@@ -249,12 +252,15 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	}
 	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
+	test.T().Logf("Waiting for RayJob %s/%s to complete successfully", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
 
 	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Get(test.Ctx(), rayJob.Name, metav1.GetOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
+	test.T().Logf("Printing RayJob %s/%s logs", rayJob.Namespace, rayJob.Name)
 	test.T().Log(GetRayJobLogs(test, rayJob))
 }

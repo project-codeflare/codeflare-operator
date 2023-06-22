@@ -58,6 +58,7 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 	}
 	mnistScript, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnistScript, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnistScript.Namespace, mnistScript.Name)
 
 	// pip requirements
 	requirements := &corev1.ConfigMap{
@@ -80,6 +81,7 @@ torchvision==0.12.0
 	}
 	requirements, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), requirements, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", requirements.Namespace, requirements.Name)
 
 	// Batch Job
 	job := &batchv1.Job{
@@ -174,10 +176,13 @@ torchvision==0.12.0
 
 	_, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
 	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
 
+	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
+	test.T().Logf("Waiting for Job %s/%s to complete successfully", job.Namespace, job.Name)
 	test.Eventually(Job(test, namespace, job.Name), TestTimeoutLong).
 		Should(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
 
@@ -191,5 +196,6 @@ torchvision==0.12.0
 	test.Expect(pods).To(HaveLen(1))
 
 	// Print the job logs
+	test.T().Logf("Printing Job %s/%s logs", job.Namespace, job.Name)
 	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
 }
