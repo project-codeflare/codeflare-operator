@@ -39,6 +39,17 @@ spec:
                 description: AgentConfigs determine paths to agent config file:deploymentName
                   separated by commas(,).
                 type: string
+              controllerImage:
+                description: The container image for the MCAD controller deployment.
+                  If specified, the provided container image must be compatible with
+                  the running CodeFlare operator. Using an incompatible, or unrelated
+                  container image, will result in an undefined behavior. A CodeFlare
+                  operator upgrade will not upgrade the MCAD controller, that'll keep
+                  running this specified container image. If not specified, the latest
+                  version compatible with the running CodeFlare operator is used.
+                  A CodeFlare operator upgrade may upgrade the MCAD controller to
+                  a newer container image.
+                type: string
               controllerResources:
                 description: ControllerResources defines the cpu and memory resource
                   requirements for the MCAD Controller
