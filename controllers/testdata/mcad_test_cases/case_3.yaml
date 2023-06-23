@@ -1,0 +1,6 @@
+apiVersion: codeflare.codeflare.dev/v1alpha1
+kind: MCAD
+metadata:
+  name: custom-image
+spec:
+  controllerImage: quay.io/project-codeflare/mcad-controller:custom

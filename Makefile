@@ -48,6 +48,9 @@ IMAGE_ORG_BASE ?= quay.io/project-codeflare
 # codeflare.dev/codeflare-operator-bundle:$VERSION and codeflare.dev/codeflare-operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= $(IMAGE_ORG_BASE)/codeflare-operator
 
+# MCAD_IMAGE defines the default container image for the MCAD controller
+MCAD_IMAGE ?= $(IMAGE_ORG_BASE)/mcad-controller:$(MCAD_REF)
+
 # INSTASCALE_IMAGE defines the default container image for the InstaScale controller
 INSTASCALE_IMAGE ?= $(IMAGE_ORG_BASE)/instascale-controller:$(INSTASCALE_VERSION)
 
@@ -117,6 +120,7 @@ defaults:
 	@echo "// ***********************" >> $(DEFAULTS_FILE)
 	@echo "" >> $(DEFAULTS_FILE)
 	@echo "const (" >> $(DEFAULTS_FILE)
+	@echo "  MCADImage = \"$(MCAD_IMAGE)\"" >> $(DEFAULTS_FILE)
 	@echo "  InstaScaleImage = \"$(INSTASCALE_IMAGE)\"" >> $(DEFAULTS_FILE)
 	@echo "" >> $(DEFAULTS_FILE)
 	@echo ")" >> $(DEFAULTS_FILE)

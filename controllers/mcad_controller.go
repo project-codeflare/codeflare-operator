@@ -151,11 +151,7 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		mcadCustomResource.APIVersion, mcadCustomResource.Kind = gvk.Version, gvk.Kind
 	}
 
-	err = params.ExtractParams(mcadCustomResource)
-	if err != nil {
-		log.Error(err, "Unable to parse MCAD custom resource")
-		return ctrl.Result{}, err
-	}
+	params.ExtractParams(mcadCustomResource)
 
 	if mcadCustomResource.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(mcadCustomResource, finalizerName) {
@@ -189,7 +185,7 @@ func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.Client.Status().Update(context.Background(), mcadCustomResource)
+	err = r.Client.Status().Update(ctx, mcadCustomResource)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

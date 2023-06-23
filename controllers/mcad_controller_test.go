@@ -21,6 +21,8 @@ const (
 	mcadConfigMap2      = "./testdata/mcad_test_results/case_2/configmap.yaml"
 	mcadService2        = "./testdata/mcad_test_results/case_2/service.yaml"
 	mcadServiceAccount2 = "./testdata/mcad_test_results/case_2/serviceaccount.yaml"
+	mcadCRCase3         = "./testdata/mcad_test_cases/case_3.yaml"
+	mcadDeployment3     = "./testdata/mcad_test_results/case_3/deployment.yaml"
 )
 
 func deployMCAD(ctx context.Context, path string, opts mf.Option) {
@@ -52,6 +54,14 @@ var _ = Describe("The MCAD Controller", func() {
 			compareConfigMaps(mcadConfigMap2, opts)
 			compareServiceAccounts(mcadServiceAccount2, opts)
 			compareServices(mcadService2, opts)
+		})
+	})
+
+	Context("In a namespace, when a MCAD resource with a custom image is deployed", func() {
+
+		It("It should create a deployment", func() {
+			deployMCAD(ctx, mcadCRCase3, opts)
+			compareDeployments(mcadDeployment3, opts)
 		})
 	})
 })
