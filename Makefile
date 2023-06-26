@@ -6,11 +6,18 @@
 # best if we could detect this. If we cannot, we need to document it somewhere.
 # then we can add a patch in the `PHONY: bundle`
 
-PREVIOUS_VERSION ?= 0.0.3
-VERSION ?= 0.0.3-dev
+PREVIOUS_VERSION ?= 0.0.0-dev
+VERSION ?= 0.0.0-dev
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.0.3
+INSTASCALE_VERSION ?= v0.0.4
+
+# MCAD_VERSION defines the default version of the MCAD controller
+MCAD_VERSION ?= v1.31.0
+# MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
+MCAD_REF ?= release-${MCAD_VERSION}
+MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
+MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -125,6 +132,38 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+.PHONY: generate-client ## Generate client packages
+generate-client: code-generator
+	rm -rf client
+	$(APPLYCONFIGURATION_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/applyconfiguration" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(CLIENT_GEN) \
+		--input="codeflare/v1alpha1" \
+		--input-base="github.com/project-codeflare/codeflare-operator/api" \
+		--apply-configuration-package="github.com/project-codeflare/codeflare-operator/client/applyconfiguration" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--clientset-name "versioned"  \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/clientset" \
+		--output-base="." \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(LISTER_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-base="." \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/listers" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+	$(INFORMER_GEN) \
+		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
+		--versioned-clientset-package="github.com/project-codeflare/codeflare-operator/client/clientset/versioned" \
+		--listers-package="github.com/project-codeflare/codeflare-operator/client/listers" \
+		--go-header-file="hack/boilerplate.go.txt" \
+		--output-base="." \
+		--output-package="github.com/project-codeflare/codeflare-operator/client/informer" \
+		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -168,8 +207,10 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
+	git restore config/*
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -184,20 +225,61 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+APPLYCONFIGURATION_GEN ?= $(LOCALBIN)/applyconfiguration-gen
+CLIENT_GEN ?= $(LOCALBIN)/client-gen
+LISTER_GEN ?= $(LOCALBIN)/lister-gen
+INFORMER_GEN ?= $(LOCALBIN)/informer-gen
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
+GH_CLI ?= $(LOCALBIN)/gh
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.4
+CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 OPERATOR_SDK_VERSION ?= v1.27.0
+GH_CLI_VERSION ?= 2.30.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
+
+GH_CLI_DL_URL := https://github.com/cli/cli/releases/download/v$(GH_CLI_VERSION)
+GH_CLI_DL_FILENAME := gh_$(GH_CLI_VERSION)_$(shell go env GOOS)_$(shell go env GOARCH)
+.PHONY: install-gh-cli
+install-gh-cli: $(GH_CLI)
+$(GH_CLI): $(LOCALBIN)
+	curl -L $(GH_CLI_DL_URL)/$(GH_CLI_DL_FILENAME).tar.gz --output $(GH_CLI_DL_FILENAME).tar.gz
+	tar -xvzf $(GH_CLI_DL_FILENAME).tar.gz
+	cp $(GH_CLI_DL_FILENAME)/bin/gh $(GH_CLI)
+	rm -rf $(GH_CLI_DL_FILENAME)
+	rm $(GH_CLI_DL_FILENAME).tar.gz
+
+.PHONY: code-generator
+code-generator: $(APPLYCONFIGURATION_GEN) $(CLIENT_GEN) $(LISTER_GEN) $(INFORMER_GEN)
+
+.PHONY: applyconfiguration-gen
+applyconfiguration-gen: $(APPLYCONFIGURATION_GEN)
+$(APPLYCONFIGURATION_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/applyconfiguration-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/applyconfiguration-gen@$(CODEGEN_VERSION)
+
+.PHONY: client-gen
+client-gen: $(CLIENT_GEN)
+$(CLIENT_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/client-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/client-gen@$(CODEGEN_VERSION)
+
+.PHONY: lister-gen
+lister-gen: $(LISTER_GEN)
+$(LISTER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/lister-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/lister-gen@$(CODEGEN_VERSION)
+
+.PHONY: informer-gen
+informer-gen: $(INFORMER_GEN)
+$(INFORMER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/informer-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/informer-gen@$(CODEGEN_VERSION)
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -223,11 +305,13 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.v$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(MAKE) validate-bundle
+	git restore config/*
 
 .PHONY: bundle-build
 bundle-build: bundle ## Build the bundle image.
@@ -236,6 +320,15 @@ bundle-build: bundle ## Build the bundle image.
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
 	$(MAKE) image-push IMG=$(BUNDLE_IMG)
+
+.PHONY: openshift-community-operator-releases
+openshift-community-operator-release: install-gh-cli bundle ## build bundle and create PR in OpenShift community operators repository
+	gh repo clone git@github.com:project-codeflare/community-operators-prod.git
+	cd community-operators-prod && git pull upstream main && git push origin main
+	cp -r bundle community-operators-prod/operators/codeflare-operator/$(VERSION)
+	cd community-operators-prod && git checkout -b codeflare-release-$(VERSION) && git add operators/codeflare-operator/$(VERSION)/* && git commit -s -m "add bundle manifests codeflare version $(VERSION)" && git push origin codeflare-release-$(VERSION)
+	gh pr create --repo redhat-openshift-ecosystem/community-operators-prod --title "CodeFlare $(VERSION)" --body "New release of codeflare operator" --head project-codeflare:codeflare-release-$(VERSION) --base main
+	rm -rf community-operators-prod
 
 .PHONY: opm
 OPM = ./bin/opm

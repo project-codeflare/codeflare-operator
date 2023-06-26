@@ -1,0 +1,30 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: instascale-example-custom-image
+  namespace: codeflare-operator-system
+  labels:
+    app: instascale-example-custom-image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: instascale-example-custom-image
+  template:
+    metadata:
+      labels:
+        app: instascale-example-custom-image
+    spec:
+      containers:
+        - name: instascale
+          args:
+            - "--configs-namespace=default"
+          image: quay.io/project-codeflare/instascale-controller:custom
+          resources:
+            limits:
+              cpu: '2'
+              memory: 2G
+            requests:
+              cpu: '200m'
+              memory: 200M
+      serviceAccountName: instascale-example-custom-image-sa

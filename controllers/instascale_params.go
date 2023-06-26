@@ -8,7 +8,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	instascalev1alpha1 "github.com/project-codeflare/codeflare-operator/api/v1alpha1"
+	instascalev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 )
 
 type InstaScaleParams struct {

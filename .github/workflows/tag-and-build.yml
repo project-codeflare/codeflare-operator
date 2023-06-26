@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Activate cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: /cache
         key: ${{ runner.os }}-cache-${{ hashFiles('**/go.sum', '.pre-commit-config.yaml') }}

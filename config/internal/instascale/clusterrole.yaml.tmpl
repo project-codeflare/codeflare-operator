@@ -22,6 +22,23 @@ rules:
   - patch
 
 - apiGroups:
+  - ""
+  resourceNames:
+  - instascale-ocm-secret
+  resources:
+  - secrets
+  verbs:
+  - get
+
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
+
+- apiGroups:
   - apps
   resources:
   - deployments
