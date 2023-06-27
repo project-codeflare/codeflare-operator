@@ -242,7 +242,9 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) fn run config/crd/mcad --image gcr.io/kpt-fn/apply-setters:v0.2.0 -- MCAD_CRD=$(MCAD_CRD)
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+	git restore config/*
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
