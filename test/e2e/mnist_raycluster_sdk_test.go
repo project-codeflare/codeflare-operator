@@ -153,7 +153,9 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:    "test",
+							Name: "test",
+							// FIXME: switch to base Python image once the dependency on OpenShift CLI is removed
+							// See https://github.com/project-codeflare/codeflare-sdk/pull/146
 							Image:   "quay.io/opendatahub/notebooks:jupyter-minimal-ubi8-python-3.8-4c8f26e",
 							Command: []string{"/bin/sh", "-c", "pip install codeflare-sdk==" + GetCodeFlareSDKVersion() + " && cp /test/* . && python mnist_raycluster_sdk.py" + " " + namespace.Name},
 							VolumeMounts: []corev1.VolumeMount{
