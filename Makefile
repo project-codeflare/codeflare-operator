@@ -214,12 +214,16 @@ vet: ## Run go vet against code.
 
 ##@ Build
 
+.PHONY: modules
+modules: ## Update Go dependencies.
+	go get $(MCAD_REPO)@$(MCAD_VERSION)
+
 .PHONY: build
-build: defaults generate fmt vet ## Build manager binary.
+build: modules defaults generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
 .PHONY: run
-run: defaults manifests generate fmt vet ## Run a controller from your host.
+run: modules defaults manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 .PHONY: image-build
