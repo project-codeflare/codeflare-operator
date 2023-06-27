@@ -23,9 +23,10 @@ import (
 // The environment variables hereafter can be used to change the components
 // used for testing.
 const (
-	CodeFlareTestSdkVersion = "CODEFLARE_TEST_SDK_VERSION"
-	CodeFlareTestRayVersion = "CODEFLARE_TEST_RAY_VERSION"
-	CodeFlareTestRayImage   = "CODEFLARE_TEST_RAY_IMAGE"
+	CodeFlareTestSdkVersion   = "CODEFLARE_TEST_SDK_VERSION"
+	CodeFlareTestRayVersion   = "CODEFLARE_TEST_RAY_VERSION"
+	CodeFlareTestRayImage     = "CODEFLARE_TEST_RAY_IMAGE"
+	CodeFlareTestPyTorchImage = "CODEFLARE_TEST_PYTORCH_IMAGE"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -38,6 +39,10 @@ func GetRayVersion() string {
 
 func GetRayImage() string {
 	return lookupEnvOrDefault(CodeFlareTestRayImage, RayImage)
+}
+
+func GetPyTorchImage() string {
+	return lookupEnvOrDefault(CodeFlareTestPyTorchImage, "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime")
 }
 
 func lookupEnvOrDefault(key, value string) string {

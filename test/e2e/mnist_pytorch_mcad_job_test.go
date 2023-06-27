@@ -77,7 +77,7 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 					Containers: []corev1.Container{
 						{
 							Name:    "job",
-							Image:   "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime",
+							Image:   GetPyTorchImage(),
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
