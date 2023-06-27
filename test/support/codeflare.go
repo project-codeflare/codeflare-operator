@@ -18,13 +18,31 @@ package support
 
 import (
 	"os"
+)
 
-	"github.com/project-codeflare/codeflare-operator/controllers"
+// The environment variables hereafter can be used to change the components
+// used for testing.
+const (
+	CodeFlareTestSdkVersion = "CODEFLARE_TEST_SDK_VERSION"
+	CodeFlareTestRayVersion = "CODEFLARE_TEST_RAY_VERSION"
+	CodeFlareTestRayImage   = "CODEFLARE_TEST_RAY_IMAGE"
 )
 
 func GetCodeFlareSDKVersion() string {
-	if value, ok := os.LookupEnv("CODEFLARE_SDK_VERSION"); ok {
-		return value
+	return lookupEnvOrDefault(CodeFlareTestSdkVersion, CodeFlareSDKVersion)
+}
+
+func GetRayVersion() string {
+	return lookupEnvOrDefault(CodeFlareTestRayVersion, RayVersion)
+}
+
+func GetRayImage() string {
+	return lookupEnvOrDefault(CodeFlareTestRayImage, RayImage)
+}
+
+func lookupEnvOrDefault(key, value string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
 	}
-	return controllers.CodeFlareSDKVersion
+	return value
 }

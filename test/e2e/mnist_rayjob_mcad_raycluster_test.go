@@ -68,7 +68,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			Namespace: namespace.Name,
 		},
 		Spec: rayv1alpha1.RayClusterSpec{
-			RayVersion: "2.0.0",
+			RayVersion: GetRayVersion(),
 			HeadGroupSpec: rayv1alpha1.HeadGroupSpec{
 				RayStartParams: map[string]string{
 					"dashboard-host": "0.0.0.0",
@@ -78,7 +78,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 						Containers: []corev1.Container{
 							{
 								Name:  "ray-head",
-								Image: "rayproject/ray:2.0.0",
+								Image: GetRayImage(),
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 6379,
@@ -152,7 +152,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
-									Image: "rayproject/ray:2.0.0",
+									Image: GetRayImage(),
 									Lifecycle: &corev1.Lifecycle{
 										PreStop: &corev1.LifecycleHandler{
 											Exec: &corev1.ExecAction{
