@@ -155,7 +155,7 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 						{
 							Name:    "test",
 							Image:   "quay.io/opendatahub/notebooks:jupyter-minimal-ubi8-python-3.8-4c8f26e",
-							Command: []string{"/bin/sh", "-c", "pip install codeflare-sdk==0.4.4 && cp /test/* . && python mnist_raycluster_sdk.py" + " " + namespace.Name},
+							Command: []string{"/bin/sh", "-c", "pip install codeflare-sdk==" + GetCodeFlareSDKVersion() + " && cp /test/* . && python mnist_raycluster_sdk.py" + " " + namespace.Name},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "test",

@@ -24,6 +24,9 @@ MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
 # KUBERAY_VERSION defines the default version of the KubeRay operator
 KUBERAY_VERSION ?= v0.5.0
 
+# CODEFLARE_SDK_VERSION defines the default version of the CodeFlare SDK
+CODEFLARE_SDK_VERSION ?= 0.4.4
+
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
 OPERATORS_REPO_ORG ?= redhat-openshift-ecosystem
@@ -132,6 +135,7 @@ defaults:
 	@echo "const (" >> $(DEFAULTS_FILE)
 	@echo "  MCADImage = \"$(MCAD_IMAGE)\"" >> $(DEFAULTS_FILE)
 	@echo "  InstaScaleImage = \"$(INSTASCALE_IMAGE)\"" >> $(DEFAULTS_FILE)
+	@echo "  CodeFlareSDKVersion = \"$(CODEFLARE_SDK_VERSION)\"" >> $(DEFAULTS_FILE)
 	@echo "" >> $(DEFAULTS_FILE)
 	@echo ")" >> $(DEFAULTS_FILE)
 	@echo "" >> $(DEFAULTS_FILE)
