@@ -44,7 +44,7 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 	namespace := test.NewTestNamespace()
 
 	// Test configuration
-	configMap := &corev1.ConfigMap{
+	config := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
@@ -57,15 +57,15 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 			// SDK script
 			"mnist_raycluster_sdk.py": ReadFile(test, "mnist_raycluster_sdk.py"),
 			// pip requirements
-			"requirements.txt": ReadFile(test, "requirements.txt"),
+			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
 			// MNIST training script
 			"mnist.py": ReadFile(test, "mnist.py"),
 		},
 		Immutable: Ptr(true),
 	}
-	configMap, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), configMap, metav1.CreateOptions{})
+	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", configMap.Namespace, configMap.Name)
+	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
 
 	// SDK client RBAC
 	serviceAccount := &corev1.ServiceAccount{
@@ -170,7 +170,7 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMap.Name,
+										Name: config.Name,
 									},
 								},
 							},

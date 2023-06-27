@@ -37,47 +37,27 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
-	// MNIST training script
-	mnist := &corev1.ConfigMap{
+	// Test configuration
+	config := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
+			Name:      "mnist-mcad",
 			Namespace: namespace.Name,
 		},
 		BinaryData: map[string][]byte{
+			// pip requirements
+			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
+			// MNIST training script
 			"mnist.py": ReadFile(test, "mnist.py"),
 		},
 		Immutable: Ptr(true),
 	}
-	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
+	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
-
-	// pip requirements
-	requirements := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "requirements",
-			Namespace: namespace.Name,
-		},
-		BinaryData: map[string][]byte{
-			"requirements.txt": []byte(`
-pytorch_lightning==1.5.10
-torchmetrics==0.9.1
-torchvision==0.12.0
-`),
-		},
-		Immutable: Ptr(true),
-	}
-	requirements, err = test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), requirements, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", requirements.Namespace, requirements.Name)
+	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
 
 	// Batch Job
 	job := &batchv1.Job{
@@ -98,36 +78,22 @@ torchvision==0.12.0
 						{
 							Name:    "job",
 							Image:   "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime",
-							Command: []string{"/bin/sh", "-c", "pip install -r /test/runtime/requirements.txt && torchrun /test/job/mnist.py"},
+							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "mnist",
-									MountPath: "/test/job",
-								},
-								{
-									Name:      "requirements",
-									MountPath: "/test/runtime",
+									Name:      "test",
+									MountPath: "/test",
 								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "mnist",
+							Name: "test",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: mnist.Name,
-									},
-								},
-							},
-						},
-						{
-							Name: "requirements",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: requirements.Name,
+										Name: config.Name,
 									},
 								},
 							},
