@@ -33,16 +33,17 @@ type MCADParams struct {
 	QuotaRestURL        string
 	PodCreationTimeout  int
 	ControllerResources ControllerResources
+	ControllerImage     string
 }
 
-// type ControllerResources struct {
-// 	v1.ResourceRequirements
-// }
-
 // ExtractParams is currently a straight-up copy. We can add in more complex validation at a later date
-func (p *MCADParams) ExtractParams(mcad *mcadv1alpha1.MCAD) error {
+func (p *MCADParams) ExtractParams(mcad *mcadv1alpha1.MCAD) {
 	p.Name = mcad.Name
 	p.Namespace = mcad.Namespace
+	p.ControllerImage = mcad.Spec.ControllerImage
+	if p.ControllerImage == "" {
+		p.ControllerImage = MCADImage
+	}
 	p.Owner = mcad
 	p.EnableMonitoring = mcad.Spec.EnableMonitoring
 	p.MultiCluster = mcad.Spec.MultiCluster
@@ -52,6 +53,4 @@ func (p *MCADParams) ExtractParams(mcad *mcadv1alpha1.MCAD) error {
 	p.QuotaRestURL = mcad.Spec.QuotaRestURL
 	p.PodCreationTimeout = mcad.Spec.PodCreationTimeout
 	p.ControllerResources = ControllerResources{mcad.Spec.ControllerResources}
-
-	return nil
 }

@@ -53,6 +53,17 @@ type MCADSpec struct {
 	// ControllerResources defines the cpu and memory resource requirements for the MCAD Controller
 	// +kubebuilder:default={}
 	ControllerResources v1.ResourceRequirements `json:"controllerResources,omitempty" protobuf:"bytes,8,opt"`
+
+	// The container image for the MCAD controller deployment.
+	// If specified, the provided container image must be compatible with the running CodeFlare operator.
+	// Using an incompatible, or unrelated container image, will result in an undefined behavior.
+	// A CodeFlare operator upgrade will not upgrade the MCAD controller, that'll keep running this
+	// specified container image.
+	// If not specified, the latest version compatible with the running CodeFlare operator is used.
+	// A CodeFlare operator upgrade may upgrade the MCAD controller to a newer container image.
+	//
+	// +optional
+	ControllerImage string `json:"controllerImage,omitempty"`
 }
 
 // MCADStatus defines the observed state of MCAD
