@@ -38,24 +38,21 @@ func GetJob(t Test, namespace, name string) *batchv1.Job {
 	return Job(t, namespace, name)(t)
 }
 
-func JobTroubleshooting(test Test, job *batchv1.Job) {
-	if !test.T().Failed() {
-		return
-	}
-	job = GetJob(test, job.Namespace, job.Name)
+func PrintJobLogs(t Test, namespace, name string) {
+	t.T().Helper()
 
-	test.T().Errorf("Job %s/%s hasn't completed in time: %s", job.Namespace, job.Name, job)
+	job := GetJob(t, namespace, name)
 
-	pods := GetPods(test, job.Namespace, metav1.ListOptions{
+	pods := GetPods(t, job.Namespace, metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
 	)
 
 	if len(pods) == 0 {
-		test.T().Errorf("Job %s/%s has no pods scheduled", job.Namespace, job.Name)
+		t.T().Errorf("Job %s/%s has no pods scheduled", job.Namespace, job.Name)
 	} else {
 		for i, pod := range pods {
-			test.T().Logf("Printing Pod %s/%s logs", pod.Namespace, pod.Name)
-			test.T().Log(GetPodLogs(test, &pods[i], corev1.PodLogOptions{}))
+			t.T().Logf("Printing Pod %s/%s logs", pod.Namespace, pod.Name)
+			t.T().Log(GetPodLogs(t, &pods[i], corev1.PodLogOptions{}))
 		}
 	}
 }
