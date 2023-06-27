@@ -1,0 +1,126 @@
+# This workflow will build and release all components of the CodeFlare project
+
+name: Project CodeFlare Release
+on:
+  workflow_dispatch:
+    inputs:
+      operator-version:
+        description: 'CodeFlare operator version to be released (for example: v0.0.0)'
+        required: true
+      replaces:
+        description: 'The previous operator semantic version that this release replaces (for example: v0.0.0)'
+        required: true
+      mcad-version:
+        description: 'Version of multi-cluster-app-dispatcher to be released (for example: v0.0.0)'
+        required: true
+      codeflare-sdk-version:
+        description: 'Version of CodeFlare-SDK to be released (for example: v0.0.0)'
+        required: true
+      instascale-version:
+        description: 'Version of InstaScale to be released (for example: v0.0.0)'
+        required: true
+      is-stable:
+        description: 'Select if the built images should be tagged as stable'
+        required: true
+        type: boolean
+      codeflare-repository-organization:
+        description: 'GitHub organization/user containing repositories used for release'
+        required: true
+        default: 'project-codeflare'
+      quay-organization:
+        description: 'Quay organization used to push the built images to'
+        required: true
+        default: 'project-codeflare'
+      community-operators-prod-organization:
+        description: 'Owner of target community-operators-prod repository used to open a PR against'
+        required: true
+        default: 'redhat-openshift-ecosystem'
+
+jobs:
+  release-mcad:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Release MCAD
+      run: |
+        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref ${{ github.ref }} --field tag=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+    - name: Wait for MCAD run to finish
+      run: |
+        # wait for a while for Run to be started
+        sleep 5
+        run_id=$(gh run list --workflow mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+  release-instascale:
+    needs: release-mcad
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Release InstaScale
+      run: |
+        gh workflow run instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field tag=${{ github.event.inputs.instascale-version }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+    - name: Wait for InstaScale run to finish
+      run: |
+        # wait for a while for Run to be started
+        sleep 5
+        run_id=$(gh run list --workflow instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+  release-codeflare-sdk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Release CodeFlare SDK
+      run: |
+        semver_version="${{ github.event.inputs.codeflare-sdk-version }}"
+        plain_version="${semver_version:1}"
+        gh workflow run release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --ref ${{ github.ref }} --field release-version=${plain_version} --field is-latest=${{ github.event.inputs.is-stable }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+    - name: Wait for CodeFlare SDK run to finish
+      run: |
+        # wait for a while for Run to be started
+        sleep 5
+        run_id=$(gh run list --workflow release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+  release-codeflare-operator:
+    needs: [release-mcad, release-instascale, release-codeflare-sdk]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Release CodeFlare operator
+      run: |
+        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field instascale-version=${{ github.event.inputs.instascale-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+
+    - name: Wait for CodeFlare operator run to finish
+      run: |
+        # wait for a while for Run to be started
+        sleep 5
+        run_id=$(gh run list --workflow tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
