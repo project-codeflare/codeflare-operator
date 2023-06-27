@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
@@ -179,22 +178,17 @@ torchvision==0.12.0
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	defer JobTroubleshooting(test, job)
-
-	test.T().Logf("Waiting for Job %s/%s to complete successfully", job.Namespace, job.Name)
-	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).
-		Should(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
-
-	// Refresh the job to get the generated pod selector
-	job = GetJob(test, job.Namespace, job.Name)
-
-	// Get the job Pod
-	pods := GetPods(test, job.Namespace, metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
-	)
-	test.Expect(pods).To(HaveLen(1))
+	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
+	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
+		Or(
+			WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)),
+			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
+		))
 
 	// Print the job logs
-	test.T().Logf("Printing Job %s/%s logs", job.Namespace, job.Name)
-	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
+	PrintJobLogs(test, job.Namespace, job.Name)
+
+	// Assert the job has completed successfully
+	test.Expect(GetJob(test, job.Namespace, job.Name)).
+		To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
 }

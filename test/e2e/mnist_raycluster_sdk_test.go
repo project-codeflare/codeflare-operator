@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 
@@ -187,8 +186,6 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created Job %s/%s successfully", job.Namespace, job.Name)
 
-	defer JobTroubleshooting(test, job)
-
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
 	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
 		Or(
@@ -196,20 +193,10 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
 		))
 
-	// Refresh the job to get the generated pod selector
-	job = GetJob(test, job.Namespace, job.Name)
-
-	// Get the job Pod
-	pods := GetPods(test, job.Namespace, metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
-	)
-	test.Expect(pods).To(HaveLen(1))
-
 	// Print the job logs
-	test.T().Logf("Printing Job %s/%s logs", job.Namespace, job.Name)
-	test.T().Log(GetPodLogs(test, &pods[0], corev1.PodLogOptions{}))
+	PrintJobLogs(test, job.Namespace, job.Name)
 
 	// Assert the job has completed successfully
-	test.T().Logf("Checking the Job %s/%s has completed successfully", job.Namespace, job.Name)
-	test.Expect(job).To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
+	test.Expect(GetJob(test, job.Namespace, job.Name)).
+		To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
 }
