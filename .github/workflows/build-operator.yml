@@ -1,0 +1,50 @@
+
+name: Build operator for PR_check
+
+on: 
+ pull_request_target:
+  types: [ opened, labeled, unlabeled , synchronized]
+   branches:
+      - 'main'
+    paths-ignore:
+      - 'LICENSE'
+      - '**/.gitignore'
+      - '**.md'
+      - '*.txt'
+      - '.github/**'
+
+jobs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        ref: "refs/pull/${{ github.event.number }}/merge"
+
+    - name: Install operator-sdk
+      run: make install-operator-sdk
+        
+    - name: Create a test container image registry
+      run: |
+        echo "Installing publicly accessible registry"
+        ./oc new-project public-registry
+        ./oc new-app registry
+        ./oc expose service registry
+        registry_url=$(./oc get routes | grep registry | awk '{print $2}')
+        ./oc patch image.config.openshift.io/cluster -p "{\"spec\":{\"registrySources\":{\"insecureRegistries\":[\"$registry_url:80\"]}}}" --type=merge
+
+    - name: Image Build
+      run: |
+        make build
+        make image-build -e IMG=${{registry_url}}/project-codeflare/codeflare-operator:${{ github.event.number }}
+      
+    - name: Image Push
+      run: |
+        make image-push -e IMG=${registry_url}/project-codeflare/codeflare-operator:${{ github.event.number }}
+        
+
+    
+    
+
+      
+       
