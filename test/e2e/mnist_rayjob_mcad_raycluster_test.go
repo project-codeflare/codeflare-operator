@@ -250,13 +250,14 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
-	test.T().Logf("Waiting for RayJob %s/%s to complete successfully", rayJob.Namespace, rayJob.Name)
-	test.Eventually(RayJob(test, namespace, rayJob.Name), TestTimeoutLong).
-		Should(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
-
-	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Get(test.Ctx(), rayJob.Name, metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
+		Should(WithTransform(RayJobStatus, Satisfy(rayv1alpha1.IsJobTerminal)))
 
 	test.T().Logf("Printing RayJob %s/%s logs", rayJob.Namespace, rayJob.Name)
-	test.T().Log(GetRayJobLogs(test, rayJob))
+	test.T().Log(GetRayJobLogs(test, rayJob.Namespace, rayJob.Name))
+
+	// Assert the Ray job has completed successfully
+	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
+		To(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
 }
