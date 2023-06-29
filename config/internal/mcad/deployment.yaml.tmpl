@@ -40,6 +40,18 @@ spec:
           volumeMounts:
             - name: temp-vol
               mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            timeoutSeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            timeoutSeconds: 5
+            periodSeconds: 5
       serviceAccountName: mcad-controller-{{.Name}}
       volumes:
         - name: temp-vol
