@@ -20,13 +20,18 @@ import (
 	"os"
 )
 
-// The environment variables hereafter can be used to change the components
-// used for testing.
 const (
+	// The environment variables hereafter can be used to change the components
+	// used for testing.
+
 	CodeFlareTestSdkVersion   = "CODEFLARE_TEST_SDK_VERSION"
 	CodeFlareTestRayVersion   = "CODEFLARE_TEST_RAY_VERSION"
 	CodeFlareTestRayImage     = "CODEFLARE_TEST_RAY_IMAGE"
 	CodeFlareTestPyTorchImage = "CODEFLARE_TEST_PYTORCH_IMAGE"
+
+	// The testing output directory, to write output files into.
+
+	CodeFlareTestOutputDir = "CODEFLARE_TEST_OUTPUT_DIR"
 )
 
 func GetCodeFlareSDKVersion() string {

@@ -18,6 +18,8 @@ package support
 
 import (
 	"context"
+	"os"
+	"path"
 	"sync"
 	"testing"
 
@@ -30,6 +32,7 @@ type Test interface {
 	T() *testing.T
 	Ctx() context.Context
 	Client() Client
+	OutputDir() string
 
 	gomega.Gomega
 
@@ -70,9 +73,13 @@ type T struct {
 	*gomega.WithT
 	t *testing.T
 	// nolint: containedctx
-	ctx    context.Context
-	client Client
-	once   sync.Once
+	ctx       context.Context
+	client    Client
+	outputDir string
+	once      struct {
+		client    sync.Once
+		outputDir sync.Once
+	}
 }
 
 func (t *T) T() *testing.T {
@@ -84,7 +91,8 @@ func (t *T) Ctx() context.Context {
 }
 
 func (t *T) Client() Client {
-	t.once.Do(func() {
+	t.T().Helper()
+	t.once.client.Do(func() {
 		c, err := newTestClient()
 		if err != nil {
 			t.T().Fatalf("Error creating client: %v", err)
@@ -92,6 +100,31 @@ func (t *T) Client() Client {
 		t.client = c
 	})
 	return t.client
+}
+
+func (t *T) OutputDir() string {
+	t.T().Helper()
+	t.once.outputDir.Do(func() {
+		if parent, ok := os.LookupEnv(CodeFlareTestOutputDir); ok {
+			if !path.IsAbs(parent) {
+				if cwd, err := os.Getwd(); err == nil {
+					// best effort to output the parent absolute path
+					parent = path.Join(cwd, parent)
+				}
+			}
+			t.T().Logf("Creating output directory in parent directory: %s", parent)
+			dir, err := os.MkdirTemp(parent, t.T().Name())
+			if err != nil {
+				t.T().Fatalf("Error creating output directory: %v", err)
+			}
+			t.outputDir = dir
+		} else {
+			t.T().Logf("Creating ephemeral output directory as %s env variable is unset", CodeFlareTestOutputDir)
+			t.outputDir = t.T().TempDir()
+		}
+		t.T().Logf("Output directory has been created at: %s", t.outputDir)
+	})
+	return t.outputDir
 }
 
 func (t *T) NewTestNamespace(options ...Option[*corev1.Namespace]) *corev1.Namespace {
