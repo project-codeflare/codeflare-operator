@@ -151,8 +151,8 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
 		))
 
-	// Print the job logs
-	PrintJobLogs(test, job.Namespace, job.Name)
+	// Retrieve the job logs
+	WriteJobLogs(test, job.Namespace, job.Name)
 
 	// Assert the job has completed successfully
 	test.Expect(GetJob(test, job.Namespace, job.Name)).

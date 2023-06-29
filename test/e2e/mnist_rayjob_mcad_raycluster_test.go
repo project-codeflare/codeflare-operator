@@ -254,8 +254,8 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Satisfy(rayv1alpha1.IsJobTerminal)))
 
-	test.T().Logf("Printing RayJob %s/%s logs", rayJob.Namespace, rayJob.Name)
-	test.T().Log(GetRayJobLogs(test, rayJob.Namespace, rayJob.Name))
+	test.T().Logf("Retrieving RayJob %s/%s logs", rayJob.Namespace, rayJob.Name)
+	WriteToOutputDir(test, rayJob.Name, Log, GetRayJobLogs(test, rayJob.Namespace, rayJob.Name))
 
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).

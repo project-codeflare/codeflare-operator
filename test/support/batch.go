@@ -38,7 +38,7 @@ func GetJob(t Test, namespace, name string) *batchv1.Job {
 	return Job(t, namespace, name)(t)
 }
 
-func PrintJobLogs(t Test, namespace, name string) {
+func WriteJobLogs(t Test, namespace, name string) {
 	t.T().Helper()
 
 	job := GetJob(t, namespace, name)
@@ -51,8 +51,8 @@ func PrintJobLogs(t Test, namespace, name string) {
 		t.T().Errorf("Job %s/%s has no pods scheduled", job.Namespace, job.Name)
 	} else {
 		for i, pod := range pods {
-			t.T().Logf("Printing Pod %s/%s logs", pod.Namespace, pod.Name)
-			t.T().Log(GetPodLogs(t, &pods[i], corev1.PodLogOptions{}))
+			t.T().Logf("Retrieving Pod %s/%s logs", pod.Namespace, pod.Name)
+			WriteToOutputDir(t, pod.Name, Log, GetPodLogs(t, &pods[i], corev1.PodLogOptions{}))
 		}
 	}
 }

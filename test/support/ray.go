@@ -45,7 +45,7 @@ func RayJobStatus(job *rayv1alpha1.RayJob) rayv1alpha1.JobStatus {
 	return job.Status.JobStatus
 }
 
-func GetRayJobLogs(t Test, namespace, name string) string {
+func GetRayJobLogs(t Test, namespace, name string) []byte {
 	t.T().Helper()
 
 	job := GetRayJob(t, namespace, name)
@@ -61,5 +61,5 @@ func GetRayJobLogs(t Test, namespace, name string) string {
 	t.Expect(json.Unmarshal(bytes, &body)).To(gomega.Succeed())
 	t.Expect(body).To(gomega.HaveKey("logs"))
 
-	return body["logs"]
+	return []byte(body["logs"])
 }

@@ -28,6 +28,7 @@ import (
 var files embed.FS
 
 func ReadFile(t support.Test, fileName string) []byte {
+	t.T().Helper()
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file

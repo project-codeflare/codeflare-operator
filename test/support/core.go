@@ -43,7 +43,7 @@ func GetPods(t Test, namespace string, options metav1.ListOptions) []corev1.Pod 
 	return pods.Items
 }
 
-func GetPodLogs(t Test, pod *corev1.Pod, options corev1.PodLogOptions) string {
+func GetPodLogs(t Test, pod *corev1.Pod, options corev1.PodLogOptions) []byte {
 	t.T().Helper()
 	stream, err := t.Client().Core().CoreV1().Pods(pod.GetNamespace()).GetLogs(pod.GetName(), &options).Stream(t.Ctx())
 	t.Expect(err).NotTo(gomega.HaveOccurred())
@@ -55,5 +55,5 @@ func GetPodLogs(t Test, pod *corev1.Pod, options corev1.PodLogOptions) string {
 	bytes, err := io.ReadAll(stream)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 
-	return string(bytes)
+	return bytes
 }
