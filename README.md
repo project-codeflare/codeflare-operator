@@ -21,7 +21,7 @@ CodeFlare Stack Compatibility Matrix
 
 The e2e tests can be executed locally by running the following commands:
 
-1. Setup the test cluster:
+1. Use an existing cluster, or set up a test cluster, e.g.:
 
     ```bash
     # Create a KinD cluster
@@ -30,13 +30,20 @@ The e2e tests can be executed locally by running the following commands:
     $ make install
     ```
 
-2. Start the operator locally:
+2. Set up the CodeFlare stack:
+   ```bash
+   $ make setup-e2e
+   ```
+
+3. Start the operator locally:
 
     ```bash
     $ make run
     ```
 
-3. In a separate terminal, run the e2e suite:
+   Alternatively, You can run the operator from your IDE / debugger.
+
+4. In a separate terminal, run the e2e suite:
 
     ```bash
     $ make test-e2e
