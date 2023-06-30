@@ -90,7 +90,7 @@ jobs:
       - name: Setup KinD cluster
         uses: helm/kind-action@v1.5.0
         with:
-          name: cluster
+          cluster_name: cluster
           version: v0.17.0
           config: ${{ env.KIND_CONFIG_FILE }}
 
