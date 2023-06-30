@@ -31,6 +31,8 @@ import (
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 )
 
+// Trains the MNIST dataset as a RayJob, executed by a Ray cluster managed by MCAD,
+// and asserts successful completion of the training job.
 func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
