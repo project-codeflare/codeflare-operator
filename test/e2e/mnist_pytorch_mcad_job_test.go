@@ -30,6 +30,7 @@ import (
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 )
 
+// Trains the MNIST dataset as a batch Job managed by MCAD, and asserts successful completion of the training job.
 func TestMNISTPyTorchMCAD(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()

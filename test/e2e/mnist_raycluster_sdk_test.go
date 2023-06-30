@@ -32,6 +32,12 @@ import (
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 )
 
+// Creates a Ray cluster, and trains the MNIST dataset using the CodeFlare SDK.
+// Asserts successful completion of the training job.
+//
+// This covers the installation of the CodeFlare SDK, as well as the RBAC required
+// for the SDK to successfully perform requests to the cluster, on behalf of the
+// impersonated user.
 func TestMNISTRayClusterSDK(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
