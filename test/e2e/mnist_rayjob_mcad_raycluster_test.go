@@ -252,12 +252,12 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
+	// Retrieving the job logs once it has completed or timed out
+	defer WriteRayJobLogs(test, rayJob.Namespace, rayJob.Name)
+
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Satisfy(rayv1alpha1.IsJobTerminal)))
-
-	test.T().Logf("Retrieving RayJob %s/%s logs", rayJob.Namespace, rayJob.Name)
-	WriteToOutputDir(test, rayJob.Name, Log, GetRayJobLogs(test, rayJob.Namespace, rayJob.Name))
 
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).

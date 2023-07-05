@@ -194,15 +194,15 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created Job %s/%s successfully", job.Namespace, job.Name)
 
+	// Retrieving the job logs once it has completed or timed out
+	defer WriteJobLogs(test, job.Namespace, job.Name)
+
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
 	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
 		Or(
 			WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)),
 			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
 		))
-
-	// Retrieve the job logs
-	WriteJobLogs(test, job.Namespace, job.Name)
 
 	// Assert the job has completed successfully
 	test.Expect(GetJob(test, job.Namespace, job.Name)).
