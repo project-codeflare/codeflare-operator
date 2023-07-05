@@ -30,18 +30,19 @@ The e2e tests can be executed locally by running the following commands:
     $ make install
     ```
 
-2. Set up the CodeFlare stack:
-   ```bash
-   $ make setup-e2e
-   ```
-
-3. Start the operator locally:
+2. Start the operator locally:
 
     ```bash
     $ make run
     ```
 
    Alternatively, You can run the operator from your IDE / debugger.
+
+3. Set up the test CodeFlare stack:
+
+   ```bash
+   $ make setup-e2e
+   ```
 
 4. In a separate terminal, run the e2e suite:
 
