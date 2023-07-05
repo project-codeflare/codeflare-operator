@@ -63,3 +63,8 @@ func GetRayJobLogs(t Test, namespace, name string) []byte {
 
 	return []byte(body["logs"])
 }
+
+func WriteRayJobLogs(t Test, namespace, name string) {
+	t.T().Logf("Retrieving RayJob %s/%s logs", namespace, name)
+	WriteToOutputDir(t, name, Log, GetRayJobLogs(t, namespace, name))
+}
