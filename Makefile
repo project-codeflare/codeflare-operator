@@ -12,10 +12,10 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.0.4
+INSTASCALE_VERSION ?= v0.0.5
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.31.0
+MCAD_VERSION ?= v1.32.0
 # MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
 MCAD_REF ?= release-${MCAD_VERSION}
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
