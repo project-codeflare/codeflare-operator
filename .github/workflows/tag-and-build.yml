@@ -94,15 +94,15 @@ jobs:
 
     - name: Build bundle and create PR in OpenShift community operators repository
       run: |
-        git config --global user.email "codeflare-ci@redhat.com"
-        git config --global user.name "CodeFlare CI"
+        git config --global user.email "138894154+codeflare-machine-account@users.noreply.github.com"
+        git config --global user.name "codeflare-machine-account"
         make openshift-community-operator-release
       env:
         VERSION: ${{ github.event.inputs.version }}
         PREVIOUS_VERSION: ${{ github.event.inputs.replaces }}
         INSTASCALE_VERSION: ${{ github.event.inputs.instascale-version }}
         MCAD_VERSION: ${{ github.event.inputs.mcad-version }}
-        GH_TOKEN: ${{ secrets.GH_PAT }}
+        GH_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
         IMAGE_ORG_BASE: quay.io/${{ github.event.inputs.quay-organization }}
         OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
         OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}
@@ -125,7 +125,7 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
-        file_pattern: 'README.md controllers/defaults.go *.yaml *.tmpl Makefile'
+        file_pattern: 'README.md controllers/defaults.go *.yaml Makefile'
 
     - name: Creates a release in GitHub
       run: |
