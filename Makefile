@@ -368,11 +368,11 @@ bundle-push: ## Push the bundle image.
 
 .PHONY: openshift-community-operator-release
 openshift-community-operator-release: install-gh-cli bundle ## build bundle and create PR in OpenShift community operators repository
-	git clone https://$(GH_TOKEN)@github.com/$(OPERATORS_REPO_FORK_ORG)/community-operators-prod.git
+	git clone https://x-access-token:$(GH_TOKEN)@github.com/$(OPERATORS_REPO_FORK_ORG)/community-operators-prod.git
 	cd community-operators-prod && git remote add upstream https://github.com/$(OPERATORS_REPO_ORG)/community-operators-prod.git && git pull upstream main && git push origin main
 	cp -r bundle community-operators-prod/operators/codeflare-operator/$(BUNDLE_VERSION)
-	cd community-operators-prod && git checkout -b codeflare-release-$(BUNDLE_VERSION) && git add operators/codeflare-operator/$(BUNDLE_VERSION)/* && git commit -m "add bundle manifests codeflare version $(BUNDLE_VERSION)" && git push origin codeflare-release-$(BUNDLE_VERSION)
-	gh pr create --repo $(OPERATORS_REPO_FORK_ORG)/community-operators-prod --title "CodeFlare $(BUNDLE_VERSION)" --body "New release of codeflare operator" --head $(OPERATORS_REPO_ORG):codeflare-release-$(BUNDLE_VERSION) --base main
+	cd community-operators-prod && git checkout -b codeflare-release-$(BUNDLE_VERSION) && git add operators/codeflare-operator/$(BUNDLE_VERSION)/* && git commit -m "add bundle manifests codeflare version $(BUNDLE_VERSION)" --signoff && git push origin codeflare-release-$(BUNDLE_VERSION)
+	gh pr create --repo $(OPERATORS_REPO_ORG)/community-operators-prod --title "CodeFlare $(BUNDLE_VERSION)" --body "New release of codeflare operator" --head $(OPERATORS_REPO_FORK_ORG):codeflare-release-$(BUNDLE_VERSION) --base main
 	rm -rf community-operators-prod
 
 .PHONY: opm
