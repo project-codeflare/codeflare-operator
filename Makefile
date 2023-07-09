@@ -19,7 +19,9 @@ MCAD_VERSION ?= v1.32.0
 # MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
 MCAD_REF ?= release-${MCAD_VERSION}
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
-MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_REF}
+# Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
+# The image is still published using the MCAD_REF format (i.e release-vX.Y.Z)
+MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
 KUBERAY_VERSION ?= v0.5.0
