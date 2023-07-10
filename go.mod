@@ -8,7 +8,7 @@ require (
 	github.com/manifestival/manifestival v0.7.2
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.6
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.31.0
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.32.0
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20230614221720-085c29d40fa9
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
