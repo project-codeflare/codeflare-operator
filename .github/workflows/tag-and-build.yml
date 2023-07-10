@@ -49,6 +49,9 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      IMAGE_ORG_BASE: quay.io/${{ github.event.inputs.quay-organization }}
+
     steps:
     - uses: actions/checkout@v3
 
@@ -72,6 +75,20 @@ jobs:
 
     - name: Install operator-sdk
       run: make install-operator-sdk
+
+    - name: Adjust Compatibility Matrix in readme
+      run: |
+        sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.version }}\2/" README.md
+        sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" README.md
+        sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" README.md
+        sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" README.md
+
+    - name: Adjust MCAD and InstaScale dependencies in the code
+      run: |
+        sed -i -E "s/(.*MCAD_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" Makefile
+        sed -i -E "s/(.*INSTASCALE_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" Makefile
+        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
+        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
 
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
@@ -103,29 +120,14 @@ jobs:
         INSTASCALE_VERSION: ${{ github.event.inputs.instascale-version }}
         MCAD_VERSION: ${{ github.event.inputs.mcad-version }}
         GH_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-        IMAGE_ORG_BASE: quay.io/${{ github.event.inputs.quay-organization }}
         OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
         OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}
 
-    - name: Adjust Compatibility Matrix in readme
-      run: |
-        sed -i -E "s/(.*CodeFlare Operator.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.version }}\2/" README.md
-        sed -i -E "s/(.*Multi-Cluster App Dispatcher.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" README.md
-        sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" README.md
-        sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" README.md
-
-    - name: Adjust MCAD and InstaScale dependencies in the code
-      run: |
-        sed -i -E "s/(.*MCAD_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" Makefile
-        sed -i -E "s/(.*INSTASCALE_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" Makefile
-        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
-        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
-
-    - name: Commit readme changes back to repository
+    - name: Commit changes in the code back to repository
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
-        file_pattern: 'README.md controllers/defaults.go *.yaml Makefile'
+        file_pattern: 'README.md controllers/defaults.go *.yaml Makefile go.mod go.sum'
 
     - name: Creates a release in GitHub
       run: |
