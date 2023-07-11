@@ -123,6 +123,10 @@ jobs:
         OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
         OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}
 
+    - name: Cleanup the go.mod and go.sum
+      run: |
+        go mod tidy
+
     - name: Commit changes in the code back to repository
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
