@@ -1,0 +1,21 @@
+# This workflow will build the CodeFlare Operator image and push it to the project-codeflare image registry
+
+name: Test
+on:
+  pull_request_target:
+    branches:
+      - main
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.QUAY_ID }}
+        password: ${{ secrets.QUAY_TOKEN }}
+        registry: quay.io
