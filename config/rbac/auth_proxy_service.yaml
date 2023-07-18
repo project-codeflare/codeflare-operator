@@ -8,7 +8,7 @@ spec:
   - name: https
     port: 8443
     protocol: TCP
-    targetPort: https
+    targetPort: 8080
   selector:
     app.kubernetes.io/name: codeflare-operator
     app.kubernetes.io/part-of: codeflare
