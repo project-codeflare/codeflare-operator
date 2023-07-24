@@ -68,3 +68,20 @@ func WriteRayJobLogs(t Test, namespace, name string) {
 	t.T().Logf("Retrieving RayJob %s/%s logs", namespace, name)
 	WriteToOutputDir(t, name, Log, GetRayJobLogs(t, namespace, name))
 }
+
+func RayCluster(t Test, namespace, name string) func(g gomega.Gomega) *rayv1alpha1.RayCluster {
+	return func(g gomega.Gomega) *rayv1alpha1.RayCluster {
+		cluster, err := t.Client().Ray().RayV1alpha1().RayClusters(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		return cluster
+	}
+}
+
+func GetRayCluster(t Test, namespace, name string) *rayv1alpha1.RayCluster {
+	t.T().Helper()
+	return RayCluster(t, namespace, name)(t)
+}
+
+func RayClusterState(cluster *rayv1alpha1.RayCluster) rayv1alpha1.ClusterState {
+	return cluster.Status.State
+}
