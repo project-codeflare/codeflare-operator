@@ -18,6 +18,7 @@ limitations under the License.
 package support
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -34,7 +35,10 @@ func ConditionStatus[T conditionType](conditionType T) func(any) corev1.Conditio
 			if c := getJobCondition(o.Status.Conditions, batchv1.JobConditionType(conditionType)); c != nil {
 				return c.Status
 			}
-
+		case *appsv1.Deployment:
+			if c := getDeploymentCondition(o.Status.Conditions, appsv1.DeploymentConditionType(conditionType)); c != nil {
+				return c.Status
+			}
 		}
 
 		return corev1.ConditionUnknown
@@ -44,6 +48,15 @@ func ConditionStatus[T conditionType](conditionType T) func(any) corev1.Conditio
 // TODO: to be replaced with a generic version once common struct fields of a type set can be used.
 // See https://github.com/golang/go/issues/48522
 func getJobCondition(conditions []batchv1.JobCondition, conditionType batchv1.JobConditionType) *batchv1.JobCondition {
+	for _, c := range conditions {
+		if c.Type == conditionType {
+			return &c
+		}
+	}
+	return nil
+}
+
+func getDeploymentCondition(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) *appsv1.DeploymentCondition {
 	for _, c := range conditions {
 		if c.Type == conditionType {
 			return &c
