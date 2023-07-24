@@ -124,6 +124,8 @@ func (r *MCADReconciler) DeleteResource(params *MCADParams, template string, fns
 // +kubebuilder:rbac:groups=extensions,resources=replicasets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers;csinodes;csistoragecapacities,verbs=get;list;watch
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func (r *MCADReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("namespace", req.Namespace)

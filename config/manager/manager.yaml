@@ -35,7 +35,9 @@ spec:
       - command:
         - /manager
         args:
-        - --leader-elect
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=0.0.0.0:8080"
+        - "--leader-elect"
         image: controller:latest
         imagePullPolicy: Always
         name: manager
@@ -44,6 +46,10 @@ spec:
           capabilities:
             drop:
               - "ALL"
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+            name: metrics
         livenessProbe:
           httpGet:
             path: /healthz
