@@ -72,6 +72,11 @@ jobs:
           # wait for a while to be sure CRDs are installed
           sleep 1
           kubectl create -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/olm.yaml
+          echo Wait for default CatalogSource to start
+          kubectl wait -n ${{ env.CATALOG_SOURCE_NAMESPACE }} catalogsource/${{ env.CATALOG_SOURCE_NAME }} --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --timeout=180s
+        env:
+          CATALOG_SOURCE_NAME: "operatorhubio-catalog"
+          CATALOG_SOURCE_NAMESPACE: "olm"
 
       - name: Create openshift-operator namespace and OperatorGroup
         run: |
@@ -87,15 +92,18 @@ jobs:
           envsubst < .github/resources-olm-upgrade/subscription.yaml > ${{ env.TEMP_DIR }}/subscription.yaml
 
           kubectl create -f ${{ env.TEMP_DIR }}/catalogsource.yaml
-          make wait-for-catalog-source
+
+          echo Wait for CatalogSource ${{ env.CATALOG_SOURCE_NAME }} to start
+          kubectl wait -n ${{ env.CATALOG_SOURCE_NAMESPACE }} catalogsource/${{ env.CATALOG_SOURCE_NAME }} --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --timeout=180s
 
           kubectl create -f ${{ env.TEMP_DIR }}/subscription.yaml
 
           echo Waiting for Subscription to be ready
-          make wait-for-subscription
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} subscription/${{ env.SUBSCRIPTION_NAME }} --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 
           echo Waiting for Deployment to be ready
-          make wait-for-deployment -e TIMEOUT=60 -e DEPLOYMENT_NAME="codeflare-operator-manager" -e DEPLOYMENT_NAMESPACE="openshift-operators"
+          timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
         env:
           CATALOG_SOURCE_NAME: "codeflare-olm-test"
           CATALOG_SOURCE_NAMESPACE: "olm"
@@ -138,10 +146,11 @@ jobs:
           kubectl wait --timeout=120s --for=delete pod/${ORIGINAL_POD_NAME} -n openshift-operators
 
           echo Waiting for Subscription to be ready
-          make wait-for-subscription
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} subscription/${{ env.SUBSCRIPTION_NAME }} --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 
           echo Waiting for Deployment to be ready
-          make wait-for-deployment -e TIMEOUT=60 -e DEPLOYMENT_NAME="codeflare-operator-manager" -e DEPLOYMENT_NAMESPACE="openshift-operators"
+          timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
 
           echo Checking that correct CSV is available
           CSV_VERSION=$(kubectl get ClusterServiceVersion/codeflare-operator.${VERSION} -n openshift-operators -o json | jq -r .spec.version)

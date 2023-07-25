@@ -440,23 +440,3 @@ test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.
 	KUBERAY_VERSION=$(KUBERAY_VERSION) test/e2e/setup.sh
-
-# Wait until CatalogSource is in "READY" state
-.PHONY: wait-for-catalog-source
-wait-for-catalog-source:
-	timeout 120 bash -c 'while [[ "$$(kubectl get catalogsource/'$(CATALOG_SOURCE_NAME)' -n '$(CATALOG_SOURCE_NAMESPACE)' -o json | jq -r .status.connectionState.lastObservedState)" != "READY" ]]; do sleep 5 && echo "$$(kubectl get catalogsource/'$(CATALOG_SOURCE_NAME)' -n '$(CATALOG_SOURCE_NAMESPACE)' -o json | jq -r .status.connectionState.lastObservedState)" ; done'
-
-# Wait until Subscription is in "AtLatestKnown" state
-.PHONY: wait-for-subscription
-wait-for-subscription:
-	timeout 300 bash -c 'while [[ "$$(kubectl get subscription/'$(SUBSCRIPTION_NAME)' -n '$(SUBSCRIPTION_NAMESPACE)' -o json | jq -r .status.state)" != "AtLatestKnown" ]]; do sleep 5 && echo "$$(kubectl get subscription/'$(SUBSCRIPTION_NAME)' -n '$(SUBSCRIPTION_NAMESPACE)' -o json | jq -r .status.state)" ; done'
-
-# Default timeout for waiting actions
-TIMEOUT ?= 180
-
-# Wait until Deployment is in "Available" state
-.PHONY: wait-for-deployment
-wait-for-deployment:
-	# Wait until Deployment exists first, then use kubectl wait
-	timeout $(TIMEOUT) bash -c 'until [[ $$(kubectl get deployment/'$(DEPLOYMENT_NAME)' -n '$(DEPLOYMENT_NAMESPACE)') ]]; do sleep 5 && echo "$$(kubectl get deployment/'$(DEPLOYMENT_NAME)' -n '$(DEPLOYMENT_NAMESPACE)')"; done'
-	kubectl wait --timeout=$(TIMEOUT)s --for=condition=Available=true deployment/$(DEPLOYMENT_NAME) -n $(DEPLOYMENT_NAMESPACE)
