@@ -24,6 +24,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	routev1 "github.com/openshift/client-go/route/clientset/versioned"
+
 	codeflareclient "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
 	mcadclient "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/client/clientset/controller-versioned"
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
@@ -31,6 +33,7 @@ import (
 
 type Client interface {
 	Core() kubernetes.Interface
+	Route() routev1.Interface
 	CodeFlare() codeflareclient.Interface
 	MCAD() mcadclient.Interface
 	Ray() rayclient.Interface
@@ -38,6 +41,7 @@ type Client interface {
 
 type testClient struct {
 	core      kubernetes.Interface
+	route     routev1.Interface
 	codeflare codeflareclient.Interface
 	mcad      mcadclient.Interface
 	ray       rayclient.Interface
@@ -47,6 +51,10 @@ var _ Client = (*testClient)(nil)
 
 func (t *testClient) Core() kubernetes.Interface {
 	return t.core
+}
+
+func (t *testClient) Route() routev1.Interface {
+	return t.route
 }
 
 func (t *testClient) CodeFlare() codeflareclient.Interface {
@@ -75,6 +83,11 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	routeClient, err := routev1.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	codeFlareClient, err := codeflareclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -92,6 +105,7 @@ func newTestClient() (Client, error) {
 
 	return &testClient{
 		core:      kubeClient,
+		route:     routeClient,
 		codeflare: codeFlareClient,
 		mcad:      mcadClient,
 		ray:       rayClient,

@@ -21,6 +21,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 type conditionType interface {
@@ -37,6 +39,10 @@ func ConditionStatus[T conditionType](conditionType T) func(any) corev1.Conditio
 			}
 		case *appsv1.Deployment:
 			if c := getDeploymentCondition(o.Status.Conditions, appsv1.DeploymentConditionType(conditionType)); c != nil {
+				return c.Status
+			}
+		case *routev1.Route:
+			if c := getRouteCondition(o.Status.Ingress[0].Conditions, routev1.RouteIngressConditionType(conditionType)); c != nil {
 				return c.Status
 			}
 		}
@@ -57,6 +63,15 @@ func getJobCondition(conditions []batchv1.JobCondition, conditionType batchv1.Jo
 }
 
 func getDeploymentCondition(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) *appsv1.DeploymentCondition {
+	for _, c := range conditions {
+		if c.Type == conditionType {
+			return &c
+		}
+	}
+	return nil
+}
+
+func getRouteCondition(conditions []routev1.RouteIngressCondition, conditionType routev1.RouteIngressConditionType) *routev1.RouteIngressCondition {
 	for _, c := range conditions {
 		if c.Type == conditionType {
 			return &c
