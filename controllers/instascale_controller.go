@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/go-logr/logr"
+	mf "github.com/manifestival/manifestival"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	authv1 "k8s.io/api/rbac/v1"
@@ -28,16 +31,12 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/go-logr/logr"
-	mf "github.com/manifestival/manifestival"
 
 	"github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 	"github.com/project-codeflare/codeflare-operator/controllers/config"
