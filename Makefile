@@ -278,6 +278,7 @@ LISTER_GEN ?= $(LOCALBIN)/lister-gen
 INFORMER_GEN ?= $(LOCALBIN)/informer-gen
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 GH_CLI ?= $(LOCALBIN)/gh
 
@@ -337,6 +338,11 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: openshift-goimports
+openshift-goimports: $(OPENSHIFT-GOIMPORTS) ## Download openshift-goimports locally if necessary.
+$(OPENSHIFT-GOIMPORTS): $(LOCALBIN)
+	test -s $(LOCALBIN)/openshift-goimports || GOBIN=$(LOCALBIN) go install github.com/openshift-eng/openshift-goimports@latest
 
 OPERATOR_SDK_DL_URL := https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)
 .PHONY: install-operator-sdk
@@ -440,3 +446,11 @@ test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.
 	KUBERAY_VERSION=$(KUBERAY_VERSION) test/e2e/setup.sh
+
+.PHONY: imports
+imports: openshift-goimports ## Organize imports in go files using openshift-goimports. Example: make imports
+	$(OPENSHIFT-GOIMPORTS)
+
+.PHONY: verify-imports
+verify-imports: openshift-goimports ## Run import verifications.
+	./hack/verify-imports.sh $(OPENSHIFT-GOIMPORTS)
