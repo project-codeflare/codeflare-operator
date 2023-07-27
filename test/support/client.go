@@ -17,18 +17,18 @@ limitations under the License.
 package support
 
 import (
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	mcadclient "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/client/clientset/controller-versioned"
+	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
 
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 
 	codeflareclient "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
-	mcadclient "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/client/clientset/controller-versioned"
-	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
 )
 
 type Client interface {

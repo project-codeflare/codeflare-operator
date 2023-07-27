@@ -24,13 +24,14 @@ import (
 	"fmt"
 	"time"
 
-	v1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/client/applyconfiguration/codeflare/v1alpha1"
-	scheme "github.com/project-codeflare/codeflare-operator/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
+
+	v1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
+	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/client/applyconfiguration/codeflare/v1alpha1"
+	scheme "github.com/project-codeflare/codeflare-operator/client/clientset/versioned/scheme"
 )
 
 // InstaScalesGetter has a method to return a InstaScaleInterface.

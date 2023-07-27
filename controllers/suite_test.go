@@ -22,10 +22,9 @@ import (
 	"testing"
 	"time"
 
+	mf "github.com/manifestival/manifestival"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	mf "github.com/manifestival/manifestival"
 	"go.uber.org/zap/zapcore"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,7 +35,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"

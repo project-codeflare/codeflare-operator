@@ -19,9 +19,10 @@ limitations under the License.
 package applyconfiguration
 
 import (
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+
 	v1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/client/applyconfiguration/codeflare/v1alpha1"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ForKind returns an apply configuration type for the given GroupVersionKind, or nil if no

@@ -21,9 +21,10 @@ package v1alpha1
 import (
 	"net/http"
 
+	rest "k8s.io/client-go/rest"
+
 	v1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 	"github.com/project-codeflare/codeflare-operator/client/clientset/versioned/scheme"
-	rest "k8s.io/client-go/rest"
 )
 
 type CodeflareV1alpha1Interface interface {

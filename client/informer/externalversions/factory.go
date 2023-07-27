@@ -23,13 +23,14 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
-	codeflare "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/codeflare"
-	internalinterfaces "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
+
+	versioned "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
+	codeflare "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/codeflare"
+	internalinterfaces "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/internalinterfaces"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

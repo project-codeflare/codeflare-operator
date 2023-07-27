@@ -22,14 +22,15 @@ import (
 	"context"
 	time "time"
 
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
-	versioned "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
-	internalinterfaces "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/internalinterfaces"
-	v1alpha1 "github.com/project-codeflare/codeflare-operator/client/listers/codeflare/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
+
+	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
+	versioned "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
+	internalinterfaces "github.com/project-codeflare/codeflare-operator/client/informer/externalversions/internalinterfaces"
+	v1alpha1 "github.com/project-codeflare/codeflare-operator/client/listers/codeflare/v1alpha1"
 )
 
 // MCADInformer provides access to a shared informer and lister for
