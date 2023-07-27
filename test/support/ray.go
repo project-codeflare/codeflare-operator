@@ -20,10 +20,9 @@ import (
 	"encoding/json"
 
 	"github.com/onsi/gomega"
+	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 )
 
 const RayJobDefaultClusterSelectorKey = "ray.io/cluster"
