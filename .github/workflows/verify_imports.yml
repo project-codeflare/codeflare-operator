@@ -1,0 +1,20 @@
+name: Verify organization of imports
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '**.go'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+    paths:
+      - '**.go'
+jobs:
+  verify-imports:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Verify that imports are organized
+      run: make verify-imports
