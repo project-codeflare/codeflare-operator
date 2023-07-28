@@ -73,3 +73,4 @@ Release steps:
 6. Announce the new release in slack and mail lists, if any.
 
 7. Update the Distributed Workloads component in ODH (also copy/update the compatibility matrix).
+
