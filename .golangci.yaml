@@ -9,4 +9,3 @@ linters:
     - staticcheck
     - typecheck
     - unused
-    - revive
