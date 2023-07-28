@@ -173,8 +173,11 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-.PHONY: generate-client ## Generate client packages
-generate-client: code-generator
+.PHONY: generate-client ## Generate client packages and organize the goimports
+generate-client: generate-client-files imports
+
+.PHONY: generate-client-files
+generate-client-files: code-generator
 	rm -rf client
 	$(APPLYCONFIGURATION_GEN) \
 		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
