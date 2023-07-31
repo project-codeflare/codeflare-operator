@@ -1,0 +1,44 @@
+name: Verify Generated Files and Import Organization
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+    tags-ignore:
+      - 'v*'
+  pull_request:
+    paths:
+      - '**.go'
+      - '**go.mod'
+      - '**go.sum'
+jobs:
+  verify-generated-functions:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Verify that the DeepCopy, DeepCopyInto, and DeepCopyObject method implementations have been generated
+      run: make generate && git diff --exit-code
+
+  verify-generate-client:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Verify that the latest client has been generated
+      run: make generate-client && git diff --exit-code
+
+  verify-imports:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Verify that imports are organized
+      run: make verify-imports
+
+  verify-manifests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Verify that the latest WebhookConfigurations, ClusterRoles, and CustomResourceDefinitions have been generated
+      run: make manifests && git diff --exit-code
