@@ -33,6 +33,7 @@ type MCADSpecApplyConfiguration struct {
 	QuotaRestURL        *string                  `json:"quotaRestURL,omitempty"`
 	PodCreationTimeout  *int                     `json:"podCreationTimeout,omitempty"`
 	ControllerResources *v1.ResourceRequirements `json:"controllerResources,omitempty"`
+	ControllerImage     *string                  `json:"controllerImage,omitempty"`
 }
 
 // MCADSpecApplyConfiguration constructs an declarative configuration of the MCADSpec type for use with
@@ -102,5 +103,13 @@ func (b *MCADSpecApplyConfiguration) WithPodCreationTimeout(value int) *MCADSpec
 // If called multiple times, the ControllerResources field is set to the value of the last call.
 func (b *MCADSpecApplyConfiguration) WithControllerResources(value v1.ResourceRequirements) *MCADSpecApplyConfiguration {
 	b.ControllerResources = &value
+	return b
+}
+
+// WithControllerImage sets the ControllerImage field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ControllerImage field is set to the value of the last call.
+func (b *MCADSpecApplyConfiguration) WithControllerImage(value string) *MCADSpecApplyConfiguration {
+	b.ControllerImage = &value
 	return b
 }
