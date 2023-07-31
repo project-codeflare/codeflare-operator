@@ -183,6 +183,7 @@ generate-client-files: code-generator
 		--input-dirs="github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1" \
 		--go-header-file="hack/boilerplate.go.txt" \
 		--output-package="github.com/project-codeflare/codeflare-operator/client/applyconfiguration" \
+		--output-base="." \
 		--trim-path-prefix "github.com/project-codeflare/codeflare-operator"
 	$(CLIENT_GEN) \
 		--input="codeflare/v1alpha1" \
