@@ -47,3 +47,12 @@ runs:
         echo "KinD cluster:"
         kubectl cluster-info
         kubectl describe nodes
+
+    - name: Install Ingress controller
+      shell: bash
+      run: |
+        VERSION=controller-v1.6.4
+        echo "Deploying Ingress controller into KinD cluster"
+        curl https://raw.githubusercontent.com/kubernetes/ingress-nginx/"${VERSION}"/deploy/static/provider/kind/deploy.yaml | sed "s/--publish-status-address=localhost/--report-node-internal-ip-address\\n        - --status-update-interval=10/g" | kubectl apply -f -
+        kubectl annotate ingressclass nginx "ingressclass.kubernetes.io/is-default-class=true"
+        kubectl -n ingress-nginx wait --timeout=300s --for=condition=Available deployments --all
