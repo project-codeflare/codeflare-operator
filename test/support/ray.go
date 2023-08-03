@@ -17,8 +17,6 @@ limitations under the License.
 package support
 
 import (
-	"encoding/json"
-
 	"github.com/onsi/gomega"
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 
@@ -44,28 +42,10 @@ func RayJobStatus(job *rayv1alpha1.RayJob) rayv1alpha1.JobStatus {
 	return job.Status.JobStatus
 }
 
-func GetRayJobLogs(t Test, namespace, name string) []byte {
+func GetRayJobId(t Test, namespace, name string) string {
 	t.T().Helper()
-
-	job := GetRayJob(t, namespace, name)
-
-	response := t.Client().Core().CoreV1().RESTClient().
-		Get().
-		AbsPath("/api/v1/namespaces", job.Namespace, "services", "http:"+job.Status.RayClusterName+"-head-svc:dashboard", "proxy", "api", "jobs", job.Status.JobId, "logs").
-		Do(t.Ctx())
-	t.Expect(response.Error()).NotTo(gomega.HaveOccurred())
-
-	body := map[string]string{}
-	bytes, _ := response.Raw()
-	t.Expect(json.Unmarshal(bytes, &body)).To(gomega.Succeed())
-	t.Expect(body).To(gomega.HaveKey("logs"))
-
-	return []byte(body["logs"])
-}
-
-func WriteRayJobLogs(t Test, namespace, name string) {
-	t.T().Logf("Retrieving RayJob %s/%s logs", namespace, name)
-	WriteToOutputDir(t, name, Log, GetRayJobLogs(t, namespace, name))
+	job := RayJob(t, namespace, name)(t)
+	return job.Status.JobId
 }
 
 func RayCluster(t Test, namespace, name string) func(g gomega.Gomega) *rayv1alpha1.RayCluster {

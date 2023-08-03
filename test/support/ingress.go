@@ -19,20 +19,23 @@ package support
 import (
 	"github.com/onsi/gomega"
 
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	routev1 "github.com/openshift/api/route/v1"
 )
 
-func Route(t Test, namespace, name string) func(g gomega.Gomega) *routev1.Route {
-	return func(g gomega.Gomega) *routev1.Route {
-		route, err := t.Client().Route().RouteV1().Routes(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
+func Ingress(t Test, namespace, name string) func(g gomega.Gomega) *networkingv1.Ingress {
+	return func(g gomega.Gomega) *networkingv1.Ingress {
+		ingress, err := t.Client().Core().NetworkingV1().Ingresses(namespace).Get(t.Ctx(), name, metav1.GetOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
-		return route
+		return ingress
 	}
 }
 
-func GetRoute(t Test, namespace, name string) *routev1.Route {
+func GetIngress(t Test, namespace, name string) *networkingv1.Ingress {
 	t.T().Helper()
-	return Route(t, namespace, name)(t)
+	return Ingress(t, namespace, name)(t)
+}
+
+func LoadBalancerIngresses(ingress *networkingv1.Ingress) []networkingv1.IngressLoadBalancerIngress {
+	return ingress.Status.LoadBalancer.Ingress
 }

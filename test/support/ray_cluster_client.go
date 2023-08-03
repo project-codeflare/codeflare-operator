@@ -19,7 +19,7 @@ package support
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -72,7 +72,7 @@ func (client *rayClusterClient) CreateJob(job *RayJobSetup) (response *RayJobRes
 		return
 	}
 
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (client *rayClusterClient) GetJobDetails(jobID string) (response *RayJobDet
 		return
 	}
 
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -104,7 +104,7 @@ func (client *rayClusterClient) GetJobLogs(jobID string) (logs string, err error
 		return
 	}
 
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}

@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"encoding/base64"
+	"net/url"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -25,8 +26,12 @@ import (
 	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
+	routev1 "github.com/openshift/api/route/v1"
 
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
@@ -252,8 +257,104 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
+	var rayDashboardURL url.URL
+	if IsOpenShift(test) {
+		// Create a route to expose the Ray cluster API
+		route := &routev1.Route{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: routev1.GroupVersion.String(),
+				Kind:       "Route",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace.Name,
+				Name:      "ray-dashboard",
+			},
+			Spec: routev1.RouteSpec{
+				To: routev1.RouteTargetReference{
+					Name: "raycluster-head-svc",
+				},
+				Port: &routev1.RoutePort{
+					TargetPort: intstr.FromString("dashboard"),
+				},
+			},
+		}
+
+		_, err := test.Client().Route().RouteV1().Routes(namespace.Name).Create(test.Ctx(), route, metav1.CreateOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.T().Logf("Created Route %s/%s successfully", route.Namespace, route.Name)
+
+		test.T().Logf("Waiting for Route %s/%s to be admitted", route.Namespace, route.Name)
+		test.Eventually(Route(test, route.Namespace, route.Name), TestTimeoutMedium).
+			Should(WithTransform(ConditionStatus(routev1.RouteAdmitted), Equal(corev1.ConditionTrue)))
+
+		route = GetRoute(test, route.Namespace, route.Name)
+
+		rayDashboardURL = url.URL{
+			Scheme: "http",
+			Host:   route.Status.Ingress[0].Host,
+		}
+	} else {
+		ingress := &networkingv1.Ingress{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: networkingv1.SchemeGroupVersion.String(),
+				Kind:       "Ingress",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace.Name,
+				Name:      "ray-dashboard",
+				Annotations: map[string]string{
+					"nginx.ingress.kubernetes.io/use-regex":      "true",
+					"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+				},
+			},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{
+									{
+										Path:     "/ray-dashboard(/|$)(.*)",
+										PathType: Ptr(networkingv1.PathTypePrefix),
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: "raycluster-head-svc",
+												Port: networkingv1.ServiceBackendPort{
+													Name: "dashboard",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := test.Client().Core().NetworkingV1().Ingresses(ingress.Namespace).Create(test.Ctx(), ingress, metav1.CreateOptions{})
+		test.Expect(err).NotTo(HaveOccurred())
+		test.T().Logf("Created Ingress %s/%s successfully", ingress.Namespace, ingress.Name)
+
+		test.T().Logf("Waiting for Ingress %s/%s to be admitted", ingress.Namespace, ingress.Name)
+		test.Eventually(Ingress(test, ingress.Namespace, ingress.Name), TestTimeoutMedium).
+			Should(WithTransform(LoadBalancerIngresses, HaveLen(1)))
+
+		ingress = GetIngress(test, ingress.Namespace, ingress.Name)
+
+		rayDashboardURL = url.URL{
+			Scheme: "http",
+			Host:   ingress.Status.LoadBalancer.Ingress[0].IP,
+			Path:   "ray-dashboard",
+		}
+	}
+
+	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
+	rayClient := NewRayClusterClient(rayDashboardURL)
+
 	// Retrieving the job logs once it has completed or timed out
-	defer WriteRayJobLogs(test, rayJob.Namespace, rayJob.Name)
+	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
