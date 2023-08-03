@@ -25,10 +25,14 @@ The e2e tests can be executed locally by running the following commands:
 
     ```bash
     # Create a KinD cluster
-    $ kind create cluster --image kindest/node:v1.25.8
+    $ make kind-e2e
     # Install the CRDs
     $ make install
     ```
+
+   [!NOTE]
+   Some e2e tests cover the access to services via Ingresses, as end-users would do, which requires access to the Ingress controller load balancer by its IP.
+   For it to work on macOS, this requires installing [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect).
 
 2. Start the operator locally:
 

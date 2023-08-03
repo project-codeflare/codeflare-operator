@@ -448,6 +448,10 @@ test-unit: defaults manifests generate fmt vet envtest ## Run unit tests.
 test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
 
+.PHONY: kind-e2e
+setup-e2e: ## Set up e2e KinD cluster.
+	test/e2e/kind.sh
+
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.
 	KUBERAY_VERSION=$(KUBERAY_VERSION) test/e2e/setup.sh
