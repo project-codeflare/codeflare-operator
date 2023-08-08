@@ -11,8 +11,8 @@ require (
 	github.com/openshift-eng/openshift-goimports v0.0.0-20230304234052-c70783e636f2
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.32.0
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230802222355-153f35c9fd14
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3

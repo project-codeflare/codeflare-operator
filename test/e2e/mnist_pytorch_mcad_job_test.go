@@ -137,7 +137,7 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 		},
 	}
 
-	_, err = test.Client().MCAD().ArbV1().AppWrappers(namespace.Name).Create(aw)
+	_, err = test.Client().MCAD().McadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
 
