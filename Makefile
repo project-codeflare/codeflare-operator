@@ -171,7 +171,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 
 .PHONY: generate-client ## Generate client packages and organize the goimports
 generate-client: generate-client-files imports
@@ -222,8 +222,8 @@ vet: ## Run go vet against code.
 
 .PHONY: modules
 modules: ## Update Go dependencies.
-	go get $(MCAD_REPO)@$(MCAD_VERSION)
-	go get github.com/ray-project/kuberay/ray-operator
+	#go get $(MCAD_REPO)@$(MCAD_VERSION)
+	#go get github.com/ray-project/kuberay/ray-operator
 
 .PHONY: build
 build: modules defaults generate fmt vet ## Build manager binary.
