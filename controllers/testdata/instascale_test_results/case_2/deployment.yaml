@@ -19,7 +19,7 @@ spec:
         - name: instascale
           args:
             - "--configs-namespace=default"
-          image: quay.io/project-codeflare/instascale-controller:v0.0.5
+          image: quay.io/project-codeflare/instascale-controller:v0.0.6
           resources:
             limits:
               cpu: '1'
