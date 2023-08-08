@@ -15,7 +15,7 @@ BUNDLE_VERSION ?= $(VERSION:v%=%)
 INSTASCALE_VERSION ?= v0.0.5
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.32.0
+MCAD_VERSION ?= v1.33.0
 # MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
 MCAD_REF ?= release-${MCAD_VERSION}
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
@@ -223,6 +223,7 @@ vet: ## Run go vet against code.
 .PHONY: modules
 modules: ## Update Go dependencies.
 	go get $(MCAD_REPO)@$(MCAD_VERSION)
+	go get github.com/ray-project/kuberay/ray-operator
 
 .PHONY: build
 build: modules defaults generate fmt vet ## Build manager binary.
