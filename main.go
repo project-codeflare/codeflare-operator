@@ -21,6 +21,9 @@ import (
 	"os"
 	"time"
 
+	instascale "github.com/project-codeflare/instascale/controllers"
+	mcadoptions "github.com/project-codeflare/multi-cluster-app-dispatcher/cmd/kar-controllers/app/options"
+	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	"go.uber.org/zap/zapcore"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,16 +35,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
-	"github.com/project-codeflare/codeflare-operator/controllers"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme        = runtime.NewScheme()
-	setupLog      = ctrl.Log.WithName("setup")
-	templatesPath = "config/internal/"
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+	// templatesPath = "config/internal/"
 )
 
 func init() {
@@ -55,19 +57,35 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var configsNamespace string
+	var ocmSecretNamespace string
+
+	// Operator
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	opts := zap.Options{
+
+	// InstScale
+	flag.StringVar(&configsNamespace, "configs-namespace", "kube-system", "The namespace containing the Instacale configmap")
+	flag.StringVar(&ocmSecretNamespace, "ocm-secret-namespace", "default", "The namespace containing the OCM secret")
+
+	mcadOptions := mcadoptions.NewServerOption()
+
+	zapOptions := zap.Options{
 		Development: true,
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
-	opts.BindFlags(flag.CommandLine)
+
+	flagSet := flag.CommandLine
+	zapOptions.BindFlags(flagSet)
+	mcadOptions.AddFlags(flagSet)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
+
+	ctx := ctrl.SetupSignalHandler()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -82,24 +100,40 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.MCADReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Log:           ctrl.Log,
-		TemplatesPath: templatesPath,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MCAD")
+	mcadQueueController := mcad.NewJobController(mgr.GetConfig(), mcadOptions)
+	if mcadQueueController == nil {
+		// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
 		os.Exit(1)
 	}
-	if err = (&controllers.InstaScaleReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Log:           ctrl.Log,
-		TemplatesPath: templatesPath,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "InstaScale")
-		os.Exit(1)
+	mcadQueueController.Run(ctx.Done())
+
+	instascaleController := &instascale.AppWrapperReconciler{
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		ConfigsNamespace:   configsNamespace,
+		OcmSecretNamespace: ocmSecretNamespace,
 	}
+
+	exitOnError(instascaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
+
+	// if err = (&controllers.MCADReconciler{
+	// 	Client:        mgr.GetClient(),
+	// 	Scheme:        mgr.GetScheme(),
+	// 	Log:           ctrl.Log,
+	// 	TemplatesPath: templatesPath,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "MCAD")
+	// 	os.Exit(1)
+	// }
+	// if err = (&controllers.InstaScaleReconciler{
+	// 	Client:        mgr.GetClient(),
+	// 	Scheme:        mgr.GetScheme(),
+	// 	Log:           ctrl.Log,
+	// 	TemplatesPath: templatesPath,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "InstaScale")
+	// 	os.Exit(1)
+	// }
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -112,8 +146,15 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func exitOnError(err error, msg string) {
+	if err != nil {
+		setupLog.Error(err, msg)
 		os.Exit(1)
 	}
 }
