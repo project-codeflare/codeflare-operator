@@ -48,6 +48,26 @@ The e2e tests can be executed locally by running the following commands:
    $ make setup-e2e
    ```
 
+   [!NOTE]
+   In OpenShift the KubeRay operator pod gets random user assigned. This user is then used to run Ray cluster.
+   However the random user assigned by OpenShift doesn't have rights to store dataset downloaded as part of test execution, causing tests to fail.
+   To prevent this failure on OpenShift user should enforce user 1000 for KubeRay and Ray cluster by creating this SCC in KubeRay operator namespace (replace the namespace placeholder):
+
+    ```yaml
+    kind: SecurityContextConstraints
+    apiVersion: security.openshift.io/v1
+    metadata:
+      name: run-as-ray-user
+    seLinuxContext:
+      type: MustRunAs
+    runAsUser:
+      type: MustRunAs
+      uid: 1000
+    users:
+      - 'system:serviceaccount:$(namespace):kuberay-operator'
+    ```
+
+
 4. In a separate terminal, run the e2e suite:
 
     ```bash
