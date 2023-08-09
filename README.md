@@ -25,9 +25,9 @@ The e2e tests can be executed locally by running the following commands:
 
     ```bash
     # Create a KinD cluster
-    $ make kind-e2e
+    make kind-e2e
     # Install the CRDs
-    $ make install
+    make install
     ```
 
    [!NOTE]
@@ -37,7 +37,7 @@ The e2e tests can be executed locally by running the following commands:
 2. Start the operator locally:
 
     ```bash
-    $ make run
+    make run
     ```
 
    Alternatively, You can run the operator from your IDE / debugger.
@@ -45,7 +45,7 @@ The e2e tests can be executed locally by running the following commands:
 3. Set up the test CodeFlare stack:
 
    ```bash
-   $ make setup-e2e
+   make setup-e2e
    ```
 
    [!NOTE]
@@ -71,7 +71,7 @@ The e2e tests can be executed locally by running the following commands:
 4. In a separate terminal, run the e2e suite:
 
     ```bash
-    $ make test-e2e
+    make test-e2e
     ```
 
    Alternatively, You can run the e2e test(s) from your IDE / debugger.
