@@ -30,7 +30,7 @@ KUBERAY_VERSION ?= v0.5.0
 RAY_VERSION ?= 2.5.0
 
 # CODEFLARE_SDK_VERSION defines the default version of the CodeFlare SDK
-CODEFLARE_SDK_VERSION ?= 0.4.4
+CODEFLARE_SDK_VERSION ?= 0.6.1
 
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
