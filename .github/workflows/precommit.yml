@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: v1.19
+
       - name: Activate cache
         uses: actions/cache@v3
         with:
