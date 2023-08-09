@@ -85,9 +85,12 @@ jobs:
         sed -i -E "s/(.*CodeFlare-SDK.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.codeflare-sdk-version }}\2/" README.md
         sed -i -E "s/(.*InstaScale.*)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" README.md
 
-    - name: Adjust MCAD and InstaScale dependencies in the code
+    - name: Adjust MCAD, SDK and InstaScale dependencies in the code
       run: |
+        # Remove leading 'v'
+        CODEFLARE_SDK_VERSION=$(cut -c2- <<< ${{ github.event.inputs.codeflare-sdk-version }})
         sed -i -E "s/(.*MCAD_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" Makefile
+        sed -i -E "s/(.*CODEFLARE_SDK_VERSION \?= )[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$CODEFLARE_SDK_VERSION\2/" Makefile
         sed -i -E "s/(.*INSTASCALE_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" Makefile
         sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
         sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
