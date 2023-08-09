@@ -12,13 +12,12 @@ namespace = sys.argv[1]
 cluster = Cluster(ClusterConfiguration(
     name='mnist',
     namespace=namespace,
-    min_worker=1,
-    max_worker=1,
+    num_workers=1,
     min_cpus='500m',
     max_cpus=1,
     min_memory=0.5,
     max_memory=1,
-    gpu=0,
+    num_gpus=0,
     instascale=False,
 ))
 
