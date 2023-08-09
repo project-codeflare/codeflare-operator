@@ -449,7 +449,7 @@ test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
 
 .PHONY: kind-e2e
-setup-e2e: ## Set up e2e KinD cluster.
+kind-e2e: ## Set up e2e KinD cluster.
 	test/e2e/kind.sh
 
 .PHONY: setup-e2e
