@@ -463,8 +463,8 @@ github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.10.2/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
-github.com/onsi/gomega v1.27.8 h1:gegWiwZjBsf2DgiSbf5hpokZ98JVDMcWkUiigk6/KXc=
-github.com/onsi/gomega v1.27.8/go.mod h1:2J8vzI/s+2shY9XHRApDkdgPo1TKT7P2u6fXeJKFnNQ=
+github.com/onsi/gomega v1.27.10 h1:naR28SdDFlqrG6kScpT8VWpu1xWY5nJRCF3XaYyBjhI=
+github.com/onsi/gomega v1.27.10/go.mod h1:RsS8tutOdbdgzbPtzzATp12yT7kM5I5aElG3evPbQ0M=
 github.com/openshift-eng/openshift-goimports v0.0.0-20230304234052-c70783e636f2 h1:Zq1BYSO2UmZuu/O1tpYIaC/7ir7ljFqdEY90TwqlseI=
 github.com/openshift-eng/openshift-goimports v0.0.0-20230304234052-c70783e636f2/go.mod h1:VV07Ee+14Mjpwh/ZxtwgAieiCvZ20YVUB9jLHixzswk=
 github.com/openshift/api v0.0.0-20230213134911-7ba313770556 h1:7W2fOhJicyEff24VaF7ASNzPtYvr+iSCVft4SIBAzaE=
@@ -519,8 +519,8 @@ github.com/prometheus/procfs v0.7.3/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1
 github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5mo=
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
-github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6 h1:0O9dKI7eCPJIzJD/HfzbQgACq4GTr4j+VpwjdS7Qv0w=
-github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6/go.mod h1:hqphTv0O5l6hHf4/OtEn4ie/OHPoVydLograwaK5cHI=
+github.com/ray-project/kuberay/ray-operator v0.0.0-20230810043804-80a6d58e2e5d h1:FpE2VQLDFWRymSP6vmdG+xY0fbtk3VcT/D53WWOPZsc=
+github.com/ray-project/kuberay/ray-operator v0.0.0-20230810043804-80a6d58e2e5d/go.mod h1:hqphTv0O5l6hHf4/OtEn4ie/OHPoVydLograwaK5cHI=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

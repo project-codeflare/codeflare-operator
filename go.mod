@@ -7,12 +7,12 @@ require (
 	github.com/manifestival/controller-runtime-client v0.4.0
 	github.com/manifestival/manifestival v0.7.2
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.8
+	github.com/onsi/gomega v1.27.10
 	github.com/openshift-eng/openshift-goimports v0.0.0-20230304234052-c70783e636f2
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.33.0
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230807232553-238cb4e945b6
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230810043804-80a6d58e2e5d
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
