@@ -57,6 +57,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Set Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: v1.19
+
     - name: Verify that release doesn't exist yet
       shell: bash {0}
       run: |
