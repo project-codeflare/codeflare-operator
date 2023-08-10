@@ -1,14 +1,17 @@
-# This workflow will build the CodeFlare Operator image and push it to the project-codeflare image registry
+# This workflow will build the CodeFlare Operator dev image and push it to the project-codeflare image registry
 
-name: Operator Image
+name: Operator Dev Image
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to be used for operator image'
-        required: true
-        default: 'unstable'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'test/**'
+      - '**.adoc'
+      - '**.md'
+      - 'LICENSE'
 
 jobs:
   push:
@@ -21,14 +24,6 @@ jobs:
       with:
         go-version: v1.19
 
-    - name: Install operator-sdk
-      run: |
-        export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
-        export OS=$(uname | awk '{print tolower($0)}')
-        export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.27.0
-        curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-        chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
-
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
       with:
@@ -39,15 +34,5 @@ jobs:
     - name: Image Build
       run: |
         make build
-        make bundle
-        make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
-        podman tag quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG} quay.io/project-codeflare/codeflare-operator:latest
-      env:
-        SOURCE_TAG: ${{ github.event.inputs.tag }}
-
-    - name: Image Push
-      run: |
-        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:${SOURCE_TAG}
-        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:latest
-      env:
-        SOURCE_TAG: ${{ github.event.inputs.tag }}
+        make image-build -e IMG=quay.io/project-codeflare/codeflare-operator:dev
+        make image-push -e IMG=quay.io/project-codeflare/codeflare-operator:dev
