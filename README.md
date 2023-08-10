@@ -67,7 +67,6 @@ The e2e tests can be executed locally by running the following commands:
       - 'system:serviceaccount:$(namespace):kuberay-operator'
     ```
 
-
 4. In a separate terminal, run the e2e suite:
 
     ```bash
@@ -78,22 +77,23 @@ The e2e tests can be executed locally by running the following commands:
 
 ## Release
 
-Prerequisite:
-- Build and release [MCAD](https://github.com/project-codeflare/multi-cluster-app-dispatcher)
-- Build and release [InstaScale](https://github.com/project-codeflare/instascale)
-- Build and release [CodeFlare-SDK](https://github.com/project-codeflare/codeflare-sdk)
+1. Invoke [project-codeflare-release.yaml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/project-codeflare-release.yml)
+2. Once all jobs within the action are completed, verify that compatibility matrix in [README](https://github.com/project-codeflare/codeflare-operator/blob/main/README.md) was properly updated.
+3. Verify that opened pull request to [OpenShift community operators repository](https://github.com/redhat-openshift-ecosystem/community-operators-prod) has proper content.
+4. Once PR is merged, announce the new release in slack and mail lists, if any.
+5. Update the Distributed Workloads component in ODH (also copy/update the compatibility matrix). This may require yaml and test updates depending on the release. Make sure to create a tag + release in the Distributed Workloads repository that matches the project-codeflare release version.
+6. Update the readme/markdown/yaml in odh-manifests as required.
 
-Release steps:
-1. Invoke [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, this action will create a repository tag, build and push operator image.
+### Releases involving part of the stack
 
-2. Check result of [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, it should pass.
+There may be instances in which a new CodeFlare stack release requires releases of only a subset of the stack components. Examples could be hotfixes for a specific component. In these instances:
 
-3. Verify that compatibility matrix in [README](https://github.com/project-codeflare/codeflare-operator/blob/main/README.md) was properly updated.
+1. Build updated components as needed:
+    - Build and release [MCAD](https://github.com/project-codeflare/multi-cluster-app-dispatcher)
+    - Build and release [InstaScale](https://github.com/project-codeflare/instascale)
+    - Build and release [CodeFlare-SDK](https://github.com/project-codeflare/codeflare-sdk)
 
-4. Verify that opened pull request to [OpenShift community operators repository](https://github.com/redhat-openshift-ecosystem/community-operators-prod) has proper content.
-
-5. Once PR is merged, update component stable tags to point at the latest image release.
-
-6. Announce the new release in slack and mail lists, if any.
-
-7. Update the Distributed Workloads component in ODH (also copy/update the compatibility matrix).
+2. Invoke [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, this action will create a repository tag, build and push operator image.
+3. Check result of [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, it should pass.
+4. Verify that compatibility matrix in [README](https://github.com/project-codeflare/codeflare-operator/blob/main/README.md) was properly updated.
+5. Follow the steps 3-6 from the previous section.
