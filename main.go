@@ -78,10 +78,16 @@ func main() {
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
 
-	flagSet := flag.CommandLine
+	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flag.CommandLine.VisitAll(func(f *flag.Flag) {
+		if f.Name != "kubeconfig" {
+			flagSet.Var(f.Value, f.Name, f.Usage)
+		}
+	})
+
 	zapOptions.BindFlags(flagSet)
 	mcadOptions.AddFlags(flagSet)
-	flag.Parse()
+	_ = flagSet.Parse(os.Args[1:])
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
 
