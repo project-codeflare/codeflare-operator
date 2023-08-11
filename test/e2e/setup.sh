@@ -22,16 +22,6 @@ kubectl apply --server-side -k "github.com/ray-project/kuberay/ray-operator/conf
 
 kubectl create ns codeflare-system --dry-run=client -o yaml | kubectl apply -f -
 
-echo Deploying MCAD controller
-cat <<EOF | kubectl apply -n codeflare-system -f -
-apiVersion: codeflare.codeflare.dev/v1alpha1
-kind: MCAD
-metadata:
-  name: mcad
-spec:
-  controllerResources: {}
-EOF
-
 cat <<EOF | kubectl apply -n codeflare-system -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -61,13 +51,10 @@ metadata:
   name: mcad-controller-rayclusters
 subjects:
   - kind: ServiceAccount
-    name: mcad-controller-mcad
+    name: controller-manager
     namespace: codeflare-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: mcad-controller-rayclusters
 EOF
-
-echo "Waiting for the MCAD deployment to become ready..."
-kubectl wait --timeout=120s --for=condition=Available=true deployment -n codeflare-system mcad-controller-mcad
