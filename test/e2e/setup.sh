@@ -51,8 +51,8 @@ metadata:
   name: mcad-controller-rayclusters
 subjects:
   - kind: ServiceAccount
-    name: controller-manager
-    namespace: codeflare-system
+    name: codeflare-operator-controller-manager
+    namespace: openshift-operators
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
