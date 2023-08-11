@@ -1,5 +1,6 @@
 resources:
 - manager.yaml
+- instascale-configmap.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
