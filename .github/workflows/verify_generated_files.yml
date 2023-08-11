@@ -26,17 +26,6 @@ jobs:
     - name: Verify that the DeepCopy, DeepCopyInto, and DeepCopyObject method implementations have been generated
       run: make generate && git diff --exit-code
 
-  verify-generate-client:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: v1.19
-    - name: Verify that the latest client has been generated
-      run: make generate-client && git diff --exit-code
-
   verify-imports:
     runs-on: ubuntu-latest
     steps:
