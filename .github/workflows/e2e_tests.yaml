@@ -73,6 +73,9 @@ jobs:
           echo Deploying CodeFlare operator
           IMG="${REGISTRY_ADDRESS}"/codeflare-operator
           make image-push -e IMG="${IMG}"
+          # FIXME
+          kubectl create ns openshift-operators
+          kubectl apply -n openshift-operators -f config/default/instascale-configmap.yaml
           make deploy -e IMG="${IMG}"
           kubectl wait --timeout=120s --for=condition=Available=true deployment -n openshift-operators codeflare-operator-manager
 
