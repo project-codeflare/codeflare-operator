@@ -119,26 +119,6 @@ func main() {
 
 	exitOnError(instascaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
 
-	// if err = (&controllers.MCADReconciler{
-	// 	Client:        mgr.GetClient(),
-	// 	Scheme:        mgr.GetScheme(),
-	// 	Log:           ctrl.Log,
-	// 	TemplatesPath: templatesPath,
-	// }).SetupWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create controller", "controller", "MCAD")
-	// 	os.Exit(1)
-	// }
-	// if err = (&controllers.InstaScaleReconciler{
-	// 	Client:        mgr.GetClient(),
-	// 	Scheme:        mgr.GetScheme(),
-	// 	Log:           ctrl.Log,
-	// 	TemplatesPath: templatesPath,
-	// }).SetupWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create controller", "controller", "InstaScale")
-	// 	os.Exit(1)
-	// }
-	// +kubebuilder:scaffold:builder
-
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
