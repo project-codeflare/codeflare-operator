@@ -27,8 +27,6 @@ import (
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
-
-	codeflareclient "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 )
@@ -37,20 +35,18 @@ type Client interface {
 	Core() kubernetes.Interface
 	Route() routev1.Interface
 	Image() imagev1.Interface
-	CodeFlare() codeflareclient.Interface
 	MCAD() mcadclient.Interface
 	Ray() rayclient.Interface
 	Dynamic() dynamic.Interface
 }
 
 type testClient struct {
-	core      kubernetes.Interface
-	route     routev1.Interface
-	image     imagev1.Interface
-	codeflare codeflareclient.Interface
-	mcad      mcadclient.Interface
-	ray       rayclient.Interface
-	dynamic   dynamic.Interface
+	core    kubernetes.Interface
+	route   routev1.Interface
+	image   imagev1.Interface
+	mcad    mcadclient.Interface
+	ray     rayclient.Interface
+	dynamic dynamic.Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -66,11 +62,6 @@ func (t *testClient) Route() routev1.Interface {
 func (t *testClient) Image() imagev1.Interface {
 	return t.image
 }
-
-func (t *testClient) CodeFlare() codeflareclient.Interface {
-	return t.codeflare
-}
-
 func (t *testClient) MCAD() mcadclient.Interface {
 	return t.mcad
 }
@@ -107,11 +98,6 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
-	codeFlareClient, err := codeflareclient.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	mcadClient, err := mcadclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -128,12 +114,11 @@ func newTestClient() (Client, error) {
 	}
 
 	return &testClient{
-		core:      kubeClient,
-		route:     routeClient,
-		image:     imageClient,
-		codeflare: codeFlareClient,
-		mcad:      mcadClient,
-		ray:       rayClient,
-		dynamic:   dynamicClient,
+		core:    kubeClient,
+		route:   routeClient,
+		image:   imageClient,
+		mcad:    mcadClient,
+		ray:     rayClient,
+		dynamic: dynamicClient,
 	}, nil
 }
