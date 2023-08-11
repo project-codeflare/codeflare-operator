@@ -23,6 +23,7 @@ import (
 
 	instascale "github.com/project-codeflare/instascale/controllers"
 	mcadoptions "github.com/project-codeflare/multi-cluster-app-dispatcher/cmd/kar-controllers/app/options"
+	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	"go.uber.org/zap/zapcore"
 
@@ -33,8 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	codeflarev1alpha1 "github.com/project-codeflare/codeflare-operator/api/codeflare/v1alpha1"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	// +kubebuilder:scaffold:imports
@@ -48,9 +47,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(codeflarev1alpha1.AddToScheme(scheme))
-	// +kubebuilder:scaffold:scheme
+	_ = mcadv1beta1.AddToScheme(scheme)
 }
 
 func main() {
