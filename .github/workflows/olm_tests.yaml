@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  kubernetes:
+  kubernetes-olm-upgrade:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     env:
