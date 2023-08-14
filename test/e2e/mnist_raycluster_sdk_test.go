@@ -41,10 +41,6 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
-	if !IsOpenShift(test) {
-		test.T().Skip("Requires https://github.com/project-codeflare/codeflare-sdk/pull/146")
-	}
-
 	// Currently blocked by https://github.com/project-codeflare/codeflare-sdk/pull/271 , remove the skip once SDK with the PR is released
 	test.T().Skip("Requires https://github.com/project-codeflare/codeflare-sdk/pull/271")
 
