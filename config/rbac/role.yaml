@@ -251,29 +251,32 @@ rules:
   - list
   - watch
 - apiGroups:
-  - machine.openshift.io
-  resources:
-  - '*'
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
+  - ibm.com
   - mcad.ibm.com
   resources:
   - appwrappers
   - appwrappers/finalizers
   - appwrappers/status
   - queuejobs
+  - quotasubtrees
   - schedulingspecs
+  - xqueuejobs
   verbs:
   - create
   - delete
   - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - machine.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch
