@@ -24,7 +24,7 @@ The code for MCAD/InstaScale resource reconcilliation can be found in the `contr
  - See `mcad_controller.go` and `instascale_controller.go`
 
 ## Building and Deployment
-If changes are made in the `api` dir, run: `make manifests`
+If changes are made in the `api` dir, or to regenerate config after go code changes, run: `make manifests`
  - This will generate new CRDs and associated files
 
 If changes are made to any Go code (like in the `controllers` dir for example), run: `make`
