@@ -42,6 +42,10 @@ func ConditionStatus[T conditionType](conditionType T) func(any) corev1.Conditio
 				return c.Status
 			}
 		case *routev1.Route:
+			if len(o.Status.Ingress) == 0 {
+				// Route is not initialized yet
+				break
+			}
 			if c := getRouteCondition(o.Status.Ingress[0].Conditions, routev1.RouteIngressConditionType(conditionType)); c != nil {
 				return c.Status
 			}
