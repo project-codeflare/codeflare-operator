@@ -134,6 +134,12 @@ jobs:
           BUNDLE_PUSH_OPT: "--tls-verify=false"
           CATALOG_PUSH_OPT: "--tls-verify=false"
 
+      - name: Scorecard check
+        run: |
+          make scorecard-bundle
+        env:
+          IMG: "${{ env.REGISTRY_ADDRESS }}/codeflare-operator:v0.0.1"
+
       - name: Update Operator to the built version
         run: |
           ORIGINAL_POD_NAME=$(kubectl get pod -l app.kubernetes.io/name=codeflare-operator -n openshift-operators -o json | jq -r .items[].metadata.name)
