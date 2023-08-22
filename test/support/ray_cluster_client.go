@@ -19,6 +19,7 @@ package support
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -77,13 +78,17 @@ func (client *rayClusterClient) CreateJob(job *RayJobSetup) (response *RayJobRes
 		return
 	}
 
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("incorrect response code: %d for creating Ray Job, response body: %s", resp.StatusCode, respData)
+	}
+
 	err = json.Unmarshal(respData, &response)
 	return
 }
 
 func (client *rayClusterClient) GetJobDetails(jobID string) (response *RayJobDetailsResponse, err error) {
-	createJobURL := client.endpoint.String() + "/api/jobs/" + jobID
-	resp, err := http.Get(createJobURL)
+	getJobDetailsURL := client.endpoint.String() + "/api/jobs/" + jobID
+	resp, err := http.Get(getJobDetailsURL)
 	if err != nil {
 		return
 	}
@@ -91,6 +96,10 @@ func (client *rayClusterClient) GetJobDetails(jobID string) (response *RayJobDet
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("incorrect response code: %d for retrieving Ray Job details, response body: %s", resp.StatusCode, respData)
 	}
 
 	err = json.Unmarshal(respData, &response)
@@ -98,8 +107,8 @@ func (client *rayClusterClient) GetJobDetails(jobID string) (response *RayJobDet
 }
 
 func (client *rayClusterClient) GetJobLogs(jobID string) (logs string, err error) {
-	createJobURL := client.endpoint.String() + "/api/jobs/" + jobID + "/logs"
-	resp, err := http.Get(createJobURL)
+	getJobLogsURL := client.endpoint.String() + "/api/jobs/" + jobID + "/logs"
+	resp, err := http.Get(getJobLogsURL)
 	if err != nil {
 		return
 	}
@@ -107,6 +116,10 @@ func (client *rayClusterClient) GetJobLogs(jobID string) (logs string, err error
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
+	}
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("incorrect response code: %d for retrieving Ray Job logs, response body: %s", resp.StatusCode, respData)
 	}
 
 	jobLogs := RayJobLogsResponse{}
