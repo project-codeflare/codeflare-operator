@@ -64,3 +64,7 @@ func GetRayCluster(t Test, namespace, name string) *rayv1alpha1.RayCluster {
 func RayClusterState(cluster *rayv1alpha1.RayCluster) rayv1alpha1.ClusterState {
 	return cluster.Status.State
 }
+
+func WriteRayJobLogs(t Test, rayClient RayClusterClient, namespace, name string) {
+	WriteRayJobAPILogs(t, rayClient, GetRayJobId(t, namespace, name))
+}
