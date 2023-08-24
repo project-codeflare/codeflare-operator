@@ -115,8 +115,11 @@ jobs:
           CSV_VERSION=$(kubectl get ClusterServiceVersion -l operators.coreos.com/codeflare-operator.openshift-operators='' -n openshift-operators -o json | jq -r .items[].spec.version)
           echo "PREVIOUS_VERSION=v$CSV_VERSION" >> $GITHUB_ENV
 
-      - name: Deploy CodeFlare stack (MCAD, KubeRay)
+      - name: Deploy CodeFlare stack
         run: |
+          # FIXME
+          kubectl apply -n openshift-operators -f config/default/instascale-configmap.yaml
+
           make setup-e2e
 
       - name: Build operator and catalog image
@@ -176,12 +179,6 @@ jobs:
         run: |
           echo "Printing CodeFlare operator logs"
           kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee ${CODEFLARE_TEST_OUTPUT_DIR}/codeflare-operator.log
-
-      - name: Print MCAD controller logs
-        if: always() && steps.deploy.outcome == 'success'
-        run: |
-          echo "Printing MCAD controller logs"
-          kubectl logs -n codeflare-system --tail -1 -l component=multi-cluster-application-dispatcher | tee ${CODEFLARE_TEST_OUTPUT_DIR}/mcad.log
 
       - name: Print KubeRay operator logs
         if: always() && steps.deploy.outcome == 'success'
