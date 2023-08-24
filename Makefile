@@ -469,5 +469,5 @@ verify-imports: openshift-goimports ## Run import verifications.
 	./hack/verify-imports.sh $(OPENSHIFT-GOIMPORTS)
 
 .PHONY: scorecard-bundle
-scorecard-bundle: ## Run scorecard tests on bundle image.
+scorecard-bundle: install-operator-sdk ## Run scorecard tests on bundle image.
 	$(OPERATOR_SDK) scorecard bundle
