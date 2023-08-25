@@ -263,37 +263,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - mcad.ibm.com
-  resources:
-  - appwrappers
-  - appwrappers/finalizers
-  - appwrappers/status
-  - queuejobs
-  - schedulingspecs
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - mcad.ibm.com
-  resources:
-  - appwrappers
-  - queuejobs
-  - schedulingspecs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
@@ -348,4 +317,21 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - workload.codeflare.dev
+  resources:
+  - appwrappers
+  - appwrappers/finalizers
+  - appwrappers/status
+  - queuejobs
+  - schedulingspecs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
   - watch
