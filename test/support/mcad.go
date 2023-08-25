@@ -26,7 +26,7 @@ import (
 
 func AppWrapper(t Test, namespace *corev1.Namespace, name string) func(g gomega.Gomega) *mcadv1beta1.AppWrapper {
 	return func(g gomega.Gomega) *mcadv1beta1.AppWrapper {
-		aw, err := t.Client().MCAD().McadV1beta1().AppWrappers(namespace.Name).Get(t.Ctx(), name, metav1.GetOptions{})
+		aw, err := t.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Get(t.Ctx(), name, metav1.GetOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		return aw
 	}

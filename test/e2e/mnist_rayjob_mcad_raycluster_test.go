@@ -217,7 +217,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 		},
 	}
 
-	aw, err = test.Client().MCAD().McadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
+	aw, err = test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
 
