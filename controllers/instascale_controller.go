@@ -88,7 +88,6 @@ func (r *InstaScaleReconciler) Apply(owner mf.Owner, params *InstaScaleParams, t
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups=machine.openshift.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=mcad.ibm.com,resources=appwrappers;queuejobs;schedulingspecs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusterversions,verbs=get;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

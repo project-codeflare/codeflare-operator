@@ -1,5 +1,5 @@
 ignore: |
-  bundle/manifests/mcad.ibm.com*
+  bundle/manifests/*
 extends: default
 rules:
   line-length: disable
