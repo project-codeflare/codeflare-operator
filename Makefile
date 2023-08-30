@@ -12,7 +12,7 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v.0.0.7
+INSTASCALE_VERSION ?= v0.0.7
 
 # MCAD_VERSION defines the default version of the MCAD controller
 MCAD_VERSION ?= v1.34.0
