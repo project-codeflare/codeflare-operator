@@ -88,7 +88,7 @@ jobs:
       run: |
         semver_version="${{ github.event.inputs.codeflare-sdk-version }}"
         plain_version="${semver_version:1}"
-        gh workflow run release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --ref ${{ github.ref }} --field release-version=${plain_version} --field is-latest=${{ github.event.inputs.is-stable }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+        gh workflow run release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --ref ${{ github.ref }} --field release-version=${plain_version} --field is-stable=${{ github.event.inputs.is-stable }} --field quay-organization=${{ github.event.inputs.quay-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
