@@ -20,10 +20,12 @@ import (
 	mcadclient "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/client/clientset/versioned"
 	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
 
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 
 	codeflareclient "github.com/project-codeflare/codeflare-operator/client/clientset/versioned"
@@ -34,17 +36,21 @@ import (
 type Client interface {
 	Core() kubernetes.Interface
 	Route() routev1.Interface
+	Image() imagev1.Interface
 	CodeFlare() codeflareclient.Interface
 	MCAD() mcadclient.Interface
 	Ray() rayclient.Interface
+	Dynamic() dynamic.Interface
 }
 
 type testClient struct {
 	core      kubernetes.Interface
 	route     routev1.Interface
+	image     imagev1.Interface
 	codeflare codeflareclient.Interface
 	mcad      mcadclient.Interface
 	ray       rayclient.Interface
+	dynamic   dynamic.Interface
 }
 
 var _ Client = (*testClient)(nil)
@@ -57,6 +63,10 @@ func (t *testClient) Route() routev1.Interface {
 	return t.route
 }
 
+func (t *testClient) Image() imagev1.Interface {
+	return t.image
+}
+
 func (t *testClient) CodeFlare() codeflareclient.Interface {
 	return t.codeflare
 }
@@ -67,6 +77,10 @@ func (t *testClient) MCAD() mcadclient.Interface {
 
 func (t *testClient) Ray() rayclient.Interface {
 	return t.ray
+}
+
+func (t *testClient) Dynamic() dynamic.Interface {
+	return t.dynamic
 }
 
 func newTestClient() (Client, error) {
@@ -88,6 +102,11 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	imageClient, err := imagev1.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	codeFlareClient, err := codeflareclient.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -103,11 +122,18 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &testClient{
 		core:      kubeClient,
 		route:     routeClient,
+		image:     imageClient,
 		codeflare: codeFlareClient,
 		mcad:      mcadClient,
 		ray:       rayClient,
+		dynamic:   dynamicClient,
 	}, nil
 }
