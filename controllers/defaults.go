@@ -6,5 +6,5 @@ package controllers
 
 const (
 	MCADImage       = "quay.io/project-codeflare/mcad-controller:release-v1.34.0"
-	InstaScaleImage = "quay.io/project-codeflare/instascale-controller:v.0.0.7"
+	InstaScaleImage = "quay.io/project-codeflare/instascale-controller:v0.0.7"
 )

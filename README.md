@@ -11,7 +11,7 @@ CodeFlare Stack Compatibility Matrix
 | CodeFlare Operator           | v0.2.0  |
 | Multi-Cluster App Dispatcher | v1.34.0 |
 | CodeFlare-SDK                | v0.7.0  |
-| InstaScale                   | v.0.0.7  |
+| InstaScale                   | v0.0.7  |
 | KubeRay                      | v0.5.0  |
 <!-- Compatibility Matrix end -->
 
