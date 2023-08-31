@@ -201,7 +201,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 							{
 								Replicas: 2,
 								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("250m"),
+									corev1.ResourceCPU:    resource.MustParse("100m"),
 									corev1.ResourceMemory: resource.MustParse("512Mi"),
 								},
 								Limits: corev1.ResourceList{
