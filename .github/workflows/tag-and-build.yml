@@ -94,11 +94,12 @@ jobs:
       run: |
         # Remove leading 'v'
         CODEFLARE_SDK_VERSION=$(cut -c2- <<< ${{ github.event.inputs.codeflare-sdk-version }})
-        sed -i -E "s/(.*MCAD_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.mcad-version }}\2/" Makefile
-        sed -i -E "s/(.*CODEFLARE_SDK_VERSION \?= )[0-9]+\.[0-9]+\.[0-9]+(.*)/\1$CODEFLARE_SDK_VERSION\2/" Makefile
-        sed -i -E "s/(.*INSTASCALE_VERSION \?= )v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" Makefile
-        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
-        sed -i -E "s/(.*instascale-controller:)v[0-9]+\.[0-9]+\.[0-9]+(.*)/\1${{ github.event.inputs.instascale-version }}\2/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
+        sed -i -E "s/(.*MCAD_VERSION \?= ).*/\1${{ github.event.inputs.mcad-version }}/" Makefile
+        sed -i -E "s/(.*MCAD_REF \?= ).*/\1release-\${MCAD_VERSION}/" Makefile
+        sed -i -E "s/(.*CODEFLARE_SDK_VERSION \?= ).*/\1$CODEFLARE_SDK_VERSION/" Makefile
+        sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
+        sed -i -E "s/(.*instascale-controller:).*/\1${{ github.event.inputs.instascale-version }}/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
+        sed -i -E "s/(.*instascale-controller:).*/\1${{ github.event.inputs.instascale-version }}/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
 
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
@@ -141,7 +142,7 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
-        file_pattern: 'README.md controllers/defaults.go *.yaml Makefile go.mod go.sum'
+        file_pattern: 'README.md */defaults.go *.yaml Makefile go.mod go.sum'
         create_branch: true
         branch: ${{ env.PR_BRANCH_NAME }}
 
