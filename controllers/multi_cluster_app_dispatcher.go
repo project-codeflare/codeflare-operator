@@ -27,16 +27,10 @@ var multiClusterAppDispatcherTemplates = []string{
 	"mcad/deployment.yaml.tmpl",
 }
 var ownerLessmultiClusterAppDispatcherTemplates = []string{
-	"mcad/rolebinding_custom-metrics-auth-reader.yaml.tmpl",
-	"mcad/clusterrole_custom-metrics-server-admin.yaml.tmpl",
 	"mcad/clusterrole_mcad-controller.yaml.tmpl",
-	"mcad/clusterrole_metrics-resource-reader.yaml.tmpl",
-	"mcad/clusterrolebinding_hpa-controller-custom-metrics.yaml.tmpl",
 	"mcad/clusterrolebinding_mcad-controller.yaml.tmpl",
 	"mcad/clusterrolebinding_mcad-controller-kube-scheduler.yaml.tmpl",
 	"mcad/clusterrolebinding_mcad-edit.yaml.tmpl",
-	"mcad/clusterrolebinding_mcad-system-auth-delegator.yaml.tmpl",
-	"mcad/clusterrolebinding_metrics-resource-reader.yaml.tmpl",
 }
 
 func (r *MCADReconciler) ReconcileMCAD(mcad *codeflarev1alpha1.MCAD, params *MCADParams) error {
