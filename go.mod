@@ -12,8 +12,8 @@ require (
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1-0.20230831150053-05b1af83014c
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230830082034-e7fbf7d73576
-	go.uber.org/zap v1.24.0
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230901222515-af0c7a26eaee
+	go.uber.org/zap v1.25.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
@@ -70,8 +70,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
