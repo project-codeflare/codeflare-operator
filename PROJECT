@@ -6,23 +6,4 @@ plugins:
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: codeflare-operator
 repo: github.com/project-codeflare/codeflare-operator
-resources:
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: codeflare.dev
-  group: codeflare
-  kind: MCAD
-  path: github.com/project-codeflare/codeflare-operator/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: codeflare.dev
-  group: codeflare
-  kind: InstaScale
-  path: github.com/project-codeflare/codeflare-operator/api/v1alpha1
-  version: v1alpha1
 version: "3"
