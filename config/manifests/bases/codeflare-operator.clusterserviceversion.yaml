@@ -14,16 +14,21 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: InstaScale is the Schema for the instascales API
-      displayName: InstaScale
-      kind: InstaScale
-      name: instascales.codeflare.codeflare.dev
-      version: v1alpha1
-    - description: MCAD is the Schema for the mcads API
-      displayName: MCAD
-      kind: MCAD
-      name: mcads.codeflare.codeflare.dev
-      version: v1alpha1
+    - description: AppWrapper is the Schema for the AppWrapper API
+      displayName: AppWrapper
+      kind: AppWrappers
+      name: appwrappers.workload.codeflare.dev
+      version: v1beta1
+    - description: SchedulingSpec is the Schema for the SchedulingSpec API
+      displayName: SchedulingSpec
+      kind: SchedulingSpecs
+      name: schedulingspecs.workload.codeflare.dev
+      version: v1beta1
+    - description: QuotaSubtree is the Schema for the QuotaSubtree API
+      displayName: QuotaSubtree
+      kind: QuotaSubtrees
+      name: quotasubtrees.quota.codeflare.dev
+      version: v1
   description: CodeFlare allows you to scale complex pipelines anywhere
   displayName: CodeFlare Operator
   icon:
