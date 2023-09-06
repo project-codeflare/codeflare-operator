@@ -27,13 +27,6 @@ spec:
                 name: mcad-{{.Name}}-config
           image: {{.ControllerImage}}
           imagePullPolicy: Always
-          ports:
-            - name: https
-              containerPort: 6443
-              protocol: TCP
-            - name: http
-              containerPort: 8080
-              protocol: TCP
           resources: {{.ControllerResources}}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
