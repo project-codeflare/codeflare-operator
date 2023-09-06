@@ -22,7 +22,6 @@ import (
 
 var multiClusterAppDispatcherTemplates = []string{
 	"mcad/configmap.yaml.tmpl",
-	"mcad/service.yaml.tmpl",
 	"mcad/serviceaccount.yaml.tmpl",
 	"mcad/deployment.yaml.tmpl",
 }
