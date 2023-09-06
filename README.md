@@ -17,6 +17,9 @@ CodeFlare Stack Compatibility Matrix
 
 ## Development
 
+Requirements:
+- GNU sed - sed is used in several Makefile command. Using macOS default sed is incompatible, so GNU sed is needed for correct execution of these commands.
+
 ### Testing
 
 The e2e tests can be executed locally by running the following commands:
