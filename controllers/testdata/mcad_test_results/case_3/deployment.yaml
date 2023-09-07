@@ -27,13 +27,6 @@ spec:
                 name: mcad-custom-image-config
           image: quay.io/project-codeflare/mcad-controller:custom
           imagePullPolicy: Always
-          ports:
-            - name: https
-              containerPort: 6443
-              protocol: TCP
-            - name: http
-              containerPort: 8080
-              protocol: TCP
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
