@@ -1,6 +1,0 @@
-apiVersion: codeflare.codeflare.dev/v1alpha1
-kind: MCAD
-metadata:
-  name: mcad-sample
-spec: {}
-  # TODO(user): Add fields here
