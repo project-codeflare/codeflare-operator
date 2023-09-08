@@ -154,10 +154,6 @@ defaults:
 manifests: controller-gen ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
 
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
-
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -175,11 +171,11 @@ modules: ## Update Go dependencies.
 	#go get github.com/ray-project/kuberay/ray-operator
 
 .PHONY: build
-build: modules defaults generate fmt vet ## Build manager binary.
+build: modules defaults fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
 .PHONY: run
-run: modules defaults manifests generate fmt vet ## Run a controller from your host.
+run: modules defaults manifests fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 .PHONY: image-build
@@ -367,11 +363,11 @@ catalog-push: ## Push a catalog image.
 	podman push $(CATALOG_IMG) $(CATALOG_PUSH_OPT)
 
 .PHONY: test-unit
-test-unit: defaults manifests generate fmt vet envtest ## Run unit tests.
+test-unit: defaults manifests fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(go list ./... | grep -v /test/) -coverprofile cover.out
 
 .PHONY: test-e2e
-test-e2e: defaults manifests generate fmt vet ## Run e2e tests.
+test-e2e: defaults manifests fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
 
 .PHONY: kind-e2e
