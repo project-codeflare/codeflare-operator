@@ -3,7 +3,6 @@
 resources:
 - bases/codeflare-operator.clusterserviceversion.yaml
 - ../default
-- ../samples
 - ../scorecard
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
