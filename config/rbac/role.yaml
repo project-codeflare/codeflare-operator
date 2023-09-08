@@ -22,18 +22,6 @@ rules:
   - apps
   resources:
   - deployments
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
   - replicasets
   - statefulsets
   verbs:
@@ -100,23 +88,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  - persistentvolumeclaims
-  - persistentvolumes
-  - secrets
-  - serviceaccounts
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - endpoints
   - kube-scheduler
   verbs:
@@ -141,8 +112,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - lists
-  - namespaces
   - pods
   verbs:
   - create
@@ -153,13 +122,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  - persistentvolumes
-  verbs:
-  - '*'
 - apiGroups:
   - ""
   resources:
@@ -176,12 +138,6 @@ rules:
   - list
   - watch
 - apiGroups:
-  - custom.metrics.k8s.io
-  resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
   - events.k8s.io
   resources:
   - events
@@ -191,69 +147,9 @@ rules:
   - patch
   - update
 - apiGroups:
-  - extensions
-  resources:
-  - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - machine.openshift.io
   resources:
   - '*'
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - policy
-  resources:
-  - poddisruptionbudgets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - quota.codeflare.dev
-  - workload.codeflare.dev
-  resources:
-  - appwrappers
-  - appwrappers/finalizers
-  - appwrappers/status
-  - queuejobs
-  - quotasubtrees
-  - schedulingspecs
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterrolebindings
-  - clusterroles
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  - roles
   verbs:
   - create
   - delete
@@ -284,4 +180,33 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - workload.codeflare.dev
+  resources:
+  - appwrappers
+  - appwrappers/finalizers
+  - appwrappers/status
+  - schedulingspecs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - quota.codeflare.dev
+  resources:
+  - quotasubtrees
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
   - watch
