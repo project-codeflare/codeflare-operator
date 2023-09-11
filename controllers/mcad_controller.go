@@ -102,7 +102,7 @@ func (r *MCADReconciler) DeleteResource(params *MCADParams, template string, fns
 // +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=codeflare.codeflare.dev,resources=mcads/finalizers,verbs=update
-// +kubebuilder:rbac:groups=workload.codeflare.dev,resources=queuejobs;schedulingspecs;appwrappers;appwrappers/finalizers;appwrappers/status,verbs=get;list;watch;create;update;patch;delete;deletecollection
+// +kubebuilder:rbac:groups=workload.codeflare.dev;quota.codeflare.dev,resources=queuejobs;schedulingspecs;appwrappers;appwrappers/finalizers;appwrappers/status;quotasubtrees,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=core,resources=pods;lists;namespaces,verbs=get;list;watch;create;update;patch;delete;deletecollection
 // +kubebuilder:rbac:groups=core,resources=bindings;pods/binding,verbs=create
 // +kubebuilder:rbac:groups=core,resources=kube-scheduler,verbs=get;update
