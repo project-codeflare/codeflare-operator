@@ -271,6 +271,25 @@ rules:
   - list
   - watch
 - apiGroups:
+  - quota.codeflare.dev
+  - workload.codeflare.dev
+  resources:
+  - appwrappers
+  - appwrappers/finalizers
+  - appwrappers/status
+  - queuejobs
+  - quotasubtrees
+  - schedulingspecs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
@@ -317,21 +336,4 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - workload.codeflare.dev
-  resources:
-  - appwrappers
-  - appwrappers/finalizers
-  - appwrappers/status
-  - queuejobs
-  - schedulingspecs
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
   - watch
