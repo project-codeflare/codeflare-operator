@@ -28,11 +28,11 @@ import (
 )
 
 var (
+	ApplyOptions = metav1.ApplyOptions{FieldManager: "codeflare-test", Force: true}
+
 	TestTimeoutShort  = 1 * time.Minute
 	TestTimeoutMedium = 2 * time.Minute
 	TestTimeoutLong   = 5 * time.Minute
-
-	ApplyOptions = metav1.ApplyOptions{FieldManager: "codeflare-test", Force: true}
 )
 
 func init() {
