@@ -11,10 +11,12 @@ metadata:
     codeflare.codeflare.dev/cr-namespace: {{.Namespace}}
 rules:
   - apiGroups:
+      - quota.codeflare.dev
       - workload.codeflare.dev
     resources:
       - queuejobs
       - schedulingspecs
+      - quotasubtrees
       - appwrappers
       - appwrappers/finalizers
       - appwrappers/status
