@@ -17,6 +17,8 @@ limitations under the License.
 package support
 
 import (
+	"net/url"
+
 	"github.com/onsi/gomega"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -38,4 +40,62 @@ func GetIngress(t Test, namespace, name string) *networkingv1.Ingress {
 
 func LoadBalancerIngresses(ingress *networkingv1.Ingress) []networkingv1.IngressLoadBalancerIngress {
 	return ingress.Status.LoadBalancer.Ingress
+}
+
+func ExposeServiceByIngress(t Test, name string, namespace string, serviceName string, servicePort string) url.URL {
+	ingress := &networkingv1.Ingress{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
+			Kind:       "Ingress",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/use-regex":      "true",
+				"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				networkingv1.IngressRule{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								networkingv1.HTTPIngressPath{
+									Path:     "/" + name + "(/|$)(.*)",
+									PathType: Ptr(networkingv1.PathTypePrefix),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: serviceName,
+											Port: networkingv1.ServiceBackendPort{
+												Name: servicePort,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := t.Client().Core().NetworkingV1().Ingresses(ingress.Namespace).Create(t.Ctx(), ingress, metav1.CreateOptions{})
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	t.T().Logf("Created Ingress %s/%s successfully", ingress.Namespace, ingress.Name)
+
+	t.T().Logf("Waiting for Ingress %s/%s to be admitted", ingress.Namespace, ingress.Name)
+	t.Eventually(Ingress(t, ingress.Namespace, ingress.Name), TestTimeoutMedium).
+		Should(gomega.WithTransform(LoadBalancerIngresses, gomega.HaveLen(1)))
+
+	ingress = GetIngress(t, ingress.Namespace, ingress.Name)
+
+	ingressURL := url.URL{
+		Scheme: "http",
+		Host:   ingress.Status.LoadBalancer.Ingress[0].IP,
+		Path:   name,
+	}
+	return ingressURL
 }
