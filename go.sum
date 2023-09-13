@@ -33,8 +33,6 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-github.com/Bobbins228/instascale v0.0.0-20230724130835-2a8ebf58690f h1:aEtM6OZ2dCY97VnVsVYZl2GJOe+6WegPGLgLXQt5BGk=
-github.com/Bobbins228/instascale v0.0.0-20230724130835-2a8ebf58690f/go.mod h1:kwBkC+o4W+a1dpftXbVQjvGCVyu2206HlZtcp1+ZjyY=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
@@ -460,8 +458,10 @@ github.com/pkg/sftp v1.10.1/go.mod h1:lYOWFsE0bwd1+KfKJaKeuokY15vzFx25BLbzYYoAxZ
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
-github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1-0.20230904071404-ce734452edc6 h1:YT6C0Z84TgftYcoNUd/dwvXxGJvXy67EeWAMQjpKvdU=
-github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1-0.20230904071404-ce734452edc6/go.mod h1:Yge6GRNpO9YIDfeL+XOcCE9xbmfCTD5C1h5dlW87mxQ=
+github.com/project-codeflare/instascale v0.0.9-0.20230913044449-3db3f4b4e9b1 h1:SNc05sEO/KBuRwep+u7J/ZrT06IhncjTHBvopc4LDlU=
+github.com/project-codeflare/instascale v0.0.9-0.20230913044449-3db3f4b4e9b1/go.mod h1:n2fIzs06LmGZFB3vRfQcXOkPebN3Hwd5Y+SD5v0hnrs=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.2-0.20230913035103-6e7bbdc8fb1f h1:xrhSm18A/Gvmm9cia05eAGkj0i9fTMqeTExz8rQTHJU=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.2-0.20230913035103-6e7bbdc8fb1f/go.mod h1:Yge6GRNpO9YIDfeL+XOcCE9xbmfCTD5C1h5dlW87mxQ=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.3/go.mod h1:/TN21ttK/J9q6uSwhBd54HahCDft0ttaMvbicHlPoso=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
