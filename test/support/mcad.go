@@ -32,11 +32,18 @@ func AppWrapper(t Test, namespace *corev1.Namespace, name string) func(g gomega.
 	}
 }
 
-func AppWrappers(t Test, namespace *corev1.Namespace) func(g gomega.Gomega) []mcadv1beta1.AppWrapper {
-	return func(g gomega.Gomega) []mcadv1beta1.AppWrapper {
+func AppWrappers(t Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*mcadv1beta1.AppWrapper {
+	return func(g gomega.Gomega) []*mcadv1beta1.AppWrapper {
 		aws, err := t.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).List(t.Ctx(), metav1.ListOptions{})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
-		return aws.Items
+
+		awsp := []*mcadv1beta1.AppWrapper{}
+		for _, v := range aws.Items {
+			v := v
+			awsp = append(awsp, &v)
+		}
+
+		return awsp
 	}
 }
 
