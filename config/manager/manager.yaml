@@ -37,8 +37,6 @@ spec:
         args:
         - "--health-probe-bind-address=:8081"
         - "--metrics-bind-address=0.0.0.0:8082"
-        - "--leader-elect"
-        - "--configs-namespace=openshift-operators"
         image: controller:latest
         imagePullPolicy: Always
         name: manager

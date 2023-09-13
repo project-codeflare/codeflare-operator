@@ -7,8 +7,9 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 
-# Copy the go source
+# Copy the Go sources
 COPY main.go main.go
+COPY pkg/ pkg/
 
 # Build
 USER root

@@ -117,9 +117,6 @@ jobs:
 
       - name: Deploy CodeFlare stack
         run: |
-          # FIXME
-          kubectl apply -n openshift-operators -f config/default/instascale-configmap.yaml
-
           make setup-e2e
 
       - name: Build operator and catalog image

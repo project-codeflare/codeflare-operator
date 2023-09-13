@@ -7,20 +7,19 @@ require (
 	github.com/openshift-eng/openshift-goimports v0.0.0-20230304234052-c70783e636f2
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/instascale v0.0.0-00010101000000-000000000000
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.1-0.20230904071404-ce734452edc6
+	github.com/project-codeflare/instascale v0.0.9-0.20230913044449-3db3f4b4e9b1
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.2-0.20230913035103-6e7bbdc8fb1f
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20230908233208-a8f730e5a2b6
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
+	k8s.io/component-base v0.26.2
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
-replace (
-	github.com/project-codeflare/instascale => github.com/Bobbins228/instascale v0.0.0-20230724130835-2a8ebf58690f
-	sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
-)
+replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
@@ -125,13 +124,11 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.26.1 // indirect
 	k8s.io/apiserver v0.26.2 // indirect
-	k8s.io/component-base v0.26.2 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kms v0.26.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230303024457-afdc3dddf62d // indirect
 	k8s.io/metrics v0.26.2 // indirect
-	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.35 // indirect
 	sigs.k8s.io/custom-metrics-apiserver v0.0.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect

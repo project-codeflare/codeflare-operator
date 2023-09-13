@@ -22,8 +22,8 @@ import (
 	"time"
 
 	instascale "github.com/project-codeflare/instascale/controllers"
-	mcadoptions "github.com/project-codeflare/multi-cluster-app-dispatcher/cmd/kar-controllers/app/options"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
+	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	"go.uber.org/zap/zapcore"
 
@@ -31,9 +31,13 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	// +kubebuilder:scaffold:imports
@@ -51,72 +55,59 @@ func init() {
 
 func main() {
 	var metricsAddr string
-	var enableLeaderElection bool
 	var probeAddr string
-	var configsNamespace string
-	var ocmSecretNamespace string
 
-	// Operator
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-
-	// InstScale
-	flag.StringVar(&configsNamespace, "configs-namespace", "kube-system", "The namespace containing the Instacale configmap")
-	flag.StringVar(&ocmSecretNamespace, "ocm-secret-namespace", "default", "The namespace containing the OCM secret")
-
-	mcadOptions := mcadoptions.NewServerOption()
 
 	zapOptions := zap.Options{
 		Development: true,
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
-
-	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flag.CommandLine.VisitAll(func(f *flag.Flag) {
-		if f.Name != "kubeconfig" {
-			flagSet.Var(f.Value, f.Name, f.Usage)
-		}
-	})
-
-	zapOptions.BindFlags(flagSet)
-	mcadOptions.AddFlags(flagSet)
-	_ = flagSet.Parse(os.Args[1:])
+	zapOptions.BindFlags(flag.CommandLine)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
 
 	ctx := ctrl.SetupSignalHandler()
 
+	cfg := config.CodeFlareOperatorConfiguration{
+		LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
+		MCAD:           &mcadconfig.MCADConfiguration{},
+		InstaScale:     &config.InstaScaleConfiguration{},
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "5a3ca514.codeflare.dev",
+		Scheme:                     scheme,
+		MetricsBindAddress:         metricsAddr,
+		HealthProbeBindAddress:     probeAddr,
+		LeaderElection:             pointer.BoolDeref(cfg.LeaderElection.LeaderElect, false),
+		LeaderElectionID:           cfg.LeaderElection.ResourceName,
+		LeaderElectionNamespace:    cfg.LeaderElection.ResourceNamespace,
+		LeaderElectionResourceLock: cfg.LeaderElection.ResourceLock,
+		LeaseDuration:              &cfg.LeaderElection.LeaseDuration.Duration,
+		RetryPeriod:                &cfg.LeaderElection.RetryPeriod.Duration,
+		RenewDeadline:              &cfg.LeaderElection.RenewDeadline.Duration,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	mcadQueueController := mcad.NewJobController(mgr.GetConfig(), mcadOptions)
+	mcadQueueController := mcad.NewJobController(mgr.GetConfig(), cfg.MCAD, &mcadconfig.MCADConfigurationExtended{})
 	if mcadQueueController == nil {
 		// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
 		os.Exit(1)
 	}
 	mcadQueueController.Run(ctx.Done())
 
-	instascaleController := &instascale.AppWrapperReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		ConfigsNamespace:   configsNamespace,
-		OcmSecretNamespace: ocmSecretNamespace,
+	if pointer.BoolDeref(cfg.InstaScale.Enabled, false) {
+		instaScaleController := &instascale.AppWrapperReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Config: cfg.InstaScale.InstaScaleConfiguration,
+		}
+		exitOnError(instaScaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
 	}
-
-	exitOnError(instascaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
