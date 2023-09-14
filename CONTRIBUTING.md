@@ -18,7 +18,7 @@ The MCAD and InstaScale custom resources are defined under the `api` dir:
  - See `mcad_types.go` and `instascale_types.go`
 
 The MCAD and InstaScale resource templates can be found under `config/internal`:
- - Sorted under `mcad` and `insascale` subdirs
+ - Sorted under `mcad` and `instascale` subdirs
 
 The code for MCAD/InstaScale resource reconcilliation can be found in the `controllers` dir:
  - See `mcad_controller.go` and `instascale_controller.go`
