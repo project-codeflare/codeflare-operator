@@ -121,6 +121,14 @@ jobs:
           OPM_BUNDLE_OPT: "--use-http"
           BUNDLE_PUSH_OPT: "--tls-verify=false"
           CATALOG_PUSH_OPT: "--tls-verify=false"
+      - name: Run OLM Upgrade e2e Ray cluster Up test
+        run: |
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+          set -euo pipefail
+          go test -timeout 30m -v ./test/e2e -run TestMNISTRayClusterUp -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+        env:
+          RUN_OLM_TESTS: true
 
       - name: Update Operator to the built version
         run: |
@@ -150,6 +158,15 @@ jobs:
           CATALOG_IMG: "${{ env.REGISTRY_ADDRESS }}/codeflare-operator-catalog:v0.0.1"
           SUBSCRIPTION_NAME: "codeflare-operator"
           SUBSCRIPTION_NAMESPACE: "openshift-operators"
+
+      - name: Run OLM Upgrade e2e Ray cluster Job submit test
+        run: |
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+          set -euo pipefail
+          go test -timeout 30m -v ./test/e2e -run TestMnistJobSubmit -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+        env:
+          RUN_OLM_TESTS: true
 
       - name: Run e2e tests against built operator
         run: |
