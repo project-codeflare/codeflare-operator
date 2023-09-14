@@ -42,8 +42,15 @@ func TestMNISTRayClusterUp(t *testing.T) {
 	test.T().Parallel()
 	if os.Getenv("RUN_OLM_TESTS") == "true" {
 		// Create a namespace
-		namespace := CreateTestNamespaceWithName(test, namespaceName)
+		namespace = CreateTestNamespaceWithName(test, namespaceName)
 		test.T().Logf("Created namespace %s successfully", namespace.Name)
+
+		// Delete namespace only if test failed
+		defer func() {
+			if t.Failed() {
+				DeleteTestNamespace(test, namespaceName)
+			}
+		}()
 
 		// Test configuration
 		config := &corev1.ConfigMap{
@@ -212,6 +219,9 @@ func TestMnistJobSubmit(t *testing.T) {
 	test.T().Parallel()
 	if os.Getenv("RUN_OLM_TESTS") == "true" {
 
+		//delete the namespace after test complete
+		defer DeleteTestNamespace(test, namespaceName)
+
 		// Test configuration
 		config := &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
@@ -315,6 +325,7 @@ func TestMnistJobSubmit(t *testing.T) {
 		// Assert the job has completed successfully
 		test.Expect(GetJob(test, job.Namespace, job.Name)).
 			To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
+
 	} else {
 		test.T().Skip("Skipping OLM upgarde test because RUN_OLM_TESTS is not set")
 	}
