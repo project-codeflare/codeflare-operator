@@ -24,7 +24,7 @@ MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
-KUBERAY_VERSION ?= v0.5.0
+KUBERAY_VERSION ?= v0.6.0
 
 # RAY_VERSION defines the default version of Ray (used for testing)
 RAY_VERSION ?= 2.5.0
