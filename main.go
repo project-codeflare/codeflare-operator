@@ -17,19 +17,27 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	instascale "github.com/project-codeflare/instascale/controllers"
+	instascaleconfig "github.com/project-codeflare/instascale/pkg/config"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 	quotasubtreev1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1"
 	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	"go.uber.org/zap/zapcore"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -38,6 +46,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/yaml"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -57,6 +66,11 @@ func init() {
 }
 
 func main() {
+	var configMapName string
+	flag.StringVar(&configMapName, "config", "codeflare-operator-config",
+		"The name of the ConfigMap to load the operator configuration from. "+
+			"If it does not exist, the operator will create and initialise it.")
+
 	zapOptions := zap.Options{
 		Development: true,
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
@@ -67,20 +81,41 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
-	cfg := config.CodeFlareOperatorConfiguration{
+	cfg := &config.CodeFlareOperatorConfiguration{
+		ClientConnection: &config.ClientConnection{
+			QPS:   pointer.Float32(50),
+			Burst: pointer.Int32(100),
+		},
 		ControllerManager: config.ControllerManager{
+			Metrics: config.MetricsConfiguration{
+				BindAddress: ":8080",
+			},
+			Health: config.HealthConfiguration{
+				BindAddress:           ":8081",
+				ReadinessEndpointName: "readyz",
+				LivenessEndpointName:  "healthz",
+			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
-		MCAD:       &mcadconfig.MCADConfiguration{},
-		InstaScale: &config.InstaScaleConfiguration{},
+		MCAD: &mcadconfig.MCADConfiguration{},
+		InstaScale: &config.InstaScaleConfiguration{
+			Enabled: pointer.Bool(false),
+			InstaScaleConfiguration: instascaleconfig.InstaScaleConfiguration{
+				MaxScaleoutAllowed: 5,
+			},
+		},
 	}
 
 	kubeConfig, err := ctrl.GetConfig()
 	exitOnError(err, "unable to get client config")
-
 	if kubeConfig.UserAgent == "" {
 		kubeConfig.UserAgent = "codeflare-operator"
 	}
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	exitOnError(err, "unable to create Kubernetes client")
+
+	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespaceOrDie(), configMapName, cfg), "unable to initialise configuration")
+
 	kubeConfig.Burst = int(pointer.Int32Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
 	kubeConfig.QPS = pointer.Float32Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
 	setupLog.V(2).Info("REST client", "qps", kubeConfig.QPS, "burst", kubeConfig.Burst)
@@ -120,6 +155,66 @@ func main() {
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
+}
+
+func loadIntoOrCreate(ctx context.Context, client kubernetes.Interface, ns, name string, cfg *config.CodeFlareOperatorConfiguration) error {
+	configMap, err := client.CoreV1().ConfigMaps(ns).Get(ctx, name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return createConfigMap(ctx, client, ns, name, cfg)
+	} else if err != nil {
+		return err
+	}
+
+	if len(configMap.Data) != 1 {
+		return fmt.Errorf("cannot resolve config from ConfigMap %s/%s", configMap.Namespace, configMap.Name)
+	}
+
+	for _, data := range configMap.Data {
+		return yaml.Unmarshal([]byte(data), cfg)
+	}
+
+	return nil
+}
+
+func createConfigMap(ctx context.Context, client kubernetes.Interface, ns, name string, cfg *config.CodeFlareOperatorConfiguration) error {
+	content, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Data: map[string]string{
+			"config.yaml": string(content),
+		},
+	}
+
+	_, err = client.CoreV1().ConfigMaps(ns).Create(ctx, configMap, metav1.CreateOptions{})
+	return err
+}
+
+func namespaceOrDie() string {
+	// This way assumes you've set the NAMESPACE environment variable either manually, when running
+	// the operator standalone, or using the downward API, when running the operator in-cluster.
+	if ns := os.Getenv("NAMESPACE"); ns != "" {
+		return ns
+	}
+
+	// Fall back to the namespace associated with the service account token, if available
+	if data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
+			return ns
+		}
+	}
+
+	panic("unable to determine current namespace")
 }
 
 func exitOnError(err error, msg string) {

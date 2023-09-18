@@ -17,6 +17,7 @@ require (
 	k8s.io/component-base v0.26.2
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/controller-runtime v0.14.6
+	sigs.k8s.io/yaml v1.3.0
 )
 
 replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
@@ -133,5 +134,4 @@ require (
 	sigs.k8s.io/custom-metrics-apiserver v0.0.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
