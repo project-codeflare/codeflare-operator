@@ -32,6 +32,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,12 +57,6 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var probeAddr string
-
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-
 	zapOptions := zap.Options{
 		Development: true,
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
@@ -73,15 +68,27 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	cfg := config.CodeFlareOperatorConfiguration{
-		LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
-		MCAD:           &mcadconfig.MCADConfiguration{},
-		InstaScale:     &config.InstaScaleConfiguration{},
+		ControllerManager: config.ControllerManager{
+			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
+		},
+		MCAD:       &mcadconfig.MCADConfiguration{},
+		InstaScale: &config.InstaScaleConfiguration{},
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	kubeConfig, err := ctrl.GetConfig()
+	exitOnError(err, "unable to get client config")
+
+	if kubeConfig.UserAgent == "" {
+		kubeConfig.UserAgent = "codeflare-operator"
+	}
+	kubeConfig.Burst = int(pointer.Int32Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
+	kubeConfig.QPS = pointer.Float32Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
+	setupLog.V(2).Info("REST client", "qps", kubeConfig.QPS, "burst", kubeConfig.Burst)
+
+	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                     scheme,
-		MetricsBindAddress:         metricsAddr,
-		HealthProbeBindAddress:     probeAddr,
+		MetricsBindAddress:         cfg.Metrics.BindAddress,
+		HealthProbeBindAddress:     cfg.Health.BindAddress,
 		LeaderElection:             pointer.BoolDeref(cfg.LeaderElection.LeaderElect, false),
 		LeaderElectionID:           cfg.LeaderElection.ResourceName,
 		LeaderElectionNamespace:    cfg.LeaderElection.ResourceNamespace,
@@ -90,10 +97,7 @@ func main() {
 		RetryPeriod:                &cfg.LeaderElection.RetryPeriod.Duration,
 		RenewDeadline:              &cfg.LeaderElection.RenewDeadline.Duration,
 	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
+	exitOnError(err, "unable to start manager")
 
 	mcadQueueController := mcad.NewJobController(mgr.GetConfig(), cfg.MCAD, &mcadconfig.MCADConfigurationExtended{})
 	if mcadQueueController == nil {
@@ -111,20 +115,11 @@ func main() {
 		exitOnError(instaScaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
 	}
 
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
+	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
+	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
+	exitOnError(mgr.Start(ctx), "error running manager")
 }
 
 func exitOnError(err error, msg string) {
