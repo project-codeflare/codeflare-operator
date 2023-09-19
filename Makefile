@@ -12,15 +12,13 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.0.8
+INSTASCALE_VERSION ?= main
+INSTASCALE_REPO ?= github.com/project-codeflare/instascale
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.34.1
-# MCAD_REF, MCAD_REPO and MCAD_CRD define the reference to MCAD CRD resources
-MCAD_REF ?= release-${MCAD_VERSION}
+MCAD_VERSION ?= main
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 # Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
-# The image is still published using the MCAD_REF format (i.e release-vX.Y.Z)
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
@@ -65,12 +63,6 @@ IMAGE_ORG_BASE ?= quay.io/project-codeflare
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # codeflare.dev/codeflare-operator-bundle:$VERSION and codeflare.dev/codeflare-operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= $(IMAGE_ORG_BASE)/codeflare-operator
-
-# MCAD_IMAGE defines the default container image for the MCAD controller
-MCAD_IMAGE ?= $(IMAGE_ORG_BASE)/mcad-controller:$(MCAD_REF)
-
-# INSTASCALE_IMAGE defines the default container image for the InstaScale controller
-INSTASCALE_IMAGE ?= $(IMAGE_ORG_BASE)/instascale-controller:$(INSTASCALE_VERSION)
 
 # RAY_IMAGE defines the default container image for Ray (used for testing)
 RAY_IMAGE ?= rayproject/ray:$(RAY_VERSION)
@@ -167,8 +159,10 @@ vet: ## Run go vet against code.
 
 .PHONY: modules
 modules: ## Update Go dependencies.
-	#go get $(MCAD_REPO)@$(MCAD_VERSION)
-	#go get github.com/ray-project/kuberay/ray-operator
+	go get $(MCAD_REPO)@$(MCAD_VERSION)
+	go get $(INSTASCALE_REPO)@$(INSTASCALE_VERSION)
+	go get github.com/ray-project/kuberay/ray-operator
+	go mod tidy
 
 .PHONY: build
 build: modules defaults fmt vet ## Build manager binary.
