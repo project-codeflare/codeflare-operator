@@ -98,8 +98,6 @@ jobs:
         sed -i -E "s/(.*MCAD_REF \?= ).*/\1release-\${MCAD_VERSION}/" Makefile
         sed -i -E "s/(.*CODEFLARE_SDK_VERSION \?= ).*/\1$CODEFLARE_SDK_VERSION/" Makefile
         sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
-        sed -i -E "s/(.*instascale-controller:).*/\1${{ github.event.inputs.instascale-version }}/" controllers/testdata/instascale_test_results/case_1/deployment.yaml
-        sed -i -E "s/(.*instascale-controller:).*/\1${{ github.event.inputs.instascale-version }}/" controllers/testdata/instascale_test_results/case_2/deployment.yaml
 
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
