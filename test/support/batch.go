@@ -20,9 +20,7 @@ import (
 	"github.com/onsi/gomega"
 
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 func Job(t Test, namespace, name string) func(g gomega.Gomega) *batchv1.Job {
@@ -36,23 +34,4 @@ func Job(t Test, namespace, name string) func(g gomega.Gomega) *batchv1.Job {
 func GetJob(t Test, namespace, name string) *batchv1.Job {
 	t.T().Helper()
 	return Job(t, namespace, name)(t)
-}
-
-func WriteJobLogs(t Test, namespace, name string) {
-	t.T().Helper()
-
-	job := GetJob(t, namespace, name)
-
-	pods := GetPods(t, job.Namespace, metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(job.Spec.Selector.MatchLabels)},
-	)
-
-	if len(pods) == 0 {
-		t.T().Errorf("Job %s/%s has no pods scheduled", job.Namespace, job.Name)
-	} else {
-		for i, pod := range pods {
-			t.T().Logf("Retrieving Pod %s/%s logs", pod.Namespace, pod.Name)
-			WriteToOutputDir(t, pod.Name, Log, GetPodLogs(t, &pods[i], corev1.PodLogOptions{}))
-		}
-	}
 }

@@ -18,11 +18,9 @@ set -euo pipefail
 : "${KUBERAY_VERSION}"
 
 echo Deploying KubeRay "${KUBERAY_VERSION}"
-kubectl apply --server-side -k "github.com/ray-project/kuberay/ray-operator/config/default?ref=${KUBERAY_VERSION}&timeout=90s"
+kubectl apply --server-side -k "github.com/ray-project/kuberay/ray-operator/config/default?ref=${KUBERAY_VERSION}&timeout=180s"
 
-kubectl create ns codeflare-system --dry-run=client -o yaml | kubectl apply -f -
-
-cat <<EOF | kubectl apply -n codeflare-system -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -44,7 +42,7 @@ rules:
       - delete
 EOF
 
-cat <<EOF | kubectl apply -n codeflare-system -f -
+cat <<EOF | kubectl apply -f -
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
