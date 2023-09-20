@@ -145,9 +145,6 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	// Retrieving the job logs once it has completed or timed out
-	defer WriteJobLogs(test, job.Namespace, job.Name)
-
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
 	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
 		Or(
