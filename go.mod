@@ -6,9 +6,9 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/instascale v0.0.9-0.20230914113244-30c8b74bdb6b
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.34.2-0.20230918125534-b445015360ab
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20230916205808-6d5020fba579
+	github.com/project-codeflare/instascale v0.0.9
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.0
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20230920050528-dfdc51a88b6d
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
