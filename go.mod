@@ -9,7 +9,7 @@ require (
 	github.com/project-codeflare/instascale v0.0.9
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.0
 	github.com/ray-project/kuberay/ray-operator v0.0.0-20230920050528-dfdc51a88b6d
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.26.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
@@ -91,8 +91,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.10.0 // indirect
 	go.opentelemetry.io/otel/trace v1.10.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
