@@ -19,6 +19,11 @@ CodeFlare Stack Compatibility Matrix
 
 Requirements:
 - GNU sed - sed is used in several Makefile command. Using macOS default sed is incompatible, so GNU sed is needed for correct execution of these commands.
+  When you have a version of the GNU sed installed on a macOS you may specify the binary using
+  ```bash
+  # brew install gnu-sed
+  make install -e SED=/usr/local/bin/gsed
+  ```
 
 ### Testing
 
