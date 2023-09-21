@@ -40,7 +40,7 @@ The e2e tests can be executed locally by running the following commands:
 2. Start the operator locally:
 
     ```bash
-    make run
+    NAMESPACE=default make run
     ```
 
    Alternatively, You can run the operator from your IDE / debugger.
