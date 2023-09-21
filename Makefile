@@ -188,26 +188,26 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	sed -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 	git restore config/*
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	sed -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	sed -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	git restore config/*
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	sed -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
@@ -225,6 +225,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 GH_CLI ?= $(LOCALBIN)/gh
+SED ?= /usr/bin/sed
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.4
@@ -279,7 +280,7 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	sed -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
@@ -346,7 +347,7 @@ catalog-build-from-index: opm ## Build a catalog image.
 	mkdir catalog
 	$(OPM) render $(CATALOG_BASE_IMG) -o yaml > catalog/bundles.yaml
 	$(OPM) render $(BUNDLE_IMG) $(OPM_BUNDLE_OPT) > catalog/codeflare-operator-bundle.yaml
-	sed -i -E "s/(.*)(- name: codeflare-operator.$(PREVIOUS_VERSION).*)/\1- name: codeflare-operator.$(VERSION)\n  replaces: codeflare-operator.$(PREVIOUS_VERSION)\n\2/" catalog/bundles.yaml
+	$(SED) -i -E "s/(.*)(- name: codeflare-operator.$(PREVIOUS_VERSION).*)/\1- name: codeflare-operator.$(VERSION)\n  replaces: codeflare-operator.$(PREVIOUS_VERSION)\n\2/" catalog/bundles.yaml
 	$(OPM) validate catalog
 	$(OPM) generate dockerfile catalog
 	podman build . -f catalog.Dockerfile -t $(CATALOG_IMG)
