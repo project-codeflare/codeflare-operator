@@ -51,6 +51,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - coordination.k8s.io
   resources:
@@ -210,3 +211,29 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - ""
+  resourceNames:
+  - instascale-ocm-secret
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - machineset
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - machineset/status
+  verbs:
+  - get
