@@ -1,0 +1,102 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: instascale-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resourceNames:
+  - instascale-ocm-secret
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - machineset
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - machineset/status
+  verbs:
+  - get
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - machine.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workload.codeflare.dev
+  resources:
+  - appwrappers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workload.codeflare.dev
+  resources:
+  - appwrappers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workload.codeflare.dev
+  resources:
+  - appwrappers/status
+  verbs:
+  - get
+  - patch
+  - update
