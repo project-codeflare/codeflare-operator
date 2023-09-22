@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -12,13 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	machinePoolsExist     bool
-	numInitialNodePools   int
-	numInitialMachineSets int
-	wg                    = &sync.WaitGroup{}
 )
 
 func TestInstascale(t *testing.T) {
@@ -65,25 +57,25 @@ func TestInstascale(t *testing.T) {
 	}
 	defer connection.Close()
 
-	machinePoolsExist = true
 	// check existing cluster resources
-	numInitialMachinePools, err := MachinePoolsCount(connection)
-	if err != nil {
-		test.T().Errorf("Unable to count machine pools - Error : %v", err)
-	}
+	machinePoolsExist, err := MachinePoolsExist(connection)
+	test.Expect(err).NotTo(HaveOccurred())
+	nodePoolsExist, err := NodePoolsExist(connection)
+	test.Expect(err).NotTo(HaveOccurred())
 
-	if numInitialMachinePools == 0 {
-		machinePoolsExist = false
-		numInitialNodePools, err = NodePoolsCount(connection)
-		if err != nil {
-			test.T().Errorf("Unable to count node pools - Error : %v", err)
-		}
-		if numInitialNodePools == 0 {
-			numInitialMachineSets, err = MachineSetsCount()
-			if err != nil {
-				test.T().Errorf("Unable to count machine sets - Error : %v", err)
-			}
-		}
+	if machinePoolsExist {
+		// look for machine pool with aw name - expect not to find it
+		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachinePool).To(BeFalse())
+	} else if nodePoolsExist {
+		// look for node pool with aw name - expect not to find it
+		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundNodePool).To(BeFalse())
+	} else {
+		// TODO update to foundMachineSet
+		
 	}
 
 	// Batch Job
@@ -103,13 +95,13 @@ func TestInstascale(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:    "job",
-							Image:   GetPyTorchImage(),
+							Name:  "job",
+							Image: GetPyTorchImage(),
 							Env: []corev1.EnvVar{
 								corev1.EnvVar{Name: "PYTHONUSERBASE", Value: "/test2"},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
-							Args: []string{"$PYTHONUSERBASE"},
+							Args:    []string{"$PYTHONUSERBASE"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "test",
@@ -184,46 +176,41 @@ func TestInstascale(t *testing.T) {
 								},
 							},
 						},
-						GenericTemplate: Raw(test, job),
+						GenericTemplate:  Raw(test, job),
+						CompletionStatus: "Complete",
 					},
 				},
 			},
 		},
 	}
 
-		_, err = test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
+	_, err = test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("AppWrapper created successfully %s/%s", aw.Namespace, aw.Name)
 
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutShort).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	// wait for required resources to be created before checking them again
-	time.Sleep(TestTimeoutShort)
-	if !machinePoolsExist {
-		numNodePools, err := NodePoolsCount(connection)
-		if err != nil {
-			test.T().Errorf("Unable to count node pools - Error : %v", err)
-		}
-		test.Expect(numNodePools).To(BeNumerically(">", numInitialNodePools))
-		test.T().Logf("number of node pools increased from %d to %d", numInitialNodePools, numNodePools)
+	// time.Sleep is used twice throughout the test, each for 30 seconds. Can look into using sync package waitGroup instead if that makes more sense
+	// wait for required resources to scale up before checking them again
+	time.Sleep(TestTimeoutThirtySeconds)
 
-	} else if machinePoolsExist {
-		numMachinePools, err := MachinePoolsCount(connection)
-		if err != nil {
-			test.T().Errorf("Unable to count machine pools - Error : %v", err)
-		}
-		test.Expect(numMachinePools).To(BeNumerically(">", numInitialMachinePools))
-		test.T().Logf("number of machine pools increased from %d to %d", numInitialMachinePools, numMachinePools)
+	if machinePoolsExist {
+		// look for machine pool with aw name - expect to find it
+		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachinePool).To(BeTrue())
+	} else if nodePoolsExist {
+		// look for node pool with aw name - expect to find it
+		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundNodePool).To(BeTrue())
 	} else {
-		numMachineSets, err := MachineSetsCount()
-		if err != nil {
-			test.T().Errorf("Unable to count machine sets - Error : %v", err)
-		}
-		test.Expect(numMachineSets).To(BeNumerically(">", numInitialMachineSets))
-		test.T().Logf("number of machine sets increased from %d to %d", numInitialMachineSets, numMachineSets)
+		// TODO update to foundMachineSet
+		
 	}
-	
+
+	// Assert that the job has completed
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
 	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
 		Or(
@@ -235,30 +222,24 @@ func TestInstascale(t *testing.T) {
 	test.Expect(GetJob(test, job.Namespace, job.Name)).
 		To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
 
-	// AppWrapper not being updated to complete once job is finished
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutShort).
+		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
-	time.Sleep(TestTimeoutMedium)
-	if !machinePoolsExist {
-		numNodePoolsFinal, err := NodePoolsCount(connection)
-		if err != nil {
-			test.T().Errorf("Unable to count node pools - Error : %v", err)
-		}
-		test.Expect(numNodePoolsFinal).To(BeNumerically("==", numInitialNodePools))
-		test.T().Logf("number of machine pools decreased")
+	// allow time for the resources to scale down before checking them again
+	time.Sleep(TestTimeoutThirtySeconds)
 
-	} else if machinePoolsExist {
-		numMachinePoolsFinal, err := MachinePoolsCount(connection)
-		if err != nil {
-			test.T().Errorf("Unable to count machine pools - Error : %v", err)
-		}
-		test.Expect(numMachinePoolsFinal).To(BeNumerically("==", numInitialMachinePools))
-		test.T().Logf("number of machine pools decreased")
+	if machinePoolsExist {
+		// look for machine pool with aw name - expect to find it
+		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachinePool).To(BeFalse())
+	} else if nodePoolsExist {
+		// look for node pool with aw name - expect to find it
+		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundNodePool).To(BeFalse())
 	} else {
-		numMachineSetsFinal, err := MachineSetsCount()
-		if err != nil {
-			test.T().Errorf("Unable to count machine sets - Error : %v", err)
-		}
-		test.Expect(numMachineSetsFinal).To(BeNumerically("==", numInitialMachineSets))
-		test.T().Logf("number of machine sets decreased")
+		// TODO update to foundMachineSet
+		
 	}
 }

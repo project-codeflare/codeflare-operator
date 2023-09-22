@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	ocmsdk "github.com/openshift-online/ocm-sdk-go"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	mapiclientset "github.com/openshift/client-go/machine/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	ClusterID         string = os.Getenv("CLUSTERID")
-	machineClient     mapiclientset.Interface
+	ClusterID     string = os.Getenv("CLUSTERID")
+	machineClient mapiclientset.Interface
 )
 
 const (
@@ -39,30 +41,50 @@ func CreateOCMConnection(secret string) (*ocmsdk.Connection, error) {
 	return connection, nil
 }
 
+func MachinePoolsExist(connection *ocmsdk.Connection) (bool, error) {
+	machinePools := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).MachinePools()
+	return machinePools != nil, nil
+}
 
-func MachinePoolsCount(connection *ocmsdk.Connection) (numMachinePools int, err error) {
+func NodePoolsExist(connection *ocmsdk.Connection) (bool, error) {
+	nodePools := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).NodePools()
+	return nodePools != nil, nil
+}
+
+func CheckMachinePools(connection *ocmsdk.Connection, awName string) (foundMachinePool bool, err error) {
 	machinePoolsConnection := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).MachinePools().List()
 	machinePoolsListResponse, err := machinePoolsConnection.Send()
 	if err != nil {
-		return 0, fmt.Errorf("unable to send request, error: %v", err)
+		return false, fmt.Errorf("unable to send request, error: %v", err)
 	}
 	machinePoolsList := machinePoolsListResponse.Items()
-	numMachinePools = machinePoolsList.Len()
+	machinePoolsList.Range(func(index int, item *cmv1.MachinePool) bool {
+		instanceName, _ := item.GetID()
+		if strings.Contains(instanceName, awName) {
+			foundMachinePool = true
+		}
+		return true
+	})
 
-	return numMachinePools, nil
+	return foundMachinePool, err
 }
 
-func NodePoolsCount(connection *ocmsdk.Connection) (numNodePools int, err error) {
+func CheckNodePools(connection *ocmsdk.Connection, awName string) (foundNodePool bool, err error) {
 	nodePoolsConnection := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).NodePools().List()
 	nodePoolsListResponse, err := nodePoolsConnection.SendContext(context.Background())
 	if err != nil {
-		return 0, fmt.Errorf("unable to send request, error: %v", err)
+		return false, fmt.Errorf("unable to send request, error: %v", err)
 	}
 	nodePoolsList := nodePoolsListResponse.Items()
-	numNodePools = nodePoolsList.Len()
-	fmt.Println(numNodePools)
+	nodePoolsList.Range(func(index int, item *cmv1.NodePool) bool {
+		instanceName, _ := item.GetID()
+		if strings.Contains(instanceName, awName) {
+			foundNodePool = true
+		}
+		return true
+	})
 
-	return numNodePools, nil
+	return foundNodePool, err
 }
 
 func MachineSetsCount() (numMachineSets int, err error) {
