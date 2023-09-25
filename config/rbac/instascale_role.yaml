@@ -8,12 +8,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  verbs:
-  - get
-- apiGroups:
-  - ""
-  resources:
   - nodes
   verbs:
   - get
@@ -22,20 +16,10 @@ rules:
   - update
 - apiGroups:
   - ""
-  resourceNames:
-  - instascale-ocm-secret
   resources:
   - secrets
   verbs:
   - get
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - apps
   resources:
@@ -65,7 +49,10 @@ rules:
 - apiGroups:
   - machine.openshift.io
   resources:
-  - '*'
+  - controlplanemachinesets
+  - machinehealthchecks
+  - machines
+  - machinesets
   verbs:
   - create
   - delete
@@ -74,29 +61,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - workload.codeflare.dev
-  resources:
-  - appwrappers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - workload.codeflare.dev
-  resources:
-  - appwrappers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - workload.codeflare.dev
-  resources:
-  - appwrappers/status
-  verbs:
-  - get
-  - patch
-  - update
