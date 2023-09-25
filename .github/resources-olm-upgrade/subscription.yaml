@@ -9,3 +9,11 @@ spec:
   name: codeflare-operator
   source: codeflare-olm-test
   sourceNamespace: olm
+  config:
+    resources:
+      limits:
+        cpu: 400m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
