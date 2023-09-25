@@ -65,17 +65,18 @@ func TestInstascale(t *testing.T) {
 
 	if machinePoolsExist {
 		// look for machine pool with aw name - expect not to find it
-		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		foundMachinePool, err := CheckMachinePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundMachinePool).To(BeFalse())
 	} else if nodePoolsExist {
 		// look for node pool with aw name - expect not to find it
-		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		foundNodePool, err := CheckNodePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundNodePool).To(BeFalse())
 	} else {
-		// TODO update to foundMachineSet
-		
+		foundMachineSet, err := CheckMachineSets(TestName)
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachineSet).To(BeFalse())
 	}
 
 	// Batch Job
@@ -197,17 +198,18 @@ func TestInstascale(t *testing.T) {
 
 	if machinePoolsExist {
 		// look for machine pool with aw name - expect to find it
-		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		foundMachinePool, err := CheckMachinePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundMachinePool).To(BeTrue())
 	} else if nodePoolsExist {
 		// look for node pool with aw name - expect to find it
-		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		foundNodePool, err := CheckNodePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundNodePool).To(BeTrue())
 	} else {
-		// TODO update to foundMachineSet
-		
+		foundMachineSet, err := CheckMachineSets(TestName)
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachineSet).To(BeTrue())
 	}
 
 	// Assert that the job has completed
@@ -230,16 +232,17 @@ func TestInstascale(t *testing.T) {
 
 	if machinePoolsExist {
 		// look for machine pool with aw name - expect to find it
-		foundMachinePool, err := CheckMachinePools(connection, "test-instascale")
+		foundMachinePool, err := CheckMachinePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundMachinePool).To(BeFalse())
 	} else if nodePoolsExist {
 		// look for node pool with aw name - expect to find it
-		foundNodePool, err := CheckNodePools(connection, "test-instascale")
+		foundNodePool, err := CheckNodePools(connection, TestName)
 		test.Expect(err).NotTo(HaveOccurred())
 		test.Expect(foundNodePool).To(BeFalse())
 	} else {
-		// TODO update to foundMachineSet
-		
+		foundMachineSet, err := CheckMachineSets(TestName)
+		test.Expect(err).NotTo(HaveOccurred())
+		test.Expect(foundMachineSet).To(BeFalse())
 	}
 }
