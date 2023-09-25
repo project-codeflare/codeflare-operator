@@ -9,12 +9,16 @@ import (
 	ocmsdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	mapiclientset "github.com/openshift/client-go/machine/clientset/versioned"
+	"github.com/openshift/client-go/machine/listers/machine/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 var (
 	ClusterID     string = os.Getenv("CLUSTERID")
 	machineClient mapiclientset.Interface
+	msLister      v1beta1.MachineSetLister
+	TestName      string = "test-instascale"
 )
 
 const (
@@ -95,4 +99,17 @@ func MachineSetsCount() (numMachineSets int, err error) {
 	machineSetsSize := machineSets.ListMeta.Size()
 
 	return machineSetsSize, nil
+}
+
+func CheckMachineSets(awName string) (foundMachineSet bool, err error) {
+	machineSets, err := msLister.MachineSets("").List(labels.Everything())
+	if err != nil {
+		return false, fmt.Errorf("error listing machine sets, error: %v", err)
+	}
+	for _, machineSet := range machineSets {
+		if strings.Contains(machineSet.Name, awName) {
+			foundMachineSet = true
+		}
+	}
+	return foundMachineSet, err
 }
