@@ -41,12 +41,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check if MCAD release does exist
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/multi-cluster-app-dispatcher/releases/tag/${{ github.event.inputs.mcad-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "MCAD release with version ${{ github.event.inputs.mcad-version }} already exist. Will not create MCAD release."
+        fi
+        echo "MCAD_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
+
     - name: Release MCAD
       run: |
         gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref ${{ github.ref }} --field tag=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.MCAD_RELEASE_STATUS_CODE != '200' }}
 
     - name: Wait for MCAD run to finish
       run: |
@@ -57,18 +66,28 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.MCAD_RELEASE_STATUS_CODE != '200' }}
 
   release-instascale:
     needs: release-mcad
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check if Instascale release does exist
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/instascale/releases/tag/${{ github.event.inputs.instascale-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "Instascale release with version ${{ github.event.inputs.instascale-version }} already exist. Will not create Instascale release."
+        fi
+        echo "INSTASCALE_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
+
     - name: Release InstaScale
       run: |
         gh workflow run instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field tag=${{ github.event.inputs.instascale-version }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.INSTASCALE_RELEASE_STATUS_CODE != '200' }}
 
     - name: Wait for InstaScale run to finish
       run: |
@@ -79,11 +98,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.INSTASCALE_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-sdk:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check if Codeflare SDK release does exist
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/codeflare-sdk/releases/tag/${{ github.event.inputs.codeflare-sdk-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "SDK release with version ${{ github.event.inputs.codeflare-sdk-version }} already exist. Will not create SDK release."
+        fi
+        echo "SDK_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
+
     - name: Release CodeFlare SDK
       run: |
         semver_version="${{ github.event.inputs.codeflare-sdk-version }}"
@@ -92,6 +120,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.SDK_RELEASE_STATUS_CODE != '200' }}
 
     - name: Wait for CodeFlare SDK run to finish
       run: |
@@ -102,6 +131,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+      if: ${{ env.SDK_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-operator:
     needs: [release-mcad, release-instascale, release-codeflare-sdk]
