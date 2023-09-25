@@ -49,8 +49,6 @@ rules:
 - apiGroups:
   - machine.openshift.io
   resources:
-  - controlplanemachinesets
-  - machinehealthchecks
   - machines
   - machinesets
   verbs:
