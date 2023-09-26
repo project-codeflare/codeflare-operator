@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	configv1 "github.com/openshift/api/config/v1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -63,9 +64,12 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	// MCAD
 	utilruntime.Must(mcadv1beta1.AddToScheme(scheme))
 	utilruntime.Must(quotasubtreev1.AddToScheme(scheme))
+	// InstaScale
 	utilruntime.Must(configv1.Install(scheme))
+	utilruntime.Must(machinev1beta1.Install(scheme))
 }
 
 func main() {
