@@ -48,6 +48,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -63,6 +65,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mcadv1beta1.AddToScheme(scheme))
 	utilruntime.Must(quotasubtreev1.AddToScheme(scheme))
+	utilruntime.Must(configv1.Install(scheme))
 }
 
 func main() {
