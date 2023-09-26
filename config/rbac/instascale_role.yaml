@@ -21,24 +21,6 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - apps
-  resources:
-  - machineset
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - machineset/status
-  verbs:
-  - get
-- apiGroups:
   - config.openshift.io
   resources:
   - clusterversions
