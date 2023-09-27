@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     env:
-      OLM_VERSION: v0.24.0
+      OLM_VERSION: v0.25.0
       VERSION: "v0.0.0-ghaction"  # Need to supply some semver version for bundle to be properly generated
       CATALOG_BASE_IMG: "registry.access.redhat.com/redhat/community-operator-index:v4.13"
       CODEFLARE_TEST_TIMEOUT_SHORT: "1m"
