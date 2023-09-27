@@ -5,15 +5,17 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	. "github.com/project-codeflare/codeflare-operator/test/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
-func TestInstascale(t *testing.T) {
+func TestInstascaleMachinePool(t *testing.T) {
 
 	test := With(t)
 	test.T().Parallel()
@@ -38,11 +40,12 @@ func TestInstascale(t *testing.T) {
 		},
 		Immutable: Ptr(true),
 	}
+
 	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
 
-	// create OCM connection
+	//create OCM connection
 	instascaleOCMSecret, err := test.Client().Core().CoreV1().Secrets("default").Get(test.Ctx(), "instascale-ocm-secret", metav1.GetOptions{})
 	if err != nil {
 		test.T().Errorf("unable to retrieve instascale-ocm-secret - Error : %v", err)
@@ -57,27 +60,11 @@ func TestInstascale(t *testing.T) {
 	}
 	defer connection.Close()
 
-	// check existing cluster resources
-	machinePoolsExist, err := MachinePoolsExist(connection)
+	// check existing cluster machine pool resources
+	// look for machine pool with aw name - expect not to find it
+	foundMachinePool, err := CheckMachinePools(connection, TestName)
 	test.Expect(err).NotTo(HaveOccurred())
-	nodePoolsExist, err := NodePoolsExist(connection)
-	test.Expect(err).NotTo(HaveOccurred())
-
-	if machinePoolsExist {
-		// look for machine pool with aw name - expect not to find it
-		foundMachinePool, err := CheckMachinePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachinePool).To(BeFalse())
-	} else if nodePoolsExist {
-		// look for node pool with aw name - expect not to find it
-		foundNodePool, err := CheckNodePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundNodePool).To(BeFalse())
-	} else {
-		foundMachineSet, err := CheckMachineSets(TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachineSet).To(BeFalse())
-	}
+	test.Expect(foundMachinePool).To(BeFalse())
 
 	// Batch Job
 	job := &batchv1.Job{
@@ -159,10 +146,12 @@ func TestInstascale(t *testing.T) {
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("250m"),
 									corev1.ResourceMemory: resource.MustParse("512Mi"),
+									"nvidia.com/gpu":      resource.MustParse("1"),
 								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceCPU:    resource.MustParse("500m"),
 									corev1.ResourceMemory: resource.MustParse("1G"),
+									"nvidia.com/gpu":      resource.MustParse("1"),
 								},
 							},
 							{
@@ -194,23 +183,12 @@ func TestInstascale(t *testing.T) {
 
 	// time.Sleep is used twice throughout the test, each for 30 seconds. Can look into using sync package waitGroup instead if that makes more sense
 	// wait for required resources to scale up before checking them again
-	time.Sleep(TestTimeoutThirtySeconds)
+	time.Sleep(TestTimeoutMedium)
 
-	if machinePoolsExist {
-		// look for machine pool with aw name - expect to find it
-		foundMachinePool, err := CheckMachinePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachinePool).To(BeTrue())
-	} else if nodePoolsExist {
-		// look for node pool with aw name - expect to find it
-		foundNodePool, err := CheckNodePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundNodePool).To(BeTrue())
-	} else {
-		foundMachineSet, err := CheckMachineSets(TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachineSet).To(BeTrue())
-	}
+	// look for machine pool with aw name - expect to find it
+	foundMachinePool, err = CheckMachinePools(connection, TestName)
+	test.Expect(err).NotTo(HaveOccurred())
+	test.Expect(foundMachinePool).To(BeTrue())
 
 	// Assert that the job has completed
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
@@ -228,21 +206,11 @@ func TestInstascale(t *testing.T) {
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
 	// allow time for the resources to scale down before checking them again
-	time.Sleep(TestTimeoutThirtySeconds)
+	time.Sleep(TestTimeoutMedium)
 
-	if machinePoolsExist {
-		// look for machine pool with aw name - expect to find it
-		foundMachinePool, err := CheckMachinePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachinePool).To(BeFalse())
-	} else if nodePoolsExist {
-		// look for node pool with aw name - expect to find it
-		foundNodePool, err := CheckNodePools(connection, TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundNodePool).To(BeFalse())
-	} else {
-		foundMachineSet, err := CheckMachineSets(TestName)
-		test.Expect(err).NotTo(HaveOccurred())
-		test.Expect(foundMachineSet).To(BeFalse())
-	}
+	// look for machine pool with aw name - expect not to find it
+	foundMachinePool, err = CheckMachinePools(connection, TestName)
+	test.Expect(err).NotTo(HaveOccurred())
+	test.Expect(foundMachinePool).To(BeFalse())
+
 }
