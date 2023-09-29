@@ -77,15 +77,23 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:    "job",
-							Image:   GetPyTorchImage(),
+							Name:  "job",
+							Image: GetPyTorchImage(),
+							Env: []corev1.EnvVar{
+								corev1.EnvVar{Name: "PYTHONUSERBASE", Value: "/workdir"},
+							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "test",
 									MountPath: "/test",
 								},
+								{
+									Name:      "workdir",
+									MountPath: "/workdir",
+								},
 							},
+							WorkingDir: "/workdir",
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -97,6 +105,12 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 										Name: config.Name,
 									},
 								},
+							},
+						},
+						{
+							Name: "workdir",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
