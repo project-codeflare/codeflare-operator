@@ -8,19 +8,11 @@ import (
 
 	ocmsdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	mapiclientset "github.com/openshift/client-go/machine/clientset/versioned"
-	"github.com/openshift/client-go/machine/listers/machine/v1beta1"
 )
 
 var (
-	ClusterID     string = os.Getenv("CLUSTERID")
-	machineClient mapiclientset.Interface
-	msLister      v1beta1.MachineSetLister
-	TestName      string = "test-instascale"
-)
-
-const (
-	namespaceToList = "openshift-machine-api"
+	ClusterID string = os.Getenv("CLUSTERID")
+	TestName  string = "test-instascale"
 )
 
 func CreateOCMConnection(secret string) (*ocmsdk.Connection, error) {
