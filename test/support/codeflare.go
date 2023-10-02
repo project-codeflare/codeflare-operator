@@ -30,8 +30,12 @@ const (
 	CodeFlareTestPyTorchImage = "CODEFLARE_TEST_PYTORCH_IMAGE"
 
 	// The testing output directory, to write output files into.
-
 	CodeFlareTestOutputDir = "CODEFLARE_TEST_OUTPUT_DIR"
+
+	// The name of a secret containing InstaScale OCM token.
+	InstaScaleOcmSecretName = "INSTASCALE_OCM_SECRET_NAME"
+	// The namespace where a secret containing InstaScale OCM token is stored.
+	InstaScaleOcmSecretNamespace = "INSTASCALE_OCM_SECRET_NAMESPACE"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -48,6 +52,14 @@ func GetRayImage() string {
 
 func GetPyTorchImage() string {
 	return lookupEnvOrDefault(CodeFlareTestPyTorchImage, "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime")
+}
+
+func GetInstaScaleOcmSecretName() string {
+	return lookupEnvOrDefault(InstaScaleOcmSecretName, "instascale-ocm-secret")
+}
+
+func GetInstaScaleOcmSecretNamespace() string {
+	return lookupEnvOrDefault(InstaScaleOcmSecretNamespace, "default")
 }
 
 func lookupEnvOrDefault(key, value string) string {
