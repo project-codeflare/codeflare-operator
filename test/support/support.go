@@ -31,7 +31,6 @@ var (
 	ApplyOptions = metav1.ApplyOptions{FieldManager: "codeflare-test", Force: true}
 
 	TestTimeoutShort  = 1 * time.Minute
-	TestTimeoutThirtySeconds = 30 * time.Second
 	TestTimeoutMedium = 2 * time.Minute
 	TestTimeoutLong   = 5 * time.Minute
 )
