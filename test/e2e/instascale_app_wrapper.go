@@ -9,55 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ocmsdk "github.com/openshift-online/ocm-sdk-go"
-
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
-func TestConfig(test Test, namespace string) (*corev1.ConfigMap, error) {
-	// Test configuration
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist-mcad",
-			Namespace: namespace,
-		},
-		BinaryData: map[string][]byte{
-			// pip requirements
-			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
-			// MNIST training script
-			"mnist.py": ReadFile(test, "mnist.py"),
-		},
-		Immutable: Ptr(true),
-	}
-
-	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace).Create(test.Ctx(), configMap, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
-
-	return configMap, err
-}
-
-func CreateConnection(test Test) (*ocmsdk.Connection, error) {
-	instascaleOCMSecret, err := test.Client().Core().CoreV1().Secrets("default").Get(test.Ctx(), "instascale-ocm-secret", metav1.GetOptions{})
-	if err != nil {
-		test.T().Errorf("unable to retrieve instascale-ocm-secret - Error : %v", err)
-	}
-	test.Expect(err).NotTo(HaveOccurred())
-	ocmToken := string(instascaleOCMSecret.Data["token"])
-	test.T().Logf("Retrieved Secret %s successfully", instascaleOCMSecret.Name)
-
-	connection, err := CreateOCMConnection(ocmToken)
-	if err != nil {
-		test.T().Errorf("Unable to create ocm connection - Error : %v", err)
-	}
-	return connection, err
-}
-
-func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.ConfigMap) (*batchv1.Job, *mcadv1beta1.AppWrapper, error) {
+func createInstaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, config *corev1.ConfigMap) (*batchv1.Job, *mcadv1beta1.AppWrapper, error) {
 	// Batch Job
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -78,7 +33,7 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 							Name:  "job",
 							Image: GetPyTorchImage(),
 							Env: []corev1.EnvVar{
-								corev1.EnvVar{Name: "PYTHONUSERBASE", Value: "/test2"},
+								{Name: "PYTHONUSERBASE", Value: "/workdir"},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							Args:    []string{"$PYTHONUSERBASE"},
@@ -92,7 +47,7 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 									MountPath: "/workdir",
 								},
 							},
-							WorkingDir: "workdir",
+							WorkingDir: "/workdir",
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -125,7 +80,7 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 			Name:      "test-instascale",
 			Namespace: namespace.Name,
 			Labels: map[string]string{
-				"orderedinstance": "m5.xlarge_g4dn.xlarge",
+				"orderedinstance": "g4dn.xlarge",
 			},
 		},
 		Spec: mcadv1beta1.AppWrapperSpec{
@@ -170,7 +125,7 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("AppWrapper created successfully %s/%s", aw.Namespace, aw.Name)
 
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutShort).
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutGpuProvisioning).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
 	return job, aw, err
