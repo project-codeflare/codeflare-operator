@@ -85,11 +85,11 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 									MountPath: "/test",
 								},
 								{
-									Name:      "test2",
-									MountPath: "/test2",
+									Name:      "workdir",
+									MountPath: "/workdir",
 								},
 							},
-							WorkingDir: "/test2",
+							WorkingDir: "workdir",
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -104,7 +104,7 @@ func JobAppwrapperSetup(test Test, namespace *corev1.Namespace, config *corev1.C
 							},
 						},
 						{
-							Name: "test2",
+							Name: "workdir",
 							VolumeSource: corev1.VolumeSource{
 								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},

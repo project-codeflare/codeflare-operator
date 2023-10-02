@@ -10,8 +10,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	mapiclientset "github.com/openshift/client-go/machine/clientset/versioned"
 	"github.com/openshift/client-go/machine/listers/machine/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 var (
@@ -31,7 +29,7 @@ func CreateOCMConnection(secret string) (*ocmsdk.Connection, error) {
 		Build()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't build logger: %v\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 	connection, err := ocmsdk.NewConnectionBuilder().
 		Logger(logger).
@@ -39,20 +37,10 @@ func CreateOCMConnection(secret string) (*ocmsdk.Connection, error) {
 		Build()
 	if err != nil || connection == nil {
 		fmt.Fprintf(os.Stderr, "Can't build connection: %v\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	return connection, nil
-}
-
-func MachinePoolsExist(connection *ocmsdk.Connection) (bool, error) {
-	machinePools := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).MachinePools()
-	return machinePools != nil, nil
-}
-
-func NodePoolsExist(connection *ocmsdk.Connection) (bool, error) {
-	nodePools := connection.ClustersMgmt().V1().Clusters().Cluster(ClusterID).NodePools()
-	return nodePools != nil, nil
 }
 
 func CheckMachinePools(connection *ocmsdk.Connection, awName string) (foundMachinePool bool, err error) {
@@ -89,27 +77,4 @@ func CheckNodePools(connection *ocmsdk.Connection, awName string) (foundNodePool
 	})
 
 	return foundNodePool, err
-}
-
-func MachineSetsCount() (numMachineSets int, err error) {
-	machineSets, err := machineClient.MachineV1beta1().MachineSets(namespaceToList).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return 0, fmt.Errorf("error while listing machine sets, error: %v", err)
-	}
-	machineSetsSize := machineSets.ListMeta.Size()
-
-	return machineSetsSize, nil
-}
-
-func CheckMachineSets(awName string) (foundMachineSet bool, err error) {
-	machineSets, err := msLister.MachineSets("").List(labels.Everything())
-	if err != nil {
-		return false, fmt.Errorf("error listing machine sets, error: %v", err)
-	}
-	for _, machineSet := range machineSets {
-		if strings.Contains(machineSet.Name, awName) {
-			foundMachineSet = true
-		}
-	}
-	return foundMachineSet, err
 }

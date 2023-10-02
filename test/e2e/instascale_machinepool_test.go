@@ -20,11 +20,11 @@ func TestInstascaleMachinePool(t *testing.T) {
 
 	// Test configuration
 	config, err := TestConfig(test, namespace.Name)
-	test.Expect(err).To(BeNil())
+	test.Expect(err).NotTo(HaveOccurred())
 
 	//create OCM connection
 	connection, err := CreateConnection(test)
-	test.Expect(err).To(BeNil())
+	test.Expect(err).NotTo(HaveOccurred())
 
 	defer connection.Close()
 
@@ -36,7 +36,7 @@ func TestInstascaleMachinePool(t *testing.T) {
 
 	// Setup batch job and AppWrapper
 	job, aw, err := JobAppwrapperSetup(test, namespace, config)
-	test.Expect(err).To(BeNil())
+	test.Expect(err).NotTo(HaveOccurred())
 
 	// time.Sleep is used twice throughout the test, each for 30 seconds. Can look into using sync package waitGroup instead if that makes more sense
 	// wait for required resources to scale up before checking them again
