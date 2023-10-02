@@ -2,13 +2,16 @@ package e2e
 
 import (
 	. "github.com/onsi/gomega"
-	ocmsdk "github.com/openshift-online/ocm-sdk-go"
-	. "github.com/project-codeflare/codeflare-operator/test/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ocmsdk "github.com/openshift-online/ocm-sdk-go"
+
+	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
 func TestConfig(test Test, namespace string) (*corev1.ConfigMap, error) {
