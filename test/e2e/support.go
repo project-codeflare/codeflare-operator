@@ -23,7 +23,7 @@ import (
 	"github.com/project-codeflare/codeflare-common/support"
 )
 
-//go:embed *.py *.txt
+//go:embed *.py *.txt *.sh
 var files embed.FS
 
 func ReadFile(t support.Test, fileName string) []byte {
