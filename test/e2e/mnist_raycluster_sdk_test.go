@@ -51,6 +51,8 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 		"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
 		// MNIST training script
 		"mnist.py": ReadFile(test, "mnist.py"),
+		// codeflare-sdk installation script
+		"install-codeflare-sdk.sh": ReadFile(test, "install-codeflare-sdk.sh"),
 	})
 
 	// Create RBAC, retrieve token for user with limited rights
@@ -119,11 +121,15 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 								{Name: "PYTHONUSERBASE", Value: "/workdir"},
 								{Name: "RAY_IMAGE", Value: GetRayImage()},
 							},
-							Command: []string{"/bin/sh", "-c", "pip install codeflare-sdk==" + GetCodeFlareSDKVersion() + " && cp /test/* . && python mnist_raycluster_sdk.py" + " " + namespace.Name},
+							Command: []string{"/bin/sh", "-c", "cp /test/* . && chmod +x install-codeflare-sdk.sh && ./install-codeflare-sdk.sh && python mnist_raycluster_sdk.py" + " " + namespace.Name},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "test",
 									MountPath: "/test",
+								},
+								{
+									Name:      "codeflare-sdk",
+									MountPath: "/codeflare-sdk",
 								},
 								{
 									Name:      "workdir",
@@ -152,6 +158,12 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 										Name: config.Name,
 									},
 								},
+							},
+						},
+						{
+							Name: "codeflare-sdk",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 						{
