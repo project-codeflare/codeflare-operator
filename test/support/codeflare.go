@@ -36,6 +36,8 @@ const (
 	InstaScaleOcmSecretName = "INSTASCALE_OCM_SECRET_NAME"
 	// The namespace where a secret containing InstaScale OCM token is stored.
 	InstaScaleOcmSecretNamespace = "INSTASCALE_OCM_SECRET_NAMESPACE"
+	// Cluster ID for OSD cluster used in tests, used for testing InstaScale
+	OsdClusterID = "CLUSTERID"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -60,6 +62,10 @@ func GetInstaScaleOcmSecretName() string {
 
 func GetInstaScaleOcmSecretNamespace() string {
 	return lookupEnvOrDefault(InstaScaleOcmSecretNamespace, "default")
+}
+
+func GetOsdClusterId() (string, bool) {
+	return os.LookupEnv(OsdClusterID)
 }
 
 func lookupEnvOrDefault(key, value string) string {
