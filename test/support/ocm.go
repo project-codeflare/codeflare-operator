@@ -21,8 +21,10 @@ import (
 	"os"
 
 	"github.com/onsi/gomega"
-	ocmsdk "github.com/openshift-online/ocm-sdk-go"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	ocmsdk "github.com/openshift-online/ocm-sdk-go"
 )
 
 func CreateOCMConnection(test Test) *ocmsdk.Connection {
