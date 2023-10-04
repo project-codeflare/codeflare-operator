@@ -391,8 +391,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-codeflare/instascale v0.0.9 h1:XlwprvuJNbNVnLxCa6lPz5bKUEMhJprVRumd42sRhVY=
 github.com/project-codeflare/instascale v0.0.9/go.mod h1:fpc8TiFvR2r0duKFbKmGTshEGa0eGK9noWWfjhPxphE=
-github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.0 h1:7Ks2+6Jd8tnwymSmSrwNb/CpAPmgS0lNIhMlj6DrT+o=
-github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.0/go.mod h1:Yge6GRNpO9YIDfeL+XOcCE9xbmfCTD5C1h5dlW87mxQ=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.1-0.20231004084320-725a614debe3 h1:l/QHuyrSgaZfZ1UCRjj49rhagJV7tsyNlq0+lRhS6ZM=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.35.1-0.20231004084320-725a614debe3/go.mod h1:Yge6GRNpO9YIDfeL+XOcCE9xbmfCTD5C1h5dlW87mxQ=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.7.1/go.mod h1:PY5Wy2awLA44sXw4AOSfFBetzPP4j5+D6mVACh+pe2M=
@@ -420,8 +420,8 @@ github.com/prometheus/procfs v0.6.0/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1
 github.com/prometheus/procfs v0.7.3/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1xBZuNvfVA=
 github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5mo=
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
-github.com/ray-project/kuberay/ray-operator v0.0.0-20230920050528-dfdc51a88b6d h1:qrCTwTnba5lQMiV6dYimR8epl8Ju90U+QLbmRQ4pe9k=
-github.com/ray-project/kuberay/ray-operator v0.0.0-20230920050528-dfdc51a88b6d/go.mod h1:NDvscwYbeLSh+Cfc2UTeyPWODtNKPCsPjD/2kg3ZXPw=
+github.com/ray-project/kuberay/ray-operator v0.0.0-20231003160009-38e3527cfce7 h1:arS5d3gMlpVJTcBipREs6uOWP4mL7C0EtQutISpC4Mo=
+github.com/ray-project/kuberay/ray-operator v0.0.0-20231003160009-38e3527cfce7/go.mod h1:NDvscwYbeLSh+Cfc2UTeyPWODtNKPCsPjD/2kg3ZXPw=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rs/xid v1.2.1/go.mod h1:+uKXf+4Djp6Md1KODXJxgGQPKngRmWyn10oCKFzNHOQ=

@@ -27,7 +27,7 @@ import (
 	instascale "github.com/project-codeflare/instascale/controllers"
 	instascaleconfig "github.com/project-codeflare/instascale/pkg/config"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	quotasubtreev1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1"
+	quotasubtreev1alpha1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1alpha1"
 	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	"go.uber.org/zap/zapcore"
@@ -66,7 +66,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	// MCAD
 	utilruntime.Must(mcadv1beta1.AddToScheme(scheme))
-	utilruntime.Must(quotasubtreev1.AddToScheme(scheme))
+	utilruntime.Must(quotasubtreev1alpha1.AddToScheme(scheme))
 	// InstaScale
 	utilruntime.Must(configv1.Install(scheme))
 	utilruntime.Must(machinev1beta1.Install(scheme))
