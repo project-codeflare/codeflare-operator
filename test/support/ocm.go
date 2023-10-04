@@ -43,7 +43,7 @@ func buildOCMConnection(secret string) (*ocmsdk.Connection, error) {
 	connection, err := ocmsdk.NewConnectionBuilder().
 		Tokens(secret).
 		Build()
-	if err != nil || connection == nil {
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't build connection: %v\n", err)
 		return nil, err
 	}

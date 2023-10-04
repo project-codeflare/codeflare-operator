@@ -58,6 +58,13 @@ func init() {
 			fmt.Printf("Error parsing CODEFLARE_TEST_TIMEOUT_LONG. Using default value: %s", TestTimeoutLong)
 		}
 	}
+	if value, ok := os.LookupEnv("CODEFLARE_TEST_TIMEOUT_GPU_PROVISIONING"); ok {
+		if duration, err := time.ParseDuration(value); err == nil {
+			TestTimeoutGpuProvisioning = duration
+		} else {
+			fmt.Printf("Error parsing CODEFLARE_TEST_TIMEOUT_GPU_PROVISIONING. Using default value: %s", TestTimeoutGpuProvisioning)
+		}
+	}
 
 	// Gomega settings
 	gomega.SetDefaultEventuallyTimeout(TestTimeoutShort)
