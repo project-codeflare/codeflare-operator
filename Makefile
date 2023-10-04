@@ -16,7 +16,7 @@ INSTASCALE_VERSION ?= v0.0.9
 INSTASCALE_REPO ?= github.com/project-codeflare/instascale
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.35.0
+MCAD_VERSION ?= 725a614debe3d34d1547c1659ef5ad49f8f6c5df
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 # Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
