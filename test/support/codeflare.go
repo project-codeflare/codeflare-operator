@@ -18,6 +18,9 @@ package support
 
 import (
 	"os"
+	"strconv"
+
+	"github.com/onsi/gomega"
 )
 
 const (
@@ -38,6 +41,8 @@ const (
 	InstaScaleOcmSecretNamespace = "INSTASCALE_OCM_SECRET_NAMESPACE"
 	// Cluster ID for OSD cluster used in tests, used for testing InstaScale
 	OsdClusterID = "CLUSTERID"
+	// Determine if test is being run on an OSD cluster, used for testing InstaScale.
+	IsOSD = "IS_OSD"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -66,6 +71,18 @@ func GetInstaScaleOcmSecretNamespace() string {
 
 func GetOsdClusterId() (string, bool) {
 	return os.LookupEnv(OsdClusterID)
+}
+
+func IsOsd(test Test) bool {
+	test.T().Helper()
+	env := lookupEnvOrDefault(IsOSD, "false")
+	osd, err := strconv.ParseBool(env)
+	if err != nil {
+		test.T().Logf("error parsing IS_OSD environment variable, using default 'false' value, error: %v ", err)
+		return false
+	}
+	test.Expect(err).NotTo(gomega.HaveOccurred())
+	return osd
 }
 
 func lookupEnvOrDefault(key, value string) string {
