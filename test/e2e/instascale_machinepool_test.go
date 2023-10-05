@@ -33,6 +33,10 @@ func TestInstascaleMachinePool(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
+	if !IsOsd(test) {
+		test.T().Skip("Skipping test as not running on an OSD cluster")
+	}
+
 	namespace := test.NewTestNamespace()
 
 	// Test configuration
