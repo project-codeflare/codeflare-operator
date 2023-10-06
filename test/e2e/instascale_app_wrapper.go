@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	. "github.com/onsi/gomega"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -138,11 +137,6 @@ func createInstaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, confi
 	}
 
 	_, err := test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("AppWrapper created successfully %s/%s", aw.Namespace, aw.Name)
-
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutGpuProvisioning).
-		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
 	return job, aw, err
 }

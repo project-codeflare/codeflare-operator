@@ -18,9 +18,7 @@ package support
 
 import (
 	"os"
-	"strconv"
-
-	"github.com/onsi/gomega"
+	"strings"
 )
 
 const (
@@ -35,14 +33,11 @@ const (
 	// The testing output directory, to write output files into.
 	CodeFlareTestOutputDir = "CODEFLARE_TEST_OUTPUT_DIR"
 
-	// The name of a secret containing InstaScale OCM token.
-	InstaScaleOcmSecretName = "INSTASCALE_OCM_SECRET_NAME"
-	// The namespace where a secret containing InstaScale OCM token is stored.
-	InstaScaleOcmSecretNamespace = "INSTASCALE_OCM_SECRET_NAMESPACE"
+	// The namespace where a secret containing InstaScale OCM token is stored and the secret name.
+	InstaScaleOcmSecret = "INSTASCALE_OCM_SECRET"
+
 	// Cluster ID for OSD cluster used in tests, used for testing InstaScale
 	OsdClusterID = "CLUSTERID"
-	// Determine if test is being run on an OSD cluster, used for testing InstaScale.
-	IsOSD = "IS_OSD"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -61,28 +56,21 @@ func GetPyTorchImage() string {
 	return lookupEnvOrDefault(CodeFlareTestPyTorchImage, "pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime")
 }
 
-func GetInstaScaleOcmSecretName() string {
-	return lookupEnvOrDefault(InstaScaleOcmSecretName, "instascale-ocm-secret")
-}
-
-func GetInstaScaleOcmSecretNamespace() string {
-	return lookupEnvOrDefault(InstaScaleOcmSecretNamespace, "default")
+func GetInstascaleOcmSecret() (string, string) {
+	res := strings.SplitN(lookupEnvOrDefault(InstaScaleOcmSecret, "default/instascale-com-secret"), "/", 2)
+	return res[0], res[1]
 }
 
 func GetOsdClusterId() (string, bool) {
 	return os.LookupEnv(OsdClusterID)
 }
 
-func IsOsd(test Test) bool {
-	test.T().Helper()
-	env := lookupEnvOrDefault(IsOSD, "false")
-	osd, err := strconv.ParseBool(env)
-	if err != nil {
-		test.T().Logf("error parsing IS_OSD environment variable, using default 'false' value, error: %v ", err)
-		return false
+func IsOsd() bool {
+	osdClusterId, found := GetOsdClusterId()
+	if found && osdClusterId != "" {
+		return true
 	}
-	test.Expect(err).NotTo(gomega.HaveOccurred())
-	return osd
+	return false
 }
 
 func lookupEnvOrDefault(key, value string) string {
