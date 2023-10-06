@@ -27,6 +27,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func CreateConfigMap(t Test, namespace string, content map[string][]byte) *corev1.ConfigMap {
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "config-",
+			Namespace:    namespace,
+		},
+		BinaryData: content,
+		Immutable:  Ptr(true),
+	}
+
+	configMap, err := t.Client().Core().CoreV1().ConfigMaps(namespace).Create(t.Ctx(), configMap, metav1.CreateOptions{})
+	t.Expect(err).NotTo(gomega.HaveOccurred())
+	t.T().Logf("Created ConfigMap %s/%s successfully", configMap.Namespace, configMap.Name)
+
+	return configMap
+}
+
 func Raw(t Test, obj runtime.Object) runtime.RawExtension {
 	t.T().Helper()
 	data, err := json.Marshal(obj)
