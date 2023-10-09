@@ -57,7 +57,7 @@ func GetPyTorchImage() string {
 }
 
 func GetInstascaleOcmSecret() (string, string) {
-	res := strings.SplitN(lookupEnvOrDefault(InstaScaleOcmSecret, "default/instascale-com-secret"), "/", 2)
+	res := strings.SplitN(lookupEnvOrDefault(InstaScaleOcmSecret, "default/instascale-ocm-secret"), "/", 2)
 	return res[0], res[1]
 }
 
