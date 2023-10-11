@@ -51,7 +51,7 @@ jobs:
 
     - name: Release MCAD
       run: |
-        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref ${{ github.ref }} --field tag=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref ${{ github.ref }} --field tag=${{ github.event.inputs.mcad-version }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
@@ -83,7 +83,7 @@ jobs:
 
     - name: Release InstaScale
       run: |
-        gh workflow run instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field tag=${{ github.event.inputs.instascale-version }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+        gh workflow run instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --ref ${{ github.ref }} --field tag=${{ github.event.inputs.instascale-version }} --field mcad-version=${{ github.event.inputs.mcad-version }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
