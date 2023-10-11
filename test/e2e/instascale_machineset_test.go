@@ -32,9 +32,9 @@ func TestInstascaleMachineSet(t *testing.T) {
 	})
 
 	// look for machine set with aw name - expect to find it
-	test.Expect(MachineSets(test)).Should(ContainElement(WithTransform(MachineSetId, Equal("test-instascale"))))
-	// look for machine set replica - expect not to find it
-	test.Expect(MachineExists(test)).Should(BeFalse())
+	test.Expect(GetMachineSets(test)).Should(ContainElement(WithTransform(MachineSetId, Equal("test-instascale"))))
+	// look for machine belonging to the machine set, there should be none
+	test.Expect(GetMachines(test, "test-instascale")).Should(BeEmpty())
 
 	// // Setup batch job and AppWrapper
 	_, aw, err := createInstaScaleJobAppWrapper(test, namespace, cm)
@@ -44,14 +44,14 @@ func TestInstascaleMachineSet(t *testing.T) {
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutGpuProvisioning).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	//look for machine set replica - expect to find it
-	test.Eventually(MachineExists(test), TestTimeoutLong).Should(BeTrue())
+	// look for machine belonging to the machine set - expect to find it
+	test.Eventually(Machines(test, "test-instascale"), TestTimeoutLong).Should(HaveLen(1))
 
 	// assert that the AppWrapper goes to "Completed" state
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutShort).
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
-	// look for machine set replica - expect not to find it
-	test.Eventually(MachineExists(test), TestTimeoutLong).Should(BeFalse())
+	// look for machine belonging to the machine set - there should be none
+	test.Eventually(Machines(test, "test-instascale"), TestTimeoutLong).Should(BeEmpty())
 
 }
