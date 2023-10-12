@@ -37,6 +37,22 @@ on:
         default: 'redhat-openshift-ecosystem'
 
 jobs:
+  release-parameters:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Release Parameters
+      run: |
+        echo "Below are the release parameters set for the workflow:"
+        echo "Operator Version: ${{ github.event.inputs.operator-version }}"
+        echo "Replaces: ${{ github.event.inputs.replaces }}"
+        echo "MCAD Version: ${{ github.event.inputs.mcad-version }}"
+        echo "CodeFlare SDK Version: ${{ github.event.inputs.codeflare-sdk-version }}"
+        echo "InstaScale Version: ${{ github.event.inputs.instascale-version }}"
+        echo "Is Stable: ${{ github.event.inputs.is-stable }}"
+        echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
+        echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
+        echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
+
   release-mcad:
     runs-on: ubuntu-latest
 
