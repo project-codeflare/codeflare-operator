@@ -29,8 +29,9 @@ func TestInstascaleMachinePool(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
-	if !IsOsd() {
-		test.T().Skip("Skipping test as not running on an OSD cluster")
+	clusterType := GetClusterType(test)
+	if clusterType != OsdCluster {
+		test.T().Skipf("Skipping test as not running on an OSD cluster, resolved cluster type: %s", clusterType)
 	}
 
 	namespace := test.NewTestNamespace()
