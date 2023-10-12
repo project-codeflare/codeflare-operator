@@ -38,6 +38,15 @@ const (
 
 	// Cluster ID for OSD cluster used in tests, used for testing InstaScale
 	OsdClusterID = "CLUSTERID"
+
+	// Type of cluster test is run on
+	ClusterType = "CLUSTER_TYPE"
+	// OpenShift Dedicated Cluster
+	OsdCluster = "OSD"
+	// OpenShift Container Platform Cluster
+	OcpCluster = "OCP"
+	// ROSA Hosted Hypershift Cluster
+	HypershiftCluster = "HYPERSHIFT"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -65,6 +74,10 @@ func GetOsdClusterId() (string, bool) {
 	return os.LookupEnv(OsdClusterID)
 }
 
+func GetClusterType() (string, bool) {
+	return os.LookupEnv(ClusterType)
+}
+
 func IsOsd() bool {
 	osdClusterId, found := GetOsdClusterId()
 	if found && osdClusterId != "" {
@@ -78,4 +91,21 @@ func lookupEnvOrDefault(key, value string) string {
 		return v
 	}
 	return value
+}
+
+func DetermineClusterType() string {
+	clusterType, ok := GetClusterType()
+	if !ok {
+		return ""
+	}
+	switch clusterType {
+	case "OSD":
+		return OsdCluster
+	case "OCP":
+		return OcpCluster
+	case "HYPERSHIFT":
+		return HypershiftCluster
+	default:
+		return ""
+	}
 }
