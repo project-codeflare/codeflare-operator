@@ -6,8 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
@@ -16,9 +14,9 @@ func TestInstascaleMachineSet(t *testing.T) {
 	test.T().Parallel()
 
 	// skip test if not using machine sets
-	ms, err := MachineSetsExist(test)
-	if !ms || err != nil && errors.IsNotFound(err) {
-		test.T().Skip("Skipping test as machine sets don't exist")
+	clusterType := DetermineClusterType()
+	if clusterType != OcpCluster {
+		test.T().Skip("Skipping test as not running on an OCP cluster")
 	}
 
 	namespace := test.NewTestNamespace()
