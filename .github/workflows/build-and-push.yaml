@@ -1,0 +1,75 @@
+# This workflow will build the CodeFlare Operator image and push it to the opendatahub image registry
+
+name: Build and Push
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'config/manager/params.env'
+  workflow_dispatch:
+
+jobs:
+  check-image-existence:
+    name: Check if ODH CFO image exists on Quay
+    runs-on: ubuntu-latest
+    outputs:
+      image-found: ${{ steps.image.outputs.found }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Verify that the latest images are available on Quay
+      id: image
+      run: |
+        imageTag=$(cat config/manager/params.env | grep codeflare-operator-controller-image | cut -d ':' -f2)
+        size=$(curl -s https://quay.io/api/v1/repository/opendatahub/codeflare-operator/tag/?specificTag=$imageTag | jq .tags[0].size)
+        if [[ "$size" -eq 0 ]]; then
+          echo "Operator image with tag $imageTag not found in Quay.io, will be built."
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "Operator image with tag $imageTag found in Quay.io"
+        fi
+
+  build-and-push:
+    needs: [check-image-existence]
+    if: ${{ needs.check-image-existence.outputs.image-found == 'false' }}
+
+    name: Build and push ODH/CFO image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: './go.mod'
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.QUAY_BOT_USER }}
+        password: ${{ secrets.QUAY_BOT_PASSWORD }}
+        registry: quay.io
+
+    - name: Get Upstream Release Tags
+      id: release-tags
+      run: |
+        release_tag=$(gh release view -R github.com/project-codeflare/codeflare-operator --json tagName | jq -r '.tagName')
+        echo "RELEASE_TAG=$release_tag" >> $GITHUB_ENV
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Cleanup the go.mod and go.sum
+      run: |
+        go mod tidy
+
+    - name: Image Build and Push
+      run: |
+        make build
+        make image-build -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
+        make image-push -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
+
+    - name: Delete remote branch
+      run: |
+        git push origin --delete sync-cfo-fork
