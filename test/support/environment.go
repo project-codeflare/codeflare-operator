@@ -96,14 +96,6 @@ func GetClusterType(t Test) ClusterType {
 	}
 }
 
-func IsOsd() bool {
-	osdClusterId, found := GetOsdClusterId()
-	if found && osdClusterId != "" {
-		return true
-	}
-	return false
-}
-
 func lookupEnvOrDefault(key, value string) string {
 	if v, ok := os.LookupEnv(key); ok {
 		return v
