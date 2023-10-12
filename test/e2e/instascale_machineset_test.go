@@ -14,9 +14,9 @@ func TestInstascaleMachineSet(t *testing.T) {
 	test.T().Parallel()
 
 	// skip test if not using machine sets
-	clusterType := DetermineClusterType()
+	clusterType := GetClusterType(test)
 	if clusterType != OcpCluster {
-		test.T().Skip("Skipping test as not running on an OCP cluster")
+		test.T().Skipf("Skipping test as not running on an OCP cluster, resolved cluster type: %s", clusterType)
 	}
 
 	namespace := test.NewTestNamespace()
