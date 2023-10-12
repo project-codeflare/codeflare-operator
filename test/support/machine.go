@@ -3,7 +3,6 @@ package support
 import (
 	"github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
@@ -30,13 +29,4 @@ func GetMachines(t Test, machineSetName string) []machinev1beta1.Machine {
 
 func MachineSetId(machineSet machinev1beta1.MachineSet) string {
 	return machineSet.Name
-}
-
-func MachineSetsExist(t Test) (bool, error) {
-	ms, err := GetMachineSets(t)
-	if err != nil && errors.IsNotFound(err) {
-		return false, err
-	}
-	t.Expect(err).NotTo(gomega.HaveOccurred())
-	return ms != nil, err
 }
