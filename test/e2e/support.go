@@ -20,8 +20,7 @@ import (
 	"embed"
 
 	"github.com/onsi/gomega"
-
-	"github.com/project-codeflare/codeflare-operator/test/support"
+	"github.com/project-codeflare/codeflare-common/support"
 )
 
 //go:embed *.py *.txt

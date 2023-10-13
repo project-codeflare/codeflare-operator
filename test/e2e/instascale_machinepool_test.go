@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	. "github.com/project-codeflare/codeflare-common/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
 func TestInstascaleMachinePool(t *testing.T) {

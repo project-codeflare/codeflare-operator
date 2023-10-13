@@ -17,14 +17,13 @@ limitations under the License.
 package e2e
 
 import (
+	. "github.com/project-codeflare/codeflare-common/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
 func instaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, config *corev1.ConfigMap) *mcadv1beta1.AppWrapper {
