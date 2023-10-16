@@ -11,3 +11,5 @@ resources:
 - instascale_role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
+- mcad-controller-ray-clusterrolebinding.yaml
+- mcad-controller-ray-clusterrole.yaml
