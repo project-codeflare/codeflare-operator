@@ -23,6 +23,7 @@ jobs:
     name: Build and push ODH/CFO image
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - name: Set Go
       uses: actions/setup-go@v3
       with:
