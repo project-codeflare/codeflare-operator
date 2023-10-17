@@ -1,0 +1,29 @@
+# This workflow will sync the opendatahub-io/codeflare-operator fork with project-codeflare/codeflare-operator
+
+name: Sync Fork
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-fork:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: tgymnich/fork-sync@v1.8
+      with:
+        token: ${{ github.TOKEN }}
+        owner: placeholder
+        base: main
+        head: main
+
+  trigger-odh-cfo-build:
+    needs: sync-fork
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger ODH/CodeFlare Operator Build
+      run: |
+        gh workflow run build-and-push.yaml -R github.com/opendatahub-io/codeflare-operator
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+      shell: bash
