@@ -10,13 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: tgymnich/fork-sync@v1.8
-        with:
-          owner: llvm
-          base: main
-          head: main
-        env:
-          GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+    - uses: actions/checkout@v3
+    - uses: tgymnich/fork-sync@v1.8
+      with:
+        owner: llvm
+        base: main
+        head: main
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
 
   build-and-push:
     name: Build and push ODH/CFO image
