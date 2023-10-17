@@ -1,4 +1,4 @@
-# This workflow will build the CodeFlare Operator image and push it to the opendatahub image registry as well as update versions in the MakeFile and README
+# This workflow will build the CodeFlare Operator image and push it to the opendatahub image registry
 
 name: Build and Push
 
