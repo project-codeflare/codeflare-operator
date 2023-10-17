@@ -13,8 +13,8 @@ jobs:
       - uses: tgymnich/fork-sync@v1.8
         with:
           owner: llvm
-          base: master
-          head: master
+          base: main
+          head: main
         env:
           GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
 
