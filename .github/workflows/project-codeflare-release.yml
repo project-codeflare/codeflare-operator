@@ -174,9 +174,9 @@ jobs:
   trigger-odh-cfo-build:
     runs-on: ubuntu-latest
     steps:
-    - name: Repository Dispatch
-      uses: peter-evans/repository-dispatch@v2
-      with:
-        token: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-        repository: opendatahub-io/codeflare-operator
-        event-type: trigger-build-and-push-workflow
+    - name: Trigger ODH/CodeFlare Operator Build
+      run: |
+        gh workflow run build-and-push.yaml -R github.com/opendatahub-io/codeflare-operator
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
