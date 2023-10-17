@@ -1,0 +1,48 @@
+# This workflow will build the CodeFlare Operator image and push it to the opendatahub image registry as well as update versions in the MakeFile and README
+
+name: Build and Push
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: tgymnich/fork-sync@v1.8
+        with:
+          owner: llvm
+          base: master
+          head: master
+
+  build-and-push:
+    name: Build and push ODH/CFO image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: v1.19
+
+    - name: Test local
+      run: |
+        ls -al 
+        ls ~
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_PASSWORD }}
+        registry: quay.io
+
+    - name: Cleanup the go.mod and go.sum
+      run: |
+        go mod tidy
+
+    - name: Image Build and Push
+      run: |
+        make build
+        make image-build -e IMG=quay.io/mcampbel/codeflare-operator:v0.0.dev
+        make image-push -e IMG=quay.io/mcampbel/codeflare-operator:v0.0.dev
