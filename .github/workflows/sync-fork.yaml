@@ -1,29 +1,37 @@
-# This workflow will sync the opendatahub-io/codeflare-operator fork with project-codeflare/codeflare-operator
+# This workflow will create a sync pr for the opendatahub-io/codeflare-operator fork with project-codeflare/codeflare-operator
 
-name: Sync Fork
+name: Create Sync Fork PR
 
 on:
   workflow_dispatch:
 
 jobs:
-  sync-fork:
+  create-fork-sync-pr:
     runs-on: ubuntu-latest
+
+    env:
+      GIT_BRANCH: ${GITHUB_REF#refs/heads/}
+
     steps:
     - uses: actions/checkout@v3
-    - uses: tgymnich/fork-sync@v1.8
       with:
-        token: ${{ github.TOKEN }}
-        owner: placeholder
-        base: main
-        head: main
+        persist-credentials: false
+    - name: repo-sync
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://github.com/mike9014/workflow-tests.git"
+        source_branch: ${{ env.GIT_BRANCH }}
+        destination_branch: "sync-cfo-fork"
+        github_token: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
 
-  trigger-odh-cfo-build:
-    needs: sync-fork
-    runs-on: ubuntu-latest
-    steps:
-    - name: Trigger ODH/CodeFlare Operator Build
+    - name: Set up Git
       run: |
-        gh workflow run build-and-push.yaml -R github.com/opendatahub-io/codeflare-operator
+        git config --global user.email "138894154+codeflare-machine-account@users.noreply.github.com"
+        git config --global user.name "codeflare-machine-account"
+
+    - name: Create Pull Request
+      run: |
+        gh pr create --base ${{ env.GIT_BRANCH }} --head sync-cfo-fork --title "Sync with Upstream" --body "This pull request updates the fork to match the latest changes from the upstream repository."
       env:
-        GITHUB_TOKEN: ${{ github.TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
