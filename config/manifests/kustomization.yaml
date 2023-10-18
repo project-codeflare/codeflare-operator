@@ -20,5 +20,4 @@ vars:
 # used to generate the 'manifests/' directory in a bundle.
 resources:
 - ../default
-- ../scorecard
 - codeflare-notebook-imagestream.yaml
