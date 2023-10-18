@@ -20,8 +20,8 @@ jobs:
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
       with:
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_PASSWORD }}
+        username: ${{ secrets.QUAY_BOT_USER }}
+        password: ${{ secrets.QUAY_BOT_PASSWORD }}
         registry: quay.io
 
     - name: Get Upstream Release Tags 
