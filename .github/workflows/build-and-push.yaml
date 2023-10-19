@@ -34,7 +34,7 @@ jobs:
         release_tag=$(gh release view -R github.com/project-codeflare/codeflare-operator --json tagName | jq -r '.tagName')
         echo "RELEASE_TAG=$release_tag" >> $GITHUB_ENV
       env:
-        GITHUB_TOKEN: ${{ github.TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Cleanup the go.mod and go.sum
       run: |
