@@ -3,10 +3,14 @@
 name: Build and Push
 
 on:
+  pull_request:
+    types:
+      - closed
   workflow_dispatch:
 
 jobs:
   build-and-push:
+    if: (github.event.pull_request.merged == true && github.event.pull_request.user.login == 'codeflare-machine-account' && contains(github.event.pull_request.title, 'Sync with Upstream')) || github.event_name == 'workflow_dispatch'
     name: Build and push ODH/CFO image
     runs-on: ubuntu-latest
     steps:
@@ -41,3 +45,7 @@ jobs:
         make build
         make image-build -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
         make image-push -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
+    
+    - name: Delete remote branch
+      run: |
+        git push origin --delete sync-cfo-fork
