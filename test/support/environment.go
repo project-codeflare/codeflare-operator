@@ -38,6 +38,18 @@ const (
 
 	// Cluster ID for OSD cluster used in tests, used for testing InstaScale
 	OsdClusterID = "CLUSTERID"
+
+	// Type of cluster test is run on
+	ClusterTypeEnvVar = "CLUSTER_TYPE"
+)
+
+type ClusterType string
+
+const (
+	OsdCluster        ClusterType = "OSD"
+	OcpCluster        ClusterType = "OCP"
+	HypershiftCluster ClusterType = "HYPERSHIFT"
+	UndefinedCluster  ClusterType = "UNDEFINED"
 )
 
 func GetCodeFlareSDKVersion() string {
@@ -65,12 +77,23 @@ func GetOsdClusterId() (string, bool) {
 	return os.LookupEnv(OsdClusterID)
 }
 
-func IsOsd() bool {
-	osdClusterId, found := GetOsdClusterId()
-	if found && osdClusterId != "" {
-		return true
+func GetClusterType(t Test) ClusterType {
+	clusterType, ok := os.LookupEnv(ClusterTypeEnvVar)
+	if !ok {
+		t.T().Logf("Expected environment variable %s not found, cluster type is not defined.", ClusterTypeEnvVar)
+		return UndefinedCluster
 	}
-	return false
+	switch clusterType {
+	case "OSD":
+		return OsdCluster
+	case "OCP":
+		return OcpCluster
+	case "HYPERSHIFT":
+		return HypershiftCluster
+	default:
+		t.T().Logf("Expected environment variable %s contains unexpected value: '%s'", ClusterTypeEnvVar, clusterType)
+		return UndefinedCluster
+	}
 }
 
 func lookupEnvOrDefault(key, value string) string {

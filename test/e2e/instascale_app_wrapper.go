@@ -27,7 +27,7 @@ import (
 	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
-func createInstaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, config *corev1.ConfigMap) (*batchv1.Job, *mcadv1beta1.AppWrapper, error) {
+func instaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, config *corev1.ConfigMap) *mcadv1beta1.AppWrapper {
 	// Batch Job
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -89,7 +89,7 @@ func createInstaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, confi
 		},
 	}
 
-	// create an appwrapper
+	// AppWrapper
 	aw := &mcadv1beta1.AppWrapper{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-instascale",
@@ -136,7 +136,5 @@ func createInstaScaleJobAppWrapper(test Test, namespace *corev1.Namespace, confi
 		},
 	}
 
-	_, err := test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
-
-	return job, aw, err
+	return aw
 }

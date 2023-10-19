@@ -9,7 +9,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/instascale v0.1.0
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.36.0
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20231012011224-15ce568a0c36
+	github.com/ray-project/kuberay/ray-operator v0.0.0-20231016183545-097828931d15
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3

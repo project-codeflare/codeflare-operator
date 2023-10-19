@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -60,18 +60,18 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// RayCluster
-	rayCluster := &rayv1alpha1.RayCluster{
+	rayCluster := &rayv1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: rayv1alpha1.GroupVersion.String(),
+			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "raycluster",
 			Namespace: namespace.Name,
 		},
-		Spec: rayv1alpha1.RayClusterSpec{
+		Spec: rayv1.RayClusterSpec{
 			RayVersion: GetRayVersion(),
-			HeadGroupSpec: rayv1alpha1.HeadGroupSpec{
+			HeadGroupSpec: rayv1.HeadGroupSpec{
 				RayStartParams: map[string]string{
 					"dashboard-host": "0.0.0.0",
 				},
@@ -135,7 +135,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 					},
 				},
 			},
-			WorkerGroupSpecs: []rayv1alpha1.WorkerGroupSpec{
+			WorkerGroupSpecs: []rayv1.WorkerGroupSpec{
 				{
 					Replicas:       Ptr(int32(1)),
 					MinReplicas:    Ptr(int32(1)),
@@ -220,16 +220,16 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	rayJob := &rayv1alpha1.RayJob{
+	rayJob := &rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: rayv1alpha1.GroupVersion.String(),
+			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayJob",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mnist",
 			Namespace: namespace.Name,
 		},
-		Spec: rayv1alpha1.RayJobSpec{
+		Spec: rayv1.RayJobSpec{
 			Entrypoint: "python /home/ray/jobs/mnist.py",
 			RuntimeEnv: base64.StdEncoding.EncodeToString([]byte(`
 {
@@ -248,7 +248,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			ShutdownAfterJobFinishes: false,
 		},
 	}
-	rayJob, err = test.Client().Ray().RayV1alpha1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
@@ -262,9 +262,9 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
-		Should(WithTransform(RayJobStatus, Satisfy(rayv1alpha1.IsJobTerminal)))
+		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
 
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
-		To(WithTransform(RayJobStatus, Equal(rayv1alpha1.JobStatusSucceeded)))
+		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
 }

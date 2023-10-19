@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned"
+	machinev1 "github.com/openshift/client-go/machine/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -33,6 +34,7 @@ import (
 
 type Client interface {
 	Core() kubernetes.Interface
+	Machine() machinev1.Interface
 	Route() routev1.Interface
 	Image() imagev1.Interface
 	MCAD() mcadclient.Interface
@@ -42,6 +44,7 @@ type Client interface {
 
 type testClient struct {
 	core    kubernetes.Interface
+	machine machinev1.Interface
 	route   routev1.Interface
 	image   imagev1.Interface
 	mcad    mcadclient.Interface
@@ -53,6 +56,10 @@ var _ Client = (*testClient)(nil)
 
 func (t *testClient) Core() kubernetes.Interface {
 	return t.core
+}
+
+func (t *testClient) Machine() machinev1.Interface {
+	return t.machine
 }
 
 func (t *testClient) Route() routev1.Interface {
@@ -88,6 +95,11 @@ func newTestClient() (Client, error) {
 		return nil, err
 	}
 
+	machineClient, err := machinev1.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	routeClient, err := routev1.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -115,6 +127,7 @@ func newTestClient() (Client, error) {
 
 	return &testClient{
 		core:    kubeClient,
+		machine: machineClient,
 		route:   routeClient,
 		image:   imageClient,
 		mcad:    mcadClient,

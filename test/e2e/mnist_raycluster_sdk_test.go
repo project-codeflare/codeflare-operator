@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -102,7 +102,7 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 			},
 			{
 				Verbs:     []string{"get", "list"},
-				APIGroups: []string{rayv1alpha1.GroupVersion.Group},
+				APIGroups: []string{rayv1.GroupVersion.Group},
 				Resources: []string{"rayclusters", "rayclusters/status"},
 			},
 			{
