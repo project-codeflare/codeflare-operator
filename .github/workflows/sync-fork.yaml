@@ -19,7 +19,7 @@ jobs:
     - name: repo-sync
       uses: repo-sync/github-sync@v2
       with:
-        source_repo: "https://github.com/opendatahub-io/codeflare-operator.git"
+        source_repo: "https://github.com/project-codeflare/codeflare-operator.git"
         source_branch: ${{ env.GIT_BRANCH }}
         destination_branch: "sync-cfo-fork"
         github_token: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
