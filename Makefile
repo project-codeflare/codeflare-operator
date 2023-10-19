@@ -147,8 +147,10 @@ defaults:
 	gofmt -w $(DEFAULTS_TEST_FILE)
 
 .PHONY: manifests
-manifests: controller-gen ## Generate RBAC objects.
+manifests: controller-gen kustomize ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
