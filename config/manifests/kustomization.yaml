@@ -4,9 +4,9 @@ kind: Kustomization
 configMapGenerator:
 - name: codeflare-stack-config
   envs:
-    - params.env
+    - bases/params.env
 configurations:
-  - params.yaml
+  - bases/params.yaml
 
 vars:
 - name: namespace
@@ -20,4 +20,4 @@ vars:
 # used to generate the 'manifests/' directory in a bundle.
 resources:
 - ../default
-- codeflare-notebook-imagestream.yaml
+- bases/codeflare-notebook-imagestream.yaml
