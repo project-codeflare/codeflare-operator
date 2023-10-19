@@ -28,7 +28,7 @@ jobs:
         password: ${{ secrets.QUAY_BOT_PASSWORD }}
         registry: quay.io
 
-    - name: Get Upstream Release Tags 
+    - name: Get Upstream Release Tags
       id: release-tags
       run: |
         release_tag=$(gh release view -R github.com/project-codeflare/codeflare-operator --json tagName | jq -r '.tagName')
@@ -45,7 +45,7 @@ jobs:
         make build
         make image-build -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
         make image-push -e IMG=quay.io/opendatahub/codeflare-operator:${{ env.RELEASE_TAG }}
-    
+
     - name: Delete remote branch
       run: |
         git push origin --delete sync-cfo-fork
