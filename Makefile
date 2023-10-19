@@ -151,6 +151,7 @@ manifests: controller-gen kustomize ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
 	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml
+	git restore config/*
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -194,19 +195,16 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 	git restore config/*
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/${ENV} | kubectl apply -f -
 	git restore config/*
@@ -286,7 +284,6 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
