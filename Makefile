@@ -152,7 +152,6 @@ manifests: controller-gen kustomize ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
 	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml && make split_yaml FILE=config/crd/mcad.yaml
-	git restore config/*
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
