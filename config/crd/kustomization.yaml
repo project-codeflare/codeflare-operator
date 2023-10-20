@@ -2,5 +2,8 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- mcad
+- quota.codeflare_quotasubtrees.yaml
+- workload.codeflare_appwrappers.yaml
+- workload.codeflare_schedulingspecs.yaml
+
 #+kubebuilder:scaffold:crdkustomizeresource

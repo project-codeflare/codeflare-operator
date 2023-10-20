@@ -7,6 +7,7 @@ on:
       - '**.go'
       - '**go.mod'
       - '**go.sum'
+      - 'config/**'
     tags-ignore:
       - 'v*'
   pull_request:
@@ -14,6 +15,7 @@ on:
       - '**.go'
       - '**go.mod'
       - '**go.sum'
+      - 'config/**'
 jobs:
   verify-imports:
     runs-on: ubuntu-latest
