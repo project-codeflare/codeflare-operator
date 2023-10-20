@@ -224,6 +224,7 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+YQ ?= $(LOCALBIN)/yq
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
@@ -395,9 +396,9 @@ output_dir := 'config/crd/'
 
 .PHONY: check_yq
 check_yq:
-	@command -v yq >/dev/null 2>&1 || (echo "Installing wget..."; yum install -y wget)
-	@command -v yq >/dev/null 2>&1 || (echo "Installing yq..."; wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64.tar.gz -O - |\
-  tar xz && mv yq_linux_amd64 /usr/bin/yq)
+	@command -v $(LOCALBIN)/wget >/dev/null 2>&1 || (echo "Installing wget..."; yum install -y wget)
+	@command -v $(YQ) >/dev/null 2>&1 || (echo "Installing yq..."; wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64.tar.gz -O - |\
+  tar xz && mv yq_linux_amd64 $(YQ))
 
 # this works on a MacOS by replacing awk with gawk
 .PHONY: split_yaml
