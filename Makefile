@@ -12,11 +12,11 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.1.0
+INSTASCALE_VERSION ?= v0.2.0
 INSTASCALE_REPO ?= github.com/project-codeflare/instascale
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.36.0
+MCAD_VERSION ?= v1.37.0
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 # Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
@@ -28,7 +28,7 @@ KUBERAY_VERSION ?= v1.0.0-rc.1
 RAY_VERSION ?= 2.5.0
 
 # CODEFLARE_SDK_VERSION defines the default version of the CodeFlare SDK
-CODEFLARE_SDK_VERSION ?= 0.9.0
+CODEFLARE_SDK_VERSION ?= 0.10.0
 
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
