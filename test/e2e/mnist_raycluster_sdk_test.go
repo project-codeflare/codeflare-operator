@@ -175,6 +175,16 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 								},
 							},
 							WorkingDir: "/workdir",
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: Ptr(false),
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: "RuntimeDefault",
+								},
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								RunAsNonRoot: Ptr(true),
+							},
 						},
 					},
 					Volumes: []corev1.Volume{
