@@ -146,11 +146,12 @@ defaults:
 
 	gofmt -w $(DEFAULTS_TEST_FILE)
 
+# this encounters sed issues on MacOS, quick fix is to use gsed or to escape the parentheses i.e. \( \)
 .PHONY: manifests
 manifests: controller-gen kustomize ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
 	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
-	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml
+	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml && make split_yaml FILE=config/crd/mcad.yaml
 	git restore config/*
 
 .PHONY: fmt
@@ -387,3 +388,25 @@ verify-imports: openshift-goimports ## Run import verifications.
 .PHONY: scorecard-bundle
 scorecard-bundle: install-operator-sdk ## Run scorecard tests on bundle image.
 	$(OPERATOR_SDK) scorecard bundle
+
+
+FILE ?= input.yaml  # Default value, it isn't a file, but the make cmds fill hang for longer without it
+temp_dir := temp_split
+output_dir := 'config/crd/'
+
+# this works on a MacOS by replacing awk with gawk
+.PHONY: split_yaml
+split_yaml:
+	@mkdir -p $(temp_dir)
+	@awk '/apiVersion: /{if (x>0) close("$(temp_dir)/section_" x ".yaml"); x++}{print > "$(temp_dir)/section_"x".yaml"}' $(FILE)
+	@$(MAKE) process_sections
+
+.PHONY: process_sections
+process_sections:
+	@mkdir -p $(output_dir)
+	@for section_file in $(temp_dir)/section_*; do \
+		metadata_name=$$(yq e '.metadata.name' $$section_file); \
+		file_name=$$(echo $$metadata_name | awk -F'.' '{print $$2"."$$3"_"$$1".yaml"}'); \
+		mv $$section_file $(output_dir)/$$file_name; \
+	done
+	@rm -r $(temp_dir)
