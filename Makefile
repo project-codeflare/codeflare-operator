@@ -412,7 +412,7 @@ split_yaml:
 process_sections:
 	@mkdir -p $(output_dir)
 	@for section_file in $(temp_dir)/section_*; do \
-		metadata_name=$$(yq e '.metadata.name' $$section_file); \
+		metadata_name=$$(YQ e '.metadata.name' $$section_file); \
 		file_name=$$(echo $$metadata_name | awk -F'.' '{print $$2"."$$3"_"$$1".yaml"}'); \
 		mv $$section_file $(output_dir)/$$file_name; \
 	done
