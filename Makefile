@@ -148,10 +148,12 @@ defaults:
 
 # this encounters sed issues on MacOS, quick fix is to use gsed or to escape the parentheses i.e. \( \)
 .PHONY: manifests
-manifests: controller-gen kustomize ## Generate RBAC objects.
+manifests: controller-gen kustomize install-yq ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
-# $(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
-# $(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml && make split_yaml FILE=config/crd/mcad.yaml
+	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml
+	$(YQ) -s '"crd-" + .spec.names.singular' config/crd/mcad.yaml --no-doc
+	mv crd-*.yml config/crd
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -236,6 +238,7 @@ SED ?= /usr/bin/sed
 KUSTOMIZE_VERSION ?= v4.5.4
 CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
+YQ_VERSION ?= v4.30.8 ## latest version that works with go1.19
 OPERATOR_SDK_VERSION ?= v1.27.0
 GH_CLI_VERSION ?= 2.30.0
 
@@ -260,6 +263,11 @@ $(GH_CLI): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: install-yq
+install-yq: $(YQ) ## Download yq locally if necessary
+$(YQ): $(LOCALBIN)
+	test -s $(LOCALBIN)/yq || GOBIN=$(LOCALBIN) go install github.com/mikefarah/yq/v4@$(YQ_VERSION)
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -388,32 +396,3 @@ verify-imports: openshift-goimports ## Run import verifications.
 .PHONY: scorecard-bundle
 scorecard-bundle: install-operator-sdk ## Run scorecard tests on bundle image.
 	$(OPERATOR_SDK) scorecard bundle
-
-
-FILE ?= input.yaml  # Default value, it isn't a file, but the make cmds fill hang for longer without it
-temp_dir := temp_split
-output_dir := 'config/crd/'
-
-.PHONY: check_yq
-check_yq:
-	@command -v wget >/dev/null 2>&1 || (echo "Installing wget..."; apt-get install -y wget)
-	@command -v $(YQ) >/dev/null 2>&1 || (echo "Installing yq..."; wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64.tar.gz -O - |\
-  tar xz && mv yq_linux_amd64 $(YQ))
-
-# this works on a MacOS by replacing awk with gawk
-.PHONY: split_yaml
-split_yaml:
-	@$(MAKE) check_yq
-	@mkdir -p $(temp_dir)
-	@awk '/apiVersion: /{if (x>0) close("$(temp_dir)/section_" x ".yaml"); x++}{print > "$(temp_dir)/section_"x".yaml"}' $(FILE)
-	@$(MAKE) process_sections
-
-.PHONY: process_sections
-process_sections:
-	@mkdir -p $(output_dir)
-	@for section_file in $(temp_dir)/section_*; do \
-		metadata_name=$$(YQ e '.metadata.name' $$section_file); \
-		file_name=$$(echo $$metadata_name | awk -F'.' '{print $$2"."$$3"_"$$1".yaml"}'); \
-		mv $$section_file $(output_dir)/$$file_name; \
-	done
-	@rm -r $(temp_dir)
