@@ -4,11 +4,10 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	. "github.com/project-codeflare/codeflare-common/support"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/project-codeflare/codeflare-operator/test/support"
 )
 
 func TestInstascaleMachineSet(t *testing.T) {
@@ -31,7 +30,7 @@ func TestInstascaleMachineSet(t *testing.T) {
 		"mnist.py": ReadFile(test, "mnist.py"),
 	})
 
-	// // Setup batch job and AppWrapper
+	// Setup batch job and AppWrapper
 	aw := instaScaleJobAppWrapper(test, namespace, cm)
 
 	// look for machine set with aw name - expect to find it
