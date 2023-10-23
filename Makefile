@@ -364,7 +364,3 @@ imports: openshift-goimports ## Organize imports in go files using openshift-goi
 .PHONY: verify-imports
 verify-imports: openshift-goimports ## Run import verifications.
 	./hack/verify-imports.sh $(OPENSHIFT-GOIMPORTS)
-
-.PHONY: scorecard-bundle
-scorecard-bundle: install-operator-sdk ## Run scorecard tests on bundle image.
-	$(OPERATOR_SDK) scorecard bundle
