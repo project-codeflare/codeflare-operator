@@ -12,11 +12,11 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.1.0
+INSTASCALE_VERSION ?= v0.2.0
 INSTASCALE_REPO ?= github.com/project-codeflare/instascale
 
 # MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.36.0
+MCAD_VERSION ?= v1.37.0
 MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
 # Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
 MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
@@ -28,7 +28,7 @@ KUBERAY_VERSION ?= v1.0.0-rc.1
 RAY_VERSION ?= 2.5.0
 
 # CODEFLARE_SDK_VERSION defines the default version of the CodeFlare SDK
-CODEFLARE_SDK_VERSION ?= 0.9.0
+CODEFLARE_SDK_VERSION ?= 0.10.0
 
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
@@ -146,9 +146,12 @@ defaults:
 
 	gofmt -w $(DEFAULTS_TEST_FILE)
 
+# this encounters sed issues on MacOS, quick fix is to use gsed or to escape the parentheses i.e. \( \)
 .PHONY: manifests
-manifests: controller-gen ## Generate RBAC objects.
+manifests: controller-gen kustomize ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
+# $(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+# $(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml && make split_yaml FILE=config/crd/mcad.yaml
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -192,19 +195,16 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 	git restore config/*
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/${ENV} | kubectl apply -f -
 	git restore config/*
@@ -224,6 +224,7 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+YQ ?= $(LOCALBIN)/yq
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
@@ -284,7 +285,6 @@ validate-bundle: install-operator-sdk
 .PHONY: bundle
 bundle: defaults manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
@@ -388,3 +388,32 @@ verify-imports: openshift-goimports ## Run import verifications.
 .PHONY: scorecard-bundle
 scorecard-bundle: install-operator-sdk ## Run scorecard tests on bundle image.
 	$(OPERATOR_SDK) scorecard bundle
+
+
+FILE ?= input.yaml  # Default value, it isn't a file, but the make cmds fill hang for longer without it
+temp_dir := temp_split
+output_dir := 'config/crd/'
+
+.PHONY: check_yq
+check_yq:
+	@command -v wget >/dev/null 2>&1 || (echo "Installing wget..."; apt-get install -y wget)
+	@command -v $(YQ) >/dev/null 2>&1 || (echo "Installing yq..."; wget https://github.com/mikefarah/yq/releases/download/v4.2.0/yq_linux_amd64.tar.gz -O - |\
+  tar xz && mv yq_linux_amd64 $(YQ))
+
+# this works on a MacOS by replacing awk with gawk
+.PHONY: split_yaml
+split_yaml:
+	@$(MAKE) check_yq
+	@mkdir -p $(temp_dir)
+	@awk '/apiVersion: /{if (x>0) close("$(temp_dir)/section_" x ".yaml"); x++}{print > "$(temp_dir)/section_"x".yaml"}' $(FILE)
+	@$(MAKE) process_sections
+
+.PHONY: process_sections
+process_sections:
+	@mkdir -p $(output_dir)
+	@for section_file in $(temp_dir)/section_*; do \
+		metadata_name=$$(YQ e '.metadata.name' $$section_file); \
+		file_name=$$(echo $$metadata_name | awk -F'.' '{print $$2"."$$3"_"$$1".yaml"}'); \
+		mv $$section_file $(output_dir)/$$file_name; \
+	done
+	@rm -r $(temp_dir)
