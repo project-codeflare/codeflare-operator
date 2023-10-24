@@ -171,5 +171,5 @@ jobs:
         gh release edit ${{ github.event.inputs.version }} --notes-file release-notes.md
         rm release-notes.md
       env:
-        GITHUB_TOKEN: ${{ github.TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
