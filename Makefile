@@ -151,8 +151,7 @@ defaults:
 manifests: controller-gen kustomize install-yq ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
 	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
-	$(KUSTOMIZE) build config/crd/mcad > config/crd/mcad.yaml
-	$(YQ) -s '"crd-" + .spec.names.singular' config/crd/mcad.yaml --no-doc
+	$(KUSTOMIZE) build config/crd/mcad | $(YQ) -s '"crd-" + .spec.names.singular' --no-doc
 	mv crd-*.yml config/crd
 
 .PHONY: fmt
