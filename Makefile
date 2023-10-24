@@ -27,9 +27,6 @@ KUBERAY_VERSION ?= v1.0.0-rc.1
 # RAY_VERSION defines the default version of Ray (used for testing)
 RAY_VERSION ?= 2.5.0
 
-# CODEFLARE_SDK_VERSION defines the default version of the CodeFlare SDK
-CODEFLARE_SDK_VERSION ?= 0.10.1
-
 # OPERATORS_REPO_ORG points to GitHub repository organization where bundle PR is opened against
 # OPERATORS_REPO_FORK_ORG points to GitHub repository fork organization where bundle build is pushed to
 OPERATORS_REPO_ORG ?= redhat-openshift-ecosystem
@@ -63,9 +60,6 @@ IMAGE_ORG_BASE ?= quay.io/project-codeflare
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # codeflare.dev/codeflare-operator-bundle:$VERSION and codeflare.dev/codeflare-operator-catalog:$VERSION.
 IMAGE_TAG_BASE ?= $(IMAGE_ORG_BASE)/codeflare-operator
-
-# RAY_IMAGE defines the default container image for Ray (used for testing)
-RAY_IMAGE ?= rayproject/ray:$(RAY_VERSION)
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)

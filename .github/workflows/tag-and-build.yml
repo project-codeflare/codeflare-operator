@@ -93,10 +93,8 @@ jobs:
     - name: Adjust MCAD, SDK and InstaScale dependencies in the code
       run: |
         # Remove leading 'v'
-        CODEFLARE_SDK_VERSION=$(cut -c2- <<< ${{ github.event.inputs.codeflare-sdk-version }})
         sed -i -E "s/(.*MCAD_VERSION \?= ).*/\1${{ github.event.inputs.mcad-version }}/" Makefile
         sed -i -E "s/(.*MCAD_REF \?= ).*/\1release-\${MCAD_VERSION}/" Makefile
-        sed -i -E "s/(.*CODEFLARE_SDK_VERSION \?= ).*/\1$CODEFLARE_SDK_VERSION/" Makefile
         sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
 
     - name: Login to Quay.io
