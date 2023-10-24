@@ -2,7 +2,7 @@ name: Call sync on OpenDataHub CFO fork sync
 on:
   release:
     types:
-      [published]
+      - published
   workflow_dispatch:
 
 jobs:
