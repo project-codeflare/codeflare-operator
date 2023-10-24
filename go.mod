@@ -8,7 +8,7 @@ require (
 	github.com/project-codeflare/codeflare-common v0.0.0-20231023092720-93d03492db16
 	github.com/project-codeflare/instascale v0.2.1
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.37.1
-	github.com/ray-project/kuberay/ray-operator v0.0.0-20231016183545-097828931d15
+	github.com/ray-project/kuberay/ray-operator v1.0.0-rc.1
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3

@@ -142,7 +142,7 @@ vet: ## Run go vet against code.
 modules: ## Update Go dependencies.
 	go get $(MCAD_REPO)@$(MCAD_VERSION)
 	go get $(INSTASCALE_REPO)@$(INSTASCALE_VERSION)
-	go get github.com/ray-project/kuberay/ray-operator
+	go get github.com/ray-project/kuberay/ray-operator@$(KUBERAY_VERSION)
 	go mod tidy
 
 .PHONY: build
