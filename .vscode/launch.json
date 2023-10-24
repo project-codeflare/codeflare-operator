@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug CodeFlare Operator",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "program": "${workspaceFolder}/main.go",
+        "env": {
+          "KUBECONFIG": "</path/to/your/kube/config>",
+          "NAMESPACE": "<namespace>",
+        },
+        "showLog": true
+      },
+    ]
+  }
