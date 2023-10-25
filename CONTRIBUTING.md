@@ -56,3 +56,9 @@ To write and inspect unit tests:
  - MCAD and InstaScale unit tests under `mcad_controller_test.go` and `instascale_controller_test.go` in the `controllers` dir
  - Unit test functions are defined in `suite_test.go` (with utils in `util/util.go`) in the `controllers dir`
  - Test cases defined under `controllers/testdata`
+
+ ## Local debugging with VSCode
+ Steps outlining how to run the operator locally.
+ - Populate the `.vscode/launch.json` file with the location of your Kubernetes config file and desired namespace.
+ - In VSCode on the activity bar click `Run and Debug` or `CTRL + SHIFT + D` to start a local debugging session of the CodeFlare Operator.
+ The operator should be running as intended.
