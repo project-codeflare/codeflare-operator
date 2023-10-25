@@ -16,7 +16,7 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.namespace
-- name: odh_codeflare_operator_controller_image 
+- name: odh-codeflare-operator-controller-image 
   objref:
     kind: ConfigMap
     name: codeflare-stack-config
