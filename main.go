@@ -154,7 +154,7 @@ func main() {
 			Scheme: mgr.GetScheme(),
 			Config: cfg.InstaScale.InstaScaleConfiguration,
 		}
-		exitOnError(instaScaleController.SetupWithManager(mgr), "Error setting up InstaScale controller")
+		exitOnError(instaScaleController.SetupWithManager(context.Background(), mgr), "Error setting up InstaScale controller")
 	}
 
 	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
