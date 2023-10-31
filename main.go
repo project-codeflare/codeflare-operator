@@ -42,6 +42,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -83,9 +84,9 @@ func main() {
 		TimeEncoder: zapcore.TimeEncoderOfLayout(time.RFC3339),
 	}
 	zapOptions.BindFlags(flag.CommandLine)
-
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
-
+	zapLog := zap.New(zap.UseFlagOptions(&zapOptions))
+	ctrl.SetLogger(zapLog)
+	klog.SetLogger(zapLog)
 	ctx := ctrl.SetupSignalHandler()
 
 	cfg := &config.CodeFlareOperatorConfiguration{
