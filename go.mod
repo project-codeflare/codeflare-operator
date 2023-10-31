@@ -6,8 +6,8 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/project-codeflare/codeflare-common v0.0.0-20231023092720-93d03492db16
-	github.com/project-codeflare/instascale v0.2.1
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.37.1
+	github.com/project-codeflare/instascale v0.3.0
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.0
 	github.com/ray-project/kuberay/ray-operator v1.0.0-rc.1
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.26.3
