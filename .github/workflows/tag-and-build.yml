@@ -138,7 +138,7 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
-        file_pattern: 'README.md */defaults.go *.yaml Makefile go.mod go.sum'
+        file_pattern: 'README.md *.yaml Makefile go.mod go.sum'
         create_branch: true
         branch: ${{ env.PR_BRANCH_NAME }}
 
