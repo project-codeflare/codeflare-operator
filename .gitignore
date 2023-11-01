@@ -30,5 +30,5 @@ bundle.Dockerfile
 
 .DS_STORE
 
-#VSCode
+# VSCode
 .vscode
