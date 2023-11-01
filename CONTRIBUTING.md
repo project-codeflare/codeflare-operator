@@ -59,6 +59,7 @@ To write and inspect unit tests:
 
  ## Local debugging with VSCode
  Steps outlining how to run the operator locally.
- - Populate the `.vscode/launch.json` file with the location of your Kubernetes config file and desired namespace.
+ - Ensure you are authenticated to your Kubernetes/OpenShift Cluster.
+ - Populate the [.vscode/launch.json](https://github.com/project-codeflare/codeflare-operator/tree/main/.vscode/launch.json) file with the location of your Kubernetes config file and desired namespace.
  - In VSCode on the activity bar click `Run and Debug` or `CTRL + SHIFT + D` to start a local debugging session of the CodeFlare Operator.
  The operator should be running as intended.
