@@ -92,7 +92,6 @@ jobs:
 
     - name: Adjust MCAD, SDK and InstaScale dependencies in the code
       run: |
-        # Remove leading 'v'
         sed -i -E "s/(.*MCAD_VERSION \?= ).*/\1${{ github.event.inputs.mcad-version }}/" Makefile
         sed -i -E "s/(.*MCAD_REF \?= ).*/\1release-\${MCAD_VERSION}/" Makefile
         sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
@@ -133,6 +132,10 @@ jobs:
     - name: Cleanup the go.mod and go.sum
       run: |
         go mod tidy
+
+    - name: Regenerate CFO CRD manifests
+      run: |
+        make manifests
 
     - name: Commit changes in the code back to repository
       uses: stefanzweifel/git-auto-commit-action@v4
