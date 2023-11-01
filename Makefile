@@ -331,7 +331,7 @@ catalog-build-from-index: opm ## Build a catalog image.
 	mkdir catalog
 	$(OPM) render $(CATALOG_BASE_IMG) -o yaml > catalog/bundles.yaml
 	$(OPM) render $(BUNDLE_IMG) $(OPM_BUNDLE_OPT) > catalog/codeflare-operator-bundle.yaml
-	$(SED) -i -E "s/(.*)(- name: codeflare-operator.$(PREVIOUS_VERSION).*)/\1- name: codeflare-operator.$(VERSION)\n  replaces: codeflare-operator.$(PREVIOUS_VERSION)\n\2/" catalog/bundles.yaml
+	$(SED) -i -E "s/(.*)(- name: codeflare-operator.v0.2.0)/\1- name: codeflare-operator.$(VERSION)\n  replaces: codeflare-operator.$(PREVIOUS_VERSION)\n\2/" catalog/bundles.yaml
 	$(OPM) validate catalog
 	$(OPM) generate dockerfile catalog
 	podman build . -f catalog.Dockerfile -t $(CATALOG_IMG)
