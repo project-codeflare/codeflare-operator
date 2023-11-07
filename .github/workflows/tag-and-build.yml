@@ -25,7 +25,7 @@ on:
         required: true
         default: 'v0.0.0-dev'
       kuberay-version:
-        description: 'Published version of KubeRay'
+        description: 'Tested version of KubeRay'
         required: true
         default: 'v0.0.0-dev'
       is-stable:
