@@ -108,7 +108,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 									},
 									Limits: corev1.ResourceList{
 										corev1.ResourceCPU:    resource.MustParse("1"),
-										corev1.ResourceMemory: resource.MustParse("1G"),
+										corev1.ResourceMemory: resource.MustParse("2G"),
 									},
 								},
 								VolumeMounts: []corev1.VolumeMount{
@@ -168,7 +168,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("1"),
-											corev1.ResourceMemory: resource.MustParse("1G"),
+											corev1.ResourceMemory: resource.MustParse("2G"),
 										},
 									},
 								},
