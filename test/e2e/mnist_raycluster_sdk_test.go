@@ -40,104 +40,59 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
-	// Currently blocked by https://github.com/project-codeflare/codeflare-sdk/pull/251 , remove the skip once SDK with the PR is released
-	test.T().Skip("Requires https://github.com/project-codeflare/codeflare-sdk/pull/251")
-
 	// Create a namespace
 	namespace := test.NewTestNamespace()
 
 	// Test configuration
-	config := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist-raycluster-sdk",
-			Namespace: namespace.Name,
-		},
-		BinaryData: map[string][]byte{
-			// SDK script
-			"mnist_raycluster_sdk.py": ReadFile(test, "mnist_raycluster_sdk.py"),
-			// pip requirements
-			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
-			// MNIST training script
-			"mnist.py": ReadFile(test, "mnist.py"),
-		},
-		Immutable: Ptr(true),
-	}
-	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
+	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
+		// SDK script
+		"mnist_raycluster_sdk.py": ReadFile(test, "mnist_raycluster_sdk.py"),
+		// pip requirements
+		"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
+		// MNIST training script
+		"mnist.py": ReadFile(test, "mnist.py"),
+	})
 
-	// SDK client RBAC
-	serviceAccount := &corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ServiceAccount",
+	// Create RBAC, retrieve token for user with limited rights
+	policyRules := []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"get", "create", "delete", "list", "patch", "update"},
+			APIGroups: []string{mcadv1beta1.GroupName},
+			Resources: []string{"appwrappers"},
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "sdk-user",
-			Namespace: namespace.Name,
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{rayv1.GroupVersion.Group},
+			Resources: []string{"rayclusters", "rayclusters/status"},
+		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"route.openshift.io"},
+			Resources: []string{"routes"},
+		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"networking.k8s.io"},
+			Resources: []string{"ingresses"},
 		},
 	}
-	serviceAccount, err = test.Client().Core().CoreV1().ServiceAccounts(namespace.Name).Create(test.Ctx(), serviceAccount, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
 
-	role := &rbacv1.Role{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "Role",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "sdk",
-			Namespace: namespace.Name,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{"get", "create", "delete", "list", "patch", "update"},
-				APIGroups: []string{mcadv1beta1.GroupName},
-				Resources: []string{"appwrappers"},
-			},
-			{
-				Verbs:     []string{"get", "list"},
-				APIGroups: []string{rayv1.GroupVersion.Group},
-				Resources: []string{"rayclusters", "rayclusters/status"},
-			},
-			{
-				Verbs:     []string{"get", "list"},
-				APIGroups: []string{"route.openshift.io"},
-				Resources: []string{"routes"},
-			},
+	// Create cluster wide RBAC, required for SDK OpenShift check
+	// TODO reevaluate once SDK change OpenShift detection logic
+	clusterPolicyRules := []rbacv1.PolicyRule{
+		{
+			Verbs:         []string{"get", "list"},
+			APIGroups:     []string{"config.openshift.io"},
+			Resources:     []string{"ingresses"},
+			ResourceNames: []string{"cluster"},
 		},
 	}
-	role, err = test.Client().Core().RbacV1().Roles(namespace.Name).Create(test.Ctx(), role, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
 
-	roleBinding := &rbacv1.RoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "RoleBinding",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "sdk",
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.SchemeGroupVersion.Group,
-			Kind:     "Role",
-			Name:     role.Name,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				APIGroup:  corev1.SchemeGroupVersion.Group,
-				Name:      serviceAccount.Name,
-				Namespace: serviceAccount.Namespace,
-			},
-		},
-	}
-	_, err = test.Client().Core().RbacV1().RoleBindings(namespace.Name).Create(test.Ctx(), roleBinding, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
+	sa := CreateServiceAccount(test, namespace.Name)
+	role := CreateRole(test, namespace.Name, policyRules)
+	CreateRoleBinding(test, namespace.Name, sa, role)
+	clusterRole := CreateClusterRole(test, clusterPolicyRules)
+	CreateClusterRoleBinding(test, sa, clusterRole)
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -161,7 +116,8 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 							// See https://github.com/project-codeflare/codeflare-sdk/pull/146
 							Image: "quay.io/opendatahub/notebooks:jupyter-minimal-ubi8-python-3.8-4c8f26e",
 							Env: []corev1.EnvVar{
-								corev1.EnvVar{Name: "PYTHONUSERBASE", Value: "/workdir"},
+								{Name: "PYTHONUSERBASE", Value: "/workdir"},
+								{Name: "RAY_IMAGE", Value: GetRayImage()},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install codeflare-sdk==" + GetCodeFlareSDKVersion() + " && cp /test/* . && python mnist_raycluster_sdk.py" + " " + namespace.Name},
 							VolumeMounts: []corev1.VolumeMount{
@@ -206,12 +162,31 @@ func TestMNISTRayClusterSDK(t *testing.T) {
 						},
 					},
 					RestartPolicy:      corev1.RestartPolicyNever,
-					ServiceAccountName: serviceAccount.Name,
+					ServiceAccountName: sa.Name,
 				},
 			},
 		},
 	}
-	job, err = test.Client().Core().BatchV1().Jobs(namespace.Name).Create(test.Ctx(), job, metav1.CreateOptions{})
+	if GetClusterType(test) == KindCluster {
+		// Take first KinD node and redirect pod hostname requests there
+		node := GetNodes(test)[0]
+		hostname := GetClusterHostname(test)
+		IP := GetNodeInternalIP(test, node)
+
+		test.T().Logf("Setting KinD cluster hostname '%s' to node IP '%s' for SDK pod", hostname, IP)
+		job.Spec.Template.Spec.HostAliases = []corev1.HostAlias{
+			{
+				IP:        IP,
+				Hostnames: []string{hostname},
+			},
+		}
+
+		// Propagate hostname into Python code as env variable
+		hostnameEnvVar := corev1.EnvVar{Name: "CLUSTER_HOSTNAME", Value: hostname}
+		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, hostnameEnvVar)
+	}
+
+	job, err := test.Client().Core().BatchV1().Jobs(namespace.Name).Create(test.Ctx(), job, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created Job %s/%s successfully", job.Namespace, job.Name)
 
