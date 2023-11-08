@@ -5,7 +5,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: codeflare-operator-controller-manager
-    namespace: openshift-operators
+    namespace: system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
