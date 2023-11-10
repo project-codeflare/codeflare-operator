@@ -16,7 +16,7 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.namespace
-- name: odh-codeflare-operator-controller-image 
+- name: odh-codeflare-operator-controller-image
   objref:
     kind: ConfigMap
     name: codeflare-stack-config
@@ -26,4 +26,3 @@ vars:
 resources:
 - ../default
 - bases/codeflare-notebook-imagestream.yaml
-

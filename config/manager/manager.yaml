@@ -29,7 +29,7 @@ spec:
       containers:
       - command:
         - /manager
-        image: $(odh-codeflare-operator-controller-image) 
+        image: $(odh-codeflare-operator-controller-image)
         imagePullPolicy: Always
         name: manager
         securityContext:
