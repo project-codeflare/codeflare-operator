@@ -58,10 +58,12 @@ import (
 )
 
 var (
-	scheme       = runtime.NewScheme()
-	setupLog     = ctrl.Log.WithName("setup")
-	BuildVersion = "UNKNOWN"
-	BuildDate    = "UNKNOWN"
+	scheme            = runtime.NewScheme()
+	setupLog          = ctrl.Log.WithName("setup")
+	OperatorVersion   = "UNKNOWN"
+	McadVersion       = "UNKNOWN"
+	InstaScaleVersion = "UNKNOWN"
+	BuildDate         = "UNKNOWN"
 )
 
 func init() {
@@ -87,7 +89,12 @@ func main() {
 	zapOptions.BindFlags(flag.CommandLine)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
-	setupLog.Info("Build info", "version", BuildVersion, "date", BuildDate)
+	setupLog.Info("Build info",
+		"operatorVersion", OperatorVersion,
+		"mcadVersion", McadVersion,
+		"instaScaleVersion", InstaScaleVersion,
+		"date", BuildDate,
+	)
 
 	ctx := ctrl.SetupSignalHandler()
 
