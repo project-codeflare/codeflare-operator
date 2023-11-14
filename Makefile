@@ -159,7 +159,14 @@ modules: ## Update Go dependencies.
 
 .PHONY: build
 build: modules fmt vet ## Build manager binary.
-	go build -ldflags "-X 'main.BuildVersion=$(BUILD_VERSION)' -X 'main.BuildDate=$(BUILD_DATE)'" -o bin/manager main.go
+	go build \
+		-ldflags " \
+			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
+			-X 'main.McadVersion=$(MCAD_VERSION)'  \
+			-X 'main.InstaScaleVersion=$(INSTASCALE_VERSION)' \
+			-X 'main.BuildDate=$(BUILD_DATE)' \
+		" \
+		-o bin/manager main.go
 
 .PHONY: run
 run: modules manifests fmt vet ## Run a controller from your host.
