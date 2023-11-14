@@ -81,6 +81,7 @@ func main() {
 	flag.StringVar(&configMapName, "config", "codeflare-operator-config",
 		"The name of the ConfigMap to load the operator configuration from. "+
 			"If it does not exist, the operator will create and initialise it.")
+	flag.Parse()
 
 	zapOptions := zap.Options{
 		Development: true,
