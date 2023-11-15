@@ -25,4 +25,3 @@ vars:
     fieldpath: data.odh-codeflare-operator-controller-image
 resources:
 - ../default
-- bases/codeflare-notebook-imagestream.yaml
