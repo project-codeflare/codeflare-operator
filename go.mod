@@ -14,6 +14,7 @@ require (
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
 	k8s.io/component-base v0.26.2
+	k8s.io/klog/v2 v2.90.1
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/yaml v1.3.0
@@ -114,7 +115,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.26.1 // indirect
 	k8s.io/apiserver v0.26.2 // indirect
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kms v0.26.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230303024457-afdc3dddf62d // indirect
 	k8s.io/metrics v0.26.2 // indirect
