@@ -12,7 +12,7 @@ CodeFlare Stack Compatibility Matrix
 | Multi-Cluster App Dispatcher | [v1.38.1](https://github.com/project-codeflare/multi-cluster-app-dispatcher/releases/tag/v1.38.1) |
 | CodeFlare-SDK                | [v0.12.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.12.1)                  |
 | InstaScale                   | [v0.3.1](https://github.com/project-codeflare/instascale/releases/tag/v0.3.1)                     |
-| KubeRay                      | [v0.0.0-dev](https://github.com/opendatahub-io/kuberay/releases/tag/v0.0.0-dev)                              |
+| KubeRay                      | [v1.0.0-rc.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.0.0-rc.0)                              |
 <!-- Compatibility Matrix end -->
 
 ## Development
