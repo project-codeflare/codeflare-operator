@@ -19,6 +19,9 @@ on:
       instascale-version:
         description: 'Version of InstaScale to be released (for example: v0.0.0)'
         required: true
+      kuberay-version:
+        description: 'Tested version of KubeRay (for example: v0.0.0)'
+        required: true
       is-stable:
         description: 'Select if the built images should be tagged as stable'
         required: true
@@ -156,7 +159,7 @@ jobs:
     steps:
     - name: Release CodeFlare operator
       run: |
-        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field instascale-version=${{ github.event.inputs.instascale-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
+        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field instascale-version=${{ github.event.inputs.instascale-version }} --field kuberay-version=${{ github.event.inputs.kuberay-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
