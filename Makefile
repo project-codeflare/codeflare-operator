@@ -222,6 +222,11 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	$(KUSTOMIZE) build config/${ENV} | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
+.PHONY: install-odh-operator
+install-odh-operator: kustomize ## Install ODH operator into the OpenShift cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/odh-operator | kubectl apply -f -
+	kubectl wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+
 ##@ Build Dependencies
 
 ## Location to install dependencies to
@@ -391,6 +396,17 @@ test-component: envtest ginkgo ## Run component tests.
 .PHONY: test-e2e
 test-e2e: manifests fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
+
+.PHONY: test-odh
+test-odh: manifests fmt vet ## Run e2e ODH tests.
+	go test -timeout 60m -v ./test/odh
+
+.PHONY: store-odh-logs
+store-odh-logs: # Store all ODH relevant logs into artifact directory
+	kubectl logs -n opendatahub deployment/codeflare-operator-manager > ${ARTIFACT_DIR}/codeflare-operator.log
+	kubectl logs -n opendatahub deployment/kuberay-operator > ${ARTIFACT_DIR}/kuberay-operator.log
+	kubectl logs -n openshift-operators deployment/opendatahub-operator-controller-manager > ${ARTIFACT_DIR}/odh-operator.log
+	kubectl get events -n opendatahub > ${ARTIFACT_DIR}/odh-events.log
 
 .PHONY: kind-e2e
 kind-e2e: ## Set up e2e KinD cluster
