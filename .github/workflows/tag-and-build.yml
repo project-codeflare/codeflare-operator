@@ -104,7 +104,7 @@ jobs:
 
     - name: Update image version in params.env
       run: |
-        VERSION=${{ github.event.inputs.version }} perl -i -pe 's/:(.*)$/:$ENV{"VERSION"}/' config/manager/params.env
+        VERSION=${{ github.event.inputs.version }} perl -i -pe 's/:(.*)$/:$ENV{"VERSION"}/' config/manifests/bases/params.env
       shell: bash
 
     - name: Login to Quay.io

@@ -198,7 +198,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && IMAGE=$(IMG) perl -i -pe 's/odh-codeflare-operator-controller-image=(.*)$$/odh-codeflare-operator-controller-image=$$ENV{"IMAGE"}/' params.env
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/${ENV} | kubectl apply -f -
 	git restore config/*
 
