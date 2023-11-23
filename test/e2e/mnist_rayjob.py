@@ -9,7 +9,7 @@ from codeflare_sdk.job.jobs import DDPJobDefinition
 
 namespace = sys.argv[1]
 
-cluster = Cluster(ClusterConfiguration(name='mnist'))
+cluster = Cluster(ClusterConfiguration(name='mnist',namespace=namespace))
 
 jobdef = DDPJobDefinition(
     name="mnist",
