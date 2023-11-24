@@ -121,20 +121,6 @@ jobs:
         podman tag quay.io/${{ github.event.inputs.quay-organization }}/codeflare-operator:${{ github.event.inputs.version }} quay.io/${{ github.event.inputs.quay-organization }}/codeflare-operator:stable
         make image-push -e IMG=quay.io/${{ github.event.inputs.quay-organization }}/codeflare-operator:stable
 
-    - name: Build bundle and create PR in OpenShift community operators repository
-      run: |
-        git config --global user.email "138894154+codeflare-machine-account@users.noreply.github.com"
-        git config --global user.name "codeflare-machine-account"
-        make openshift-community-operator-release
-      env:
-        VERSION: ${{ github.event.inputs.version }}
-        PREVIOUS_VERSION: ${{ github.event.inputs.replaces }}
-        INSTASCALE_VERSION: ${{ github.event.inputs.instascale-version }}
-        MCAD_VERSION: ${{ github.event.inputs.mcad-version }}
-        GH_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-        OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
-        OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}
-
     - name: Cleanup the go.mod and go.sum
       run: |
         go mod tidy
@@ -144,6 +130,7 @@ jobs:
         make manifests
 
     - name: Commit changes in the code back to repository
+      id: create-pr-branch
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
@@ -159,12 +146,21 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
 
     - name: Wait until PR with code changes is merged
+      id: wait-pr-merge
       run: |
         timeout 3600 bash -c 'until [[ $(gh pr view '${{ env.PR_BRANCH_NAME }}' --json state --jq .state) == "MERGED" ]]; do sleep 5 && echo "$(gh pr view '${{ env.PR_BRANCH_NAME }}' --json state --jq .state)"; done'
       env:
         GITHUB_TOKEN: ${{ github.TOKEN }}
 
+    - name: Close PR if PR merge failed
+      if: always() && (steps.wait-pr-merge.outcome == 'failure' || steps.wait-pr-merge.outcome == 'cancelled')
+      run: |
+        gh pr close ${{ env.PR_BRANCH_NAME }}
+      env:
+        GITHUB_TOKEN: ${{ github.TOKEN }}
+
     - name: Delete remote branch
+      if: always() && steps.create-pr-branch.outcome == 'success'
       run: |
         git push origin --delete ${{ env.PR_BRANCH_NAME }}
 
@@ -180,3 +176,17 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+
+    - name: Build bundle and create PR in OpenShift community operators repository
+      run: |
+        git config --global user.email "138894154+codeflare-machine-account@users.noreply.github.com"
+        git config --global user.name "codeflare-machine-account"
+        make openshift-community-operator-release
+      env:
+        VERSION: ${{ github.event.inputs.version }}
+        PREVIOUS_VERSION: ${{ github.event.inputs.replaces }}
+        INSTASCALE_VERSION: ${{ github.event.inputs.instascale-version }}
+        MCAD_VERSION: ${{ github.event.inputs.mcad-version }}
+        GH_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+        OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
+        OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}
