@@ -93,3 +93,12 @@ jobs:
           retention-days: 10
           path: |
             ${{ env.CODEFLARE_TEST_OUTPUT_DIR }}/**/*.log
+
+      - name: Post notification about failure to a Slack channel in case of push event
+        if: failure() && github.event_name == 'push'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: "codeflare-nightlies"
+          slack-message: "e2e test on push failed, <https://github.com/project-codeflare/codeflare-operator/actions/workflows/e2e_tests.yaml|View workflow runs>"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
