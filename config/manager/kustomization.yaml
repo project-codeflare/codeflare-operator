@@ -12,6 +12,13 @@ configurations:
   - params.yaml
 
 vars:
+- name: namespace
+  objref:
+    kind: ConfigMap
+    name: stack-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.namespace
 - name: codeflare_operator_controller_image
   objref:
     kind: ConfigMap
