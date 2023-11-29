@@ -34,6 +34,13 @@ jobs:
         with:
           fetch-depth: 0  # fetching also previous commits to get tags
 
+      - name: Checkout common repo code
+        uses: actions/checkout@v3
+        with:
+          repository: 'project-codeflare/codeflare-common'
+          ref: 'main'
+          path: 'common'
+
       - name: Set Go
         uses: actions/setup-go@v3
         with:
@@ -45,7 +52,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup and start KinD cluster
-        uses: ./.github/actions/kind
+        uses: ./common/github-actions/kind
 
       - name: Install OLM
         run: |
