@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/onsi/gomega v1.27.10
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
-	github.com/project-codeflare/codeflare-common v0.0.0-20231110155354-042fb171fcdb
+	github.com/project-codeflare/codeflare-common v0.0.0-20231129165224-988ba1da9069
 	github.com/project-codeflare/instascale v0.3.1
 	github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.1
 	github.com/ray-project/kuberay/ray-operator v1.0.0-rc.1

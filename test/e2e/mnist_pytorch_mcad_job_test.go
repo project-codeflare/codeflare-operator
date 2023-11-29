@@ -143,7 +143,8 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 								},
 							},
 						},
-						GenericTemplate: Raw(test, job),
+						GenericTemplate:  Raw(test, job),
+						CompletionStatus: "Complete",
 					},
 				},
 			},
@@ -159,13 +160,13 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
-	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutLong).Should(
 		Or(
-			WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)),
-			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
+			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)),
+			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateFailed)),
 		))
 
 	// Assert the job has completed successfully
-	test.Expect(GetJob(test, job.Namespace, job.Name)).
-		To(WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)))
+	test.Expect(GetAppWrapper(test, namespace, aw.Name)).
+		To(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 }
