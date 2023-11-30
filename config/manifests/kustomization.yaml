@@ -9,9 +9,9 @@ kind: Kustomization
 configMapGenerator:
 - name: codeflare-stack-config
   envs:
-    - bases/params.env
+    - params.env
 configurations:
-  - bases/params.yaml
+  - params.yaml
 
 vars:
 - name: odh-codeflare-operator-controller-image
