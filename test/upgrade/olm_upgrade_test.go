@@ -27,13 +27,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/project-codeflare/codeflare-operator/test/e2e"
 )
 
 var (
 	namespaceName  = "test-ns-olmupgrade"
-	appwrapperName = "mnist"
+	appWrapperName = "mnist"
 	jobName        = "mnist-job"
 )
 
@@ -132,13 +133,14 @@ func TestMNISTCreateAppWrapper(t *testing.T) {
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
+			Suspend: Ptr(true),
 		},
 	}
 
 	// Create an AppWrapper resource
 	aw := &mcadv1beta1.AppWrapper{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      appwrapperName,
+			Name:      appWrapperName,
 			Namespace: namespace.Name,
 		},
 		Spec: mcadv1beta1.AppWrapperSpec{
@@ -187,20 +189,27 @@ func TestMNISTCheckAppWrapperStatus(t *testing.T) {
 	//delete the namespace after test complete
 	defer DeleteTestNamespace(test, namespace)
 
-	aw, err := test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Get(test.Ctx(), appwrapperName, metav1.GetOptions{})
+	// Patch job to resume execution
+	patch := []byte(`[{"op":"replace","path":"/spec/suspend","value": false}]`)
+	job, err := test.Client().Core().BatchV1().Jobs(namespace.Name).Patch(test.Ctx(), jobName, types.JSONPatchType, patch, metav1.PatchOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 
-	job, err := test.Client().Core().BatchV1().Jobs(namespace.Name).Get(test.Ctx(), jobName, metav1.GetOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Waiting for Job %s/%s to complete", job.Namespace, job.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutLong).Should(
+	test.Eventually(Job(test, job.Namespace, job.Name), TestTimeoutLong).Should(
+		Or(
+			WithTransform(ConditionStatus(batchv1.JobComplete), Equal(corev1.ConditionTrue)),
+			WithTransform(ConditionStatus(batchv1.JobFailed), Equal(corev1.ConditionTrue)),
+		))
+
+	test.T().Logf("Waiting for AppWrapper %s/%s to complete", namespace.Name, appWrapperName)
+	test.Eventually(AppWrapper(test, namespace, appWrapperName), TestTimeoutShort).Should(
 		Or(
 			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)),
 			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateFailed)),
 		))
 
-	// Assert the job has completed successfully
-	test.Expect(GetAppWrapper(test, namespace, aw.Name)).
+	// Assert the AppWrapper has completed successfully
+	test.Expect(GetAppWrapper(test, namespace, appWrapperName)).
 		To(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
 }
