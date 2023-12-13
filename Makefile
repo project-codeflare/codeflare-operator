@@ -229,7 +229,7 @@ SED ?= /usr/bin/sed
 KUSTOMIZE_VERSION ?= v4.5.4
 CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
-YQ_VERSION ?= v4.30.8 ## latest version that works with go1.19
+YQ_VERSION ?= v4.35.2 ## latest version that works with go1.20
 OPERATOR_SDK_VERSION ?= v1.27.0
 GH_CLI_VERSION ?= 2.30.0
 
