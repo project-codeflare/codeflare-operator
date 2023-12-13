@@ -5,7 +5,7 @@ Here are a few things to go over before getting started with CodeFlare Operator 
 ## Environment setup
 
 The following should be installed in your working environment:
- - Go 1.19.x
+ - Go 1.20.x
    - [Download release](https://go.dev/dl/)
    - [Install Instructions](https://go.dev/doc/install)
  - [Operator SDK](https://sdk.operatorframework.io/docs/installation/)

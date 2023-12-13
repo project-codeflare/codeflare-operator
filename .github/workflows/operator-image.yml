@@ -22,7 +22,7 @@ jobs:
     - name: Set Go
       uses: actions/setup-go@v3
       with:
-        go-version: v1.19
+        go-version: v1.20
 
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
