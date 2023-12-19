@@ -7,7 +7,7 @@ require (
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/project-codeflare/codeflare-common v0.0.0-20231129165224-988ba1da9069
 	github.com/project-codeflare/instascale v0.3.1
-	github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.1
+	github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.2-0.20231218174414-5b7ee85b759e
 	github.com/ray-project/kuberay/ray-operator v1.0.0-rc.1
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.27.8
@@ -21,8 +21,6 @@ require (
 )
 
 replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
-
-replace github.com/project-codeflare/multi-cluster-app-dispatcher => github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.2-0.20231218174414-5b7ee85b759e
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
