@@ -37,8 +37,6 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/ChristianZaccaria/multi-cluster-app-dispatcher v0.0.0-20231213170206-696368415a5a h1:11bIdGaYS1YOxNYyvR8S9VNNhcMDMvjQxdJ4VMEp810=
-github.com/ChristianZaccaria/multi-cluster-app-dispatcher v0.0.0-20231213170206-696368415a5a/go.mod h1:XCZKkq8Mz2WySbV3NfVINNciy+as7Rq9Xs2megNFbdk=
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/NYTimes/gziphandler v1.1.1 h1:ZUDjpQae29j0ryrS0u/B8HZfJBtBQHjqw2rQ2cqUQ3I=
 github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
@@ -393,6 +391,8 @@ github.com/project-codeflare/codeflare-common v0.0.0-20231129165224-988ba1da9069
 github.com/project-codeflare/codeflare-common v0.0.0-20231129165224-988ba1da9069/go.mod h1:zdi2GCYJX+QyxFWyCLMoTme3NMz/aucWDJWMqKfigxk=
 github.com/project-codeflare/instascale v0.3.1 h1:LIKo5NaX7kDPmAYy1aAkF0yykql3ZdCiiLsBOC4HRcM=
 github.com/project-codeflare/instascale v0.3.1/go.mod h1:Fdy3daVhz3BHFvPyr9zfH6uFF2yww73U41Wq2S2zDI8=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.2-0.20231218174414-5b7ee85b759e h1:vhauNtZc/4DWVIP+6NyyDifBW9epSxpTbJzV7UKhG9M=
+github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.2-0.20231218174414-5b7ee85b759e/go.mod h1:XCZKkq8Mz2WySbV3NfVINNciy+as7Rq9Xs2megNFbdk=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.7.1/go.mod h1:PY5Wy2awLA44sXw4AOSfFBetzPP4j5+D6mVACh+pe2M=

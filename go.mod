@@ -22,7 +22,7 @@ require (
 
 replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
 
-replace github.com/project-codeflare/multi-cluster-app-dispatcher => github.com/ChristianZaccaria/multi-cluster-app-dispatcher v0.0.0-20231213170206-696368415a5a
+replace github.com/project-codeflare/multi-cluster-app-dispatcher => github.com/project-codeflare/multi-cluster-app-dispatcher v1.38.2-0.20231218174414-5b7ee85b759e
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
