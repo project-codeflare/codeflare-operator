@@ -198,7 +198,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && IMAGE=$(IMG) perl -i -pe 's/odh-codeflare-operator-controller-image=(.*)$$/odh-codeflare-operator-controller-image=$$ENV{"IMAGE"}/' params.env
 	$(KUSTOMIZE) build config/${ENV} | kubectl apply -f -
 	git restore config/*
 
@@ -283,7 +283,7 @@ validate-bundle: install-operator-sdk
 
 .PHONY: bundle
 bundle: manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	cd config/manager && IMAGE=$(IMG) perl -i -pe 's/odh-codeflare-operator-controller-image=(.*)$$/odh-codeflare-operator-controller-image=$$ENV{"IMAGE"}/' params.env
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(MAKE) validate-bundle
 	git restore config/*

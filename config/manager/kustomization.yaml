@@ -3,3 +3,19 @@ resources:
 
 generatorOptions:
   disableNameSuffixHash: true
+
+configMapGenerator:
+- name: codeflare-stack-config
+  envs:
+    - params.env
+configurations:
+  - params.yaml
+
+vars:
+- name: odh_codeflare_operator_controller_image
+  objref:
+    kind: ConfigMap
+    name: codeflare-stack-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.odh-codeflare-operator-controller-image

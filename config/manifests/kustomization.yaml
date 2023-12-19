@@ -3,22 +3,7 @@
 resources:
 - ../default
 - ../scorecard
+- codeflare-operator.clusterserviceversion.yaml
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-configMapGenerator:
-- name: codeflare-stack-config
-  envs:
-    - params.env
-configurations:
-  - params.yaml
-
-vars:
-- name: odh-codeflare-operator-controller-image
-  objref:
-    kind: ConfigMap
-    name: codeflare-stack-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.odh-codeflare-operator-controller-image
