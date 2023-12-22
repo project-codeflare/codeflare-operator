@@ -158,7 +158,7 @@ modules: ## Update Go dependencies.
 	go mod tidy
 
 .PHONY: build
-build: modules fmt vet ## Build manager binary.
+build: fmt vet ## Build manager binary.
 	go build \
 		-ldflags " \
 			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
@@ -169,7 +169,7 @@ build: modules fmt vet ## Build manager binary.
 		-o bin/manager main.go
 
 .PHONY: run
-run: modules manifests fmt vet ## Run a controller from your host.
+run: manifests fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 .PHONY: image-build

@@ -109,6 +109,10 @@ jobs:
         password: ${{ secrets.QUAY_TOKEN }}
         registry: quay.io
 
+    - name: Align go.mod and go.sum dependencies for released components
+      run: |
+        make modules
+
     - name: Image Build and Push
       run: |
         make build
