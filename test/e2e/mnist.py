@@ -15,6 +15,7 @@
 import os
 
 import torch
+import requests
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from torch import nn
@@ -32,6 +33,8 @@ print("prior to running the trainer")
 print("MASTER_ADDR: is ", os.getenv("MASTER_ADDR"))
 print("MASTER_PORT: is ", os.getenv("MASTER_PORT"))
 
+print("MNIST_DATASET_URL: is ", os.getenv("MNIST_DATASET_URL"))
+MNIST_DATASET_URL = os.getenv("MNIST_DATASET_URL")
 
 class LitMNIST(LightningModule):
     def __init__(self, data_dir=PATH_DATASETS, hidden_size=64, learning_rate=2e-4):
@@ -110,8 +113,34 @@ class LitMNIST(LightningModule):
     ####################
 
     def prepare_data(self):
-        # download
-        print("Downloading MNIST dataset...")
+        datasetFiles = [
+            "t10k-images-idx3-ubyte",
+            "t10k-labels-idx1-ubyte",
+            "train-images-idx3-ubyte",
+            "train-labels-idx1-ubyte"
+        ]
+
+        # Create required folder structure
+        downloadLocation = os.path.join(PATH_DATASETS, "MNIST", "raw")
+        os.makedirs(downloadLocation, exist_ok=True)
+        print(f"{downloadLocation} folder_path created!")
+
+        for file in datasetFiles:
+            print(f"Downloading MNIST dataset {file}... to path : {downloadLocation}")
+            response = requests.get(f"{MNIST_DATASET_URL}{file}", stream=True)
+            filePath = os.path.join(downloadLocation, file)
+
+            #to download dataset file
+            try:
+                if response.status_code == 200:
+                    open(filePath, 'wb').write(response.content)
+                    print(f"{file}: Downloaded and saved zipped file to path - {filePath}")
+                else:
+                    print(f"Failed to download file {file}")
+            except Exception as e:
+                print(e)
+        print(f"Downloaded MNIST dataset to... {downloadLocation}")
+
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 

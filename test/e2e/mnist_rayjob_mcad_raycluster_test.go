@@ -17,7 +17,6 @@ limitations under the License.
 package e2e
 
 import (
-	"encoding/base64"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -143,13 +142,6 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
-							InitContainers: []corev1.Container{
-								{
-									Name:    "init-myservice",
-									Image:   "busybox:1.28",
-									Command: []string{"sh", "-c", "until nslookup $RAY_IP.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"},
-								},
-							},
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
@@ -230,21 +222,29 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 		},
 		Spec: rayv1.RayJobSpec{
 			Entrypoint: "python /home/ray/jobs/mnist.py",
-			RuntimeEnv: base64.StdEncoding.EncodeToString([]byte(`
-{
-  "pip": [
-    "pytorch_lightning==1.5.10",
-    "torchmetrics==0.9.1",
-    "torchvision==0.12.0"
-  ],
-  "env_vars": {
-  }
-}
-`)),
+			RuntimeEnvYAML: `
+  pip:
+    - pytorch_lightning==1.5.10
+    - torchmetrics==0.9.1
+    - torchvision==0.12.0
+  env_vars:
+    MNIST_DATASET_URL: "` + GetMnistDatasetURL() + `"
+`,
 			ClusterSelector: map[string]string{
 				RayJobDefaultClusterSelectorKey: rayCluster.Name,
 			},
 			ShutdownAfterJobFinishes: false,
+			SubmitterPodTemplate: &corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Image: GetRayImage(),
+							Name:  "rayjob-submitter-pod",
+						},
+					},
+				},
+			},
 		},
 	}
 	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
@@ -255,6 +255,10 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 
 	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
 	rayClient := NewRayClusterClient(rayDashboardURL)
+
+	// Wait for Ray job id to be available, this value is needed for writing logs in defer
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
+		Should(WithTransform(RayJobId, Not(BeEmpty())))
 
 	// Retrieving the job logs once it has completed or timed out
 	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
