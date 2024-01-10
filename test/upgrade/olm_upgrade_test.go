@@ -96,7 +96,8 @@ func TestMNISTCreateAppWrapper(t *testing.T) {
 							Name:  "job",
 							Image: GetPyTorchImage(),
 							Env: []corev1.EnvVar{
-								corev1.EnvVar{Name: "PYTHONUSERBASE", Value: "/workdir"},
+								{Name: "PYTHONUSERBASE", Value: "/workdir"},
+								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{
