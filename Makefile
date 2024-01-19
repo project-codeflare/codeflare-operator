@@ -198,7 +198,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && IMAGE=$(IMG) perl -i -pe 's/codeflare-operator-controller-image=(.*)$$/codeflare-operator-controller-image=$$ENV{"IMAGE"}/' params.env
 	$(KUSTOMIZE) build config/${ENV} | kubectl apply -f -
 	git restore config/*
 
@@ -283,8 +283,8 @@ validate-bundle: install-operator-sdk
 
 .PHONY: bundle
 bundle: manifests kustomize install-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
+	cd config/manager && IMAGE=$(IMG) perl -i -pe 's/codeflare-operator-controller-image=(.*)$$/codeflare-operator-controller-image=$$ENV{"IMAGE"}/' params.env
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/metadata/annotations/containerImage", "value": "$(IMG)" }]' --kind ClusterServiceVersion
 	cd config/manifests && $(KUSTOMIZE) edit add patch --patch '[{"op":"add", "path":"/spec/replaces", "value": "codeflare-operator.$(PREVIOUS_VERSION)" }]' --kind ClusterServiceVersion
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)

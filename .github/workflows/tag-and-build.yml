@@ -102,6 +102,11 @@ jobs:
         sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
         sed -i -E "s/(.*KUBERAY_VERSION \?= ).*/\1${{ github.event.inputs.kuberay-version }}/" Makefile
 
+    - name: Update image version in params.env
+      run: |
+        VERSION=${{ github.event.inputs.version }} perl -i -pe 's/:(.*)$/:$ENV{"VERSION"}/' config/manager/params.env
+      shell: bash
+
     - name: Login to Quay.io
       uses: redhat-actions/podman-login@v1
       with:
@@ -138,7 +143,7 @@ jobs:
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Update dependency versions for release ${{ github.event.inputs.version }}
-        file_pattern: 'README.md *.yaml Makefile go.mod go.sum'
+        file_pattern: 'README.md *.yaml Makefile go.mod go.sum *.env'
         create_branch: true
         branch: ${{ env.PR_BRANCH_NAME }}
 
