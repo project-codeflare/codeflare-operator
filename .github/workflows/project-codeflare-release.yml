@@ -70,7 +70,7 @@ jobs:
 
     - name: Release MCAD
       run: |
-        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref go-1.20 --field tag=${{ github.event.inputs.mcad-version }}
+        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref ${{ github.ref }} --field tag=${{ github.event.inputs.mcad-version }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
