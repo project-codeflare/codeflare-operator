@@ -15,7 +15,7 @@ spec:
         manifests:
           - uri: '<CFO PR tarball URI>'
             contextDir: 'config'
-            sourcePath: 'manifests'
+            sourcePath: 'default'
       managementState: Managed
     dashboard:
       managementState: Managed
