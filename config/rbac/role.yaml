@@ -6,161 +6,34 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - '*'
-  resources:
-  - deployments
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - replicasets
-  - statefulsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
-- apiGroups:
-  - config.openshift.io
-  resources:
-  - clusterversions
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - kube-scheduler
-  - leases
-  verbs:
-  - create
-  - get
-  - update
-- apiGroups:
   - ""
   resources:
-  - bindings
-  - pods/binding
-  verbs:
-  - create
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  - nodes
-  - persistentvolumeclaims
-  - persistentvolumes
   - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - ""
+  resources:
   - serviceaccounts
+  verbs:
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - ""
+  resources:
   - services
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
-  - update
-  - watch
 - apiGroups:
-  - ""
+  - ray.io
   resources:
-  - endpoints
-  - kube-scheduler
-  verbs:
-  - create
-  - get
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - kube-scheduler
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/status
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - replicationcontrollers
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - events.k8s.io
-  resources:
-  - events
-  - kube-scheduler
-  verbs:
-  - create
-  - patch
-  - update
-- apiGroups:
-  - machine.openshift.io
-  resources:
-  - '*'
+  - rayclusters
   verbs:
   - create
   - delete
@@ -170,54 +43,24 @@ rules:
   - update
   - watch
 - apiGroups:
-  - scheduling.sigs.k8s.io
+  - ray.io
   resources:
-  - podgroups
+  - rayclusters/finalizers
   verbs:
-  - create
-  - delete
-  - deletecollection
+  - update
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters/status
+  verbs:
   - get
-  - list
   - patch
   - update
-  - watch
 - apiGroups:
-  - storage.k8s.io
+  - route.openshift.io
   resources:
-  - csidrivers
-  - csinodes
-  - csistoragecapacities
+  - routes
   verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - workload.codeflare.dev
-  resources:
-  - appwrappers
-  - appwrappers/finalizers
-  - appwrappers/status
-  - schedulingspecs
-  verbs:
-  - create
   - delete
-  - deletecollection
   - get
-  - list
   - patch
-  - update
-  - watch
-- apiGroups:
-  - quota.codeflare.dev
-  resources:
-  - quotasubtrees
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
