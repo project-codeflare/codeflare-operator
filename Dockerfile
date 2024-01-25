@@ -10,6 +10,7 @@ RUN go mod download
 # Copy the Go sources
 COPY main.go main.go
 COPY pkg/ pkg/
+COPY controllers/ controllers/
 
 # Build
 USER root

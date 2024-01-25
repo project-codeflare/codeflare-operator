@@ -30,6 +30,7 @@ import (
 	quotasubtreev1alpha1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1alpha1"
 	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
 	corev1 "k8s.io/api/core/v1"
@@ -51,7 +52,9 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	routev1 "github.com/openshift/api/route/v1"
 
+	cfoControllers "github.com/project-codeflare/codeflare-operator/controllers"
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -67,6 +70,11 @@ var (
 	BuildDate         = "UNKNOWN"
 )
 
+const (
+	RayGroup       = "ray.io"
+	RayClusterKind = "RayCluster"
+)
+
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	// MCAD
@@ -75,6 +83,10 @@ func init() {
 	// InstaScale
 	utilruntime.Must(configv1.Install(scheme))
 	utilruntime.Must(machinev1beta1.Install(scheme))
+	// Ray
+	utilruntime.Must(rayv1.AddToScheme(scheme))
+	// OpenShift Route
+	utilruntime.Must(routev1.Install(scheme))
 }
 
 func main() {
@@ -169,6 +181,18 @@ func main() {
 			Config: cfg.InstaScale.InstaScaleConfiguration,
 		}
 		exitOnError(instaScaleController.SetupWithManager(context.Background(), mgr), "Error setting up InstaScale controller")
+	}
+	groups, err := kubeClient.DiscoveryClient.ServerGroups()
+	exitOnError(err, "Could not get server groups and resources")
+	// fmt.Println(resources)
+	for _, g := range groups.Groups {
+		// NOTE: if the Ray resource is added after the controller is started, the controller will need to be restarted
+		//       so that the custom resource is succesfully discovered.
+		if strings.HasPrefix(g.PreferredVersion.GroupVersion, RayGroup) {
+			rayClusterController := cfoControllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+			exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
+			break
+		}
 	}
 
 	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
