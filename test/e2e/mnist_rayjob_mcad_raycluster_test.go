@@ -271,3 +271,4 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
 		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
 }
+// Test
