@@ -15,7 +15,7 @@
 # limitations under the License.
 
 set -euo pipefail
-: "${INGRESS_NGINX_VERSION:=controller-v1.6.4}"
+: "${INGRESS_NGINX_VERSION:=controller-v1.9.6}"
 
 echo "Creating KinD cluster"
 cat <<EOF | kind create cluster --config=-
