@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -34,13 +35,14 @@ func TestInstascaleNodepool(t *testing.T) {
 	connection := CreateOCMConnection(test)
 	defer connection.Close()
 
-	// check existing cluster resources
-	// look for a node pool with a label key equal to aw name - expect NOT to find it
-	test.Expect(GetNodePools(test, connection)).
-		ShouldNot(ContainElement(WithTransform(NodePoolLabels, HaveKey(HavePrefix("test-instascale")))))
-
 	// Setup batch job and AppWrapper
 	aw := instaScaleJobAppWrapper(test, namespace, cm)
+
+	expectedLabel := fmt.Sprintf("%s-%s", aw.Name, aw.Namespace)
+	// check existing cluster resources
+	// look for a node pool with a label key equal to aw.Name-aw.Namespace - expect NOT to find it
+	test.Expect(GetNodePools(test, connection)).
+		ShouldNot(ContainElement(WithTransform(NodePoolLabels, HaveKey(expectedLabel))))
 
 	// apply AppWrapper to cluster
 	_, err := test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
@@ -51,16 +53,16 @@ func TestInstascaleNodepool(t *testing.T) {
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutGpuProvisioning).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	// look for a node pool with a label key equal to aw name - expect to find it
+	// look for a node pool with a label key equal to aw.Name-aw.Namespace - expect to find it
 	test.Eventually(NodePools(test, connection), TestTimeoutLong).
-		Should(ContainElement(WithTransform(NodePoolLabels, HaveKey(HavePrefix("test-instascale")))))
+		Should(ContainElement(WithTransform(NodePoolLabels, HaveKey(expectedLabel))))
 
 	// assert that the AppWrapper goes to "Completed" state
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutLong).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
-	// look for a node pool with a label key equal to aw name - expect NOT to find it
+	// look for a node pool with a label key equal to aw.Name-aw.Namespace - expect NOT to find it
 	test.Eventually(NodePools(test, connection), TestTimeoutLong).
-		ShouldNot(ContainElement(WithTransform(NodePoolLabels, HaveKey(HavePrefix("test-instascale")))))
+		ShouldNot(ContainElement(WithTransform(NodePoolLabels, HaveKey(expectedLabel))))
 
 }
