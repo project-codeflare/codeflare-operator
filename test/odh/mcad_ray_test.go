@@ -38,8 +38,8 @@ func TestMCADRay(t *testing.T) {
 	config := CreateConfigMap(test, namespace.Name, map[string][]byte{
 		// MNIST Ray Notebook
 		jupyterNotebookConfigMapFileName: ReadFile(test, "resources/mnist_ray_mini.ipynb"),
-		"mnist.py":                       ReadFile(test, "resources/mnist.py"),
-		"requirements.txt":               ReadFile(test, "resources/requirements.txt"),
+		"mnist.py":                       readMnistPy(test),
+		"requirements.txt":               readRequirementsTxt(test),
 	})
 
 	// Create RBAC, retrieve token for user with limited rights
@@ -58,6 +58,11 @@ func TestMCADRay(t *testing.T) {
 			Verbs:     []string{"get", "list"},
 			APIGroups: []string{"route.openshift.io"},
 			Resources: []string{"routes"},
+		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"networking.k8s.io"},
+			Resources: []string{"ingresses"},
 		},
 	}
 
@@ -95,4 +100,37 @@ func TestMCADRay(t *testing.T) {
 	// Make sure the AppWrapper finishes and is deleted
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
 		Should(HaveLen(0))
+}
+
+func readRequirementsTxt(test Test) []byte {
+	// Read the requirements.txt from resources and perform replacements for custom values using go template
+	props := struct {
+		PipIndexUrl    string
+		PipTrustedHost string
+	}{
+		PipIndexUrl: "--index " + GetPipIndexURL(),
+	}
+
+	// Provide trusted host only if defined
+	if len(GetPipTrustedHost()) > 0 {
+		props.PipTrustedHost = "--trusted-host " + GetPipTrustedHost()
+	}
+
+	template, err := files.ReadFile("resources/requirements.txt")
+	test.Expect(err).NotTo(HaveOccurred())
+
+	return ParseTemplate(test, template, props)
+}
+
+func readMnistPy(test Test) []byte {
+	// Read the mnist.py from resources and perform replacements for custom values using go template
+	props := struct {
+		MnistDatasetURL string
+	}{
+		MnistDatasetURL: GetMnistDatasetURL(),
+	}
+	template, err := files.ReadFile("resources/mnist.py")
+	test.Expect(err).NotTo(HaveOccurred())
+
+	return ParseTemplate(test, template, props)
 }
