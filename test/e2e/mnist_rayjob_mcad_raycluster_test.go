@@ -229,6 +229,8 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
     - torchvision==0.12.0
   env_vars:
     MNIST_DATASET_URL: "` + GetMnistDatasetURL() + `"
+    PIP_INDEX_URL: "` + GetPipIndexURL() + `"
+    PIP_TRUSTED_HOST: "` + GetPipTrustedHost() + `"
 `,
 			ClusterSelector: map[string]string{
 				RayJobDefaultClusterSelectorKey: rayCluster.Name,

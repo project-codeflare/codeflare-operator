@@ -18,7 +18,6 @@ package odh
 
 import (
 	"bytes"
-	"html/template"
 
 	gomega "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
@@ -44,6 +43,7 @@ type NotebookProps struct {
 	OpenDataHubNamespace      string
 	ImageStreamName           string
 	ImageStreamTag            string
+	RayImage                  string
 	NotebookConfigMapName     string
 	NotebookConfigMapFileName string
 	NotebookPVC               string
@@ -66,23 +66,19 @@ func createNotebook(test Test, namespace *corev1.Namespace, notebookToken, jupyt
 		OpenDataHubNamespace:      GetOpenDataHubNamespace(),
 		ImageStreamName:           GetNotebookImageStreamName(test),
 		ImageStreamTag:            recommendedTagName,
+		RayImage:                  GetRayImage(),
 		NotebookConfigMapName:     jupyterNotebookConfigMapName,
 		NotebookConfigMapFileName: jupyterNotebookConfigMapFileName,
 		NotebookPVC:               notebookPVC.Name,
 	}
 	notebookTemplate, err := files.ReadFile("resources/custom-nb-small.yaml")
 	test.Expect(err).NotTo(gomega.HaveOccurred())
-	parsedNotebookTemplate, err := template.New("notebook").Parse(string(notebookTemplate))
-	test.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// Filter template and store results to the buffer
-	notebookBuffer := new(bytes.Buffer)
-	err = parsedNotebookTemplate.Execute(notebookBuffer, notebookProps)
-	test.Expect(err).NotTo(gomega.HaveOccurred())
+	parsedNotebookTemplate := ParseTemplate(test, notebookTemplate, notebookProps)
 
 	// Create Notebook CR
 	notebookCR := &unstructured.Unstructured{}
-	err = yaml.NewYAMLOrJSONDecoder(notebookBuffer, 8192).Decode(notebookCR)
+	err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(parsedNotebookTemplate), 8192).Decode(notebookCR)
 	test.Expect(err).NotTo(gomega.HaveOccurred())
 	_, err = test.Client().Dynamic().Resource(notebookResource).Namespace(namespace.Name).Create(test.Ctx(), notebookCR, metav1.CreateOptions{})
 	test.Expect(err).NotTo(gomega.HaveOccurred())

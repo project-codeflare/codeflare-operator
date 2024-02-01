@@ -81,6 +81,8 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 							Env: []corev1.EnvVar{
 								{Name: "PYTHONUSERBASE", Value: "/workdir"},
 								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
+								{Name: "PIP_INDEX_URL", Value: GetPipIndexURL()},
+								{Name: "PIP_TRUSTED_HOST", Value: GetPipTrustedHost()},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{

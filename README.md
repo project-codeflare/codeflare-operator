@@ -86,6 +86,21 @@ The e2e tests can be executed locally by running the following commands:
 
    Alternatively, You can run the e2e test(s) from your IDE / debugger.
 
+#### Testing on disconnected cluster
+
+To properly run e2e tests on disconnected cluster user has to provide additional environment variables to properly configure testing environment:
+
+- `CODEFLARE_TEST_PYTORCH_IMAGE` - image tag for image used to run training job using MCAD
+- `CODEFLARE_TEST_RAY_IMAGE` - image tag for Ray cluster image
+- `MNIST_DATASET_URL` - URL where MNIST dataset is available
+- `PIP_INDEX_URL` - URL where PyPI server with needed dependencies is running
+- `PIP_TRUSTED_HOST` - PyPI server hostname
+
+For ODH tests additional environment variables are needed:
+
+- `NOTEBOOK_IMAGE_STREAM_NAME` - name of the ODH Notebook ImageStream to be used
+- `ODH_NAMESPACE` - namespace where ODH is installed
+
 ## Release
 
 1. Invoke [project-codeflare-release.yaml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/project-codeflare-release.yml)
