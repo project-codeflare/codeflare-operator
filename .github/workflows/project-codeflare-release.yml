@@ -38,6 +38,10 @@ on:
         description: 'Owner of target community-operators-prod repository used to open a PR against'
         required: true
         default: 'redhat-openshift-ecosystem'
+      upstream-repository-organization:
+        description: 'Owner of target upstream notebooks repository used to open a PR against'
+        required: false
+        default: 'opendatahub-io'
 
 jobs:
   release-parameters:
@@ -151,6 +155,19 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
       if: ${{ env.SDK_RELEASE_STATUS_CODE != '200' }}
+
+    - name: Sync ODH Notebooks
+      run: |
+        gh workflow run odh-notebooks-sync.yml \
+          --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator \
+          --ref ${{ github.ref }} \
+          --field upstream-repository-organization=${{ github.event.inputs.upstream-repository-organization }}
+          --field codeflare-repository-organization=${{ github.event.inputs.codeflare-repository-organization }} \
+          --field codeflare_sdk_release_version=${{ github.event.inputs.codeflare-sdk-version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+      shell: bash
+      if: ${{ env.SDK_RELEASE_STATUS_CODE == '200' }}
 
   release-codeflare-operator:
     needs: [release-mcad, release-instascale, release-codeflare-sdk]
