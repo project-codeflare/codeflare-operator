@@ -38,8 +38,8 @@ jobs:
       - name: Checkout common repo code
         uses: actions/checkout@v3
         with:
-          repository: 'project-codeflare/codeflare-common'
-          ref: 'main'
+          repository: 'sutaakar/codeflare-common'
+          ref: 'custom-users'
           path: 'common'
 
       - name: Set Go
@@ -66,6 +66,18 @@ jobs:
 
           echo Setting up CodeFlare stack
           make setup-e2e
+
+      - name: Add experimental user to KinD
+        uses: ./common/github-actions/kind-add-user
+        with:
+          user-name: experiment
+
+      - name: Configure RBAC for experiment user to use edit role with namespaces
+        run: |
+          kubectl create clusterrolebinding experiment-edit --clusterrole=edit --user=experiment
+          kubectl create clusterrole namespace-creator --verb=get,list,create,delete,patch --resource=namespaces
+          kubectl create clusterrolebinding experiment-namespace-creator --clusterrole=namespace-creator --user=experiment
+          kubectl config use-context experiment
 
       - name: Run e2e tests
         run: |
