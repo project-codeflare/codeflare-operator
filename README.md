@@ -107,8 +107,9 @@ For ODH tests additional environment variables are needed:
 2. Once all jobs within the action are completed, verify that compatibility matrix in [README](https://github.com/project-codeflare/codeflare-operator/blob/main/README.md) was properly updated.
 3. Verify that opened pull request to [OpenShift community operators repository](https://github.com/redhat-openshift-ecosystem/community-operators-prod) has proper content.
 4. Once PR is merged, announce the new release in slack and mail lists, if any.
-5. Update the Distributed Workloads component in ODH (also copy/update the compatibility matrix). This may require yaml and test updates depending on the release. Make sure to create a tag + release in the Distributed Workloads repository that matches the project-codeflare release version.
-6. Update the readme/markdown/yaml in odh-manifests as required.
+5. Release automation should open a PR with changes in [ODH CodeFlare operator repo](https://github.com/opendatahub-io/codeflare-operator). Review the changes proposed by automation. If all the changes are correct then manually cherrypick all `CARRY` and `PATCH` commits from the current main branch, push the result to a dedicated branch and ask on Slack channel for review of the result branch content. Once agreed then push the changes directly to the `main` branch (branch protection has to be temporarily disabled).
+6. Create a release branch on [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) for the next release if it doesn't exist yet.
+7. Create a dedicated branch containing changes from [ODH CodeFlare operator repo](https://github.com/opendatahub-io/codeflare-operator). Cherrypick all relevant changes available in [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) latest release branch which should be available also in the next release. Ask on Slack channel for review of the result branch content. Once agreed then push the changes directly to the release branch.
 
 ### Releases involving part of the stack
 
