@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -49,13 +50,14 @@ func TestInstascaleMachinePool(t *testing.T) {
 	connection := CreateOCMConnection(test)
 	defer connection.Close()
 
-	// check existing cluster machine pool resources
-	// look for machine pool with aw name - expect not to find it
-	test.Expect(GetMachinePools(test, connection)).
-		ShouldNot(ContainElement(WithTransform(MachinePoolId, Equal("test-instascale-g4dn-xlarge"))))
-
 	// Setup batch job and AppWrapper
 	aw := instaScaleJobAppWrapper(test, namespace, cm)
+
+	expectedLabel := fmt.Sprintf("%s-%s", aw.Name, aw.Namespace)
+	// check existing cluster machine pool resources
+	// look for a machine pool with a label key equal to aw.name-aw.namespace - expect NOT to find it
+	test.Expect(GetMachinePools(test, connection)).
+		ShouldNot(ContainElement(WithTransform(MachinePoolLabels, HaveKey(expectedLabel))))
 
 	// apply AppWrapper to cluster
 	_, err := test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
@@ -66,15 +68,15 @@ func TestInstascaleMachinePool(t *testing.T) {
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutGpuProvisioning).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
 
-	// look for machine pool with aw name - expect to find it
+	// look for a machine pool with a label key equal to aw.name-aw.namespace - expect to find it
 	test.Eventually(MachinePools(test, connection), TestTimeoutLong).
-		Should(ContainElement(WithTransform(MachinePoolId, Equal("test-instascale-g4dn-xlarge"))))
+		Should(ContainElement(WithTransform(MachinePoolLabels, HaveKey(expectedLabel))))
 
 	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutShort).
 		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
 
-	// look for machine pool with aw name - expect not to find it
+	// look for a machine pool with a label key equal to aw.name-aw.namespace - expect NOT to find it
 	test.Eventually(MachinePools(test, connection), TestTimeoutLong).
-		ShouldNot(ContainElement(WithTransform(MachinePoolId, Equal("test-instascale-g4dn-xlarge"))))
+		ShouldNot(ContainElement(WithTransform(MachinePoolLabels, HaveKey(expectedLabel))))
 
 }
