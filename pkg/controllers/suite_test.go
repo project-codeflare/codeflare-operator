@@ -27,17 +27,18 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+	rayclient "github.com/ray-project/kuberay/ray-operator/pkg/client/clientset/versioned"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	routev1 "github.com/openshift/api/route/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -45,8 +46,12 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var cfg *rest.Config
-var k8sClient client.Client
+var k8sClient *kubernetes.Clientset
+var rayClient *rayclient.Clientset
+var routeClient *routeclient.Clientset
 var testEnv *envtest.Environment
+var ctx context.Context
+var cancel context.CancelFunc
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -56,10 +61,11 @@ func TestAPIs(t *testing.T) {
 
 const (
 	RayClusterCRDFileDownload = "https://raw.githubusercontent.com/ray-project/kuberay/master/ray-operator/config/crd/bases/ray.io_rayclusters.yaml"
-	RouteCRDFileDownload      = "https://raw.githubusercontent.com/openshift/api/master/route/v1/route.crd.yaml"
+	RouteCRDFileDownload      = "https://raw.githubusercontent.com/openshift/api/master/route/v1/zz_generated.crd-manifests/routes-Default.crd.yaml"
 )
 
 var _ = BeforeSuite(func() {
+	ctx, cancel = context.WithCancel(context.Background())
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	var err error
@@ -86,7 +92,6 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "config", "crd"),
 			filepath.Join(".", "test-crds"),
 		},
 		ErrorIfCRDPathMissing: true,
@@ -99,29 +104,31 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	k8sClient, err = kubernetes.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
-	clientSet, err := kubernetes.NewForConfig(cfg)
+	rayClient, err = rayclient.NewForConfig(cfg)
+	Expect(err).To(Not(HaveOccurred()))
+	routeClient, err = routeclient.NewForConfig(cfg)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
 	err = rayv1.AddToScheme(scheme.Scheme)
 	Expect(err).To(Not(HaveOccurred()))
 	err = routev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	err = (&RayClusterReconciler{
-		Client:     k8sManager.GetClient(),
-		Scheme:     k8sManager.GetScheme(),
-		kubeClient: clientSet,
-		CookieSalt: "foo",
+		Client:      k8sManager.GetClient(),
+		Scheme:      k8sManager.GetScheme(),
+		CookieSalt:  "foo",
+		IsOpenShift: true,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(context.Background())
+		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 })
@@ -130,6 +137,7 @@ var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	err := os.RemoveAll("./test-crds")
 	Expect(err).NotTo(HaveOccurred())
+	cancel()
 	err = testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })

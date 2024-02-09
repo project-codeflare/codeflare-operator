@@ -205,6 +205,7 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 YQ ?= $(LOCALBIN)/yq
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+GINKGO ?= $(LOCALBIN)/ginkgo
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -240,6 +241,11 @@ $(GH_CLI): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
+$(GINKGO): $(LOCALBIN)
+	test -s $(LOCALBIN)/ginkgo || GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo
 
 .PHONY: install-yq
 install-yq: $(YQ) ## Download yq locally if necessary
@@ -349,6 +355,10 @@ catalog-push: ## Push a catalog image.
 .PHONY: test-unit
 test-unit: manifests fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(go list ./... | grep -v /test/) -coverprofile cover.out
+
+.PHONY: test-component
+test-component: envtest ginkgo ## Run component tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -v ./pkg/controllers/
 
 .PHONY: test-e2e
 test-e2e: manifests fmt vet ## Run e2e tests.
