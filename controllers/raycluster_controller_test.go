@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -34,51 +32,29 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 )
 
-func stringInList(l []string, s string) bool {
-	for _, i := range l {
-		if i == s {
-			return true
-		}
-	}
-	return false
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyz")
-var r = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[r.Intn(len(letters))]
-	}
-	return string(b)
-}
-
 var _ = Describe("RayCluster controller", func() {
 	Context("RayCluster controller test", func() {
 		var rayClusterName = "test-raycluster"
-		var typeNamespaceName types.NamespacedName
-		ctx := context.Background()
-		BeforeEach(func() {
-			By("Generate random number so each run is creating unique")
-			rString := randSeq(10)
-			rayClusterName = rayClusterName + "-" + rString
-			typeNamespaceName = types.NamespacedName{Name: rayClusterName, Namespace: rayClusterName}
+		var namespaceName string
+		BeforeEach(func(ctx SpecContext) {
 			By("Creating a namespace for running the tests.")
 			namespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: rayClusterName,
+					GenerateName: "test-",
 				},
 			}
-			var err error
-			err = k8sClient.Create(ctx, namespace)
-			Expect(err).To(Not(HaveOccurred()))
+			namespace, err := k8sClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func(ctx SpecContext) {
+				k8sClient.CoreV1().Namespaces().Delete(ctx, namespace.Name, metav1.DeleteOptions{})
+			})
+			namespaceName = namespace.Name
 
 			By("creating a basic instance of the RayCluster CR")
 			raycluster := &rayv1.RayCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      rayClusterName,
-					Namespace: rayClusterName,
+					Namespace: namespace.Name,
 				},
 				Spec: rayv1.RayClusterSpec{
 					HeadGroupSpec: rayv1.HeadGroupSpec{
@@ -93,130 +69,128 @@ var _ = Describe("RayCluster controller", func() {
 					},
 				},
 			}
-			err = k8sClient.Get(ctx, typeNamespaceName, &rayv1.RayCluster{})
-			Expect(errors.IsNotFound(err)).To(Equal(true))
-			err = k8sClient.Create(ctx, raycluster)
+			_, err = rayClient.RayV1().RayClusters(namespace.Name).Create(ctx, raycluster, metav1.CreateOptions{})
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
-		AfterEach(func() {
-			By("removing the instance of the RayCluster used")
-			// err := clientSet.CoreV1().Namespaces().Delete(ctx, RayClusterName, metav1.DeleteOptions{})
-			foundRayCluster := rayv1.RayCluster{}
-			err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-			if err != nil {
-				Expect(errors.IsNotFound(err)).To(Equal(true))
-			} else {
+		AfterEach(func(ctx SpecContext) {
+			By("removing instances of the RayClusters used")
+			rayClusters, err := rayClient.RayV1().RayClusters(namespaceName).List(ctx, metav1.ListOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			for _, rayCluster := range rayClusters.Items {
+				err = rayClient.RayV1().RayClusters(namespaceName).Delete(ctx, rayCluster.Name, metav1.DeleteOptions{})
 				Expect(err).To(Not(HaveOccurred()))
-				_ = k8sClient.Delete(ctx, &foundRayCluster)
 			}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-				return errors.IsNotFound(err)
-			}, SpecTimeout(time.Second*10)).Should(Equal(true))
+
+			Eventually(func() ([]rayv1.RayCluster, error) {
+				rayClusters, err := rayClient.RayV1().RayClusters(namespaceName).List(ctx, metav1.ListOptions{})
+				return rayClusters.Items, err
+			}).WithTimeout(time.Second * 10).Should(BeEmpty())
 		})
 
-		It("should have oauth finalizer set", func() {
-			foundRayCluster := rayv1.RayCluster{}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-				Expect(err).To(Not(HaveOccurred()))
-				return stringInList(foundRayCluster.Finalizers, CodeflareOAuthFinalizer)
-			}, SpecTimeout(time.Second*10)).Should(Equal(true))
-		})
+		It("should have oauth finalizer set", func(ctx SpecContext) {
+			Eventually(func() ([]string, error) {
+				foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
+				return foundRayCluster.Finalizers, err
+			}).WithTimeout(time.Second * 10).Should(ContainElement(CodeflareOAuthFinalizer))
+		}, SpecTimeout(time.Second*10))
 
 		Context("Cluster has OAuth annotation", func() {
-			BeforeEach(func() {
+			BeforeEach(func(ctx SpecContext) {
 				By("adding OAuth annotation to RayCluster")
-				Eventually(func() error {
-					foundRayCluster := rayv1.RayCluster{}
-					err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-					Expect(err).To(Not(HaveOccurred()))
-					if foundRayCluster.Annotations == nil {
-						foundRayCluster.Annotations = map[string]string{"codeflare.dev/oauth": "true"}
-					} else {
-						foundRayCluster.Annotations["codeflare.dev/oauth"] = "'true'"
-					}
-					return k8sClient.Update(ctx, &foundRayCluster)
-				}, SpecTimeout(time.Second*10)).Should(Not(HaveOccurred()))
+				patch := []byte(`{"metadata":{"annotations":{"codeflare.dev/oauth":"true"}}}`)
+				foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Patch(ctx, rayClusterName, types.MergePatchType, patch, metav1.PatchOptions{})
+				Expect(err).To(Not(HaveOccurred()))
+
 				By("waiting for dependent resources to be created")
+				Eventually(func() (*corev1.Secret, error) {
+					return k8sClient.CoreV1().Secrets(namespaceName).Get(ctx, oauthSecretNameFromCluster(foundRayCluster), metav1.GetOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+				Eventually(func() (*corev1.Service, error) {
+					return k8sClient.CoreV1().Services(namespaceName).Get(ctx, oauthServiceNameFromCluster(foundRayCluster), metav1.GetOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+				Eventually(func() (*corev1.ServiceAccount, error) {
+					return k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+				Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+					return k8sClient.RbacV1().ClusterRoleBindings().Get(ctx, crbNameFromCluster(foundRayCluster), metav1.GetOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+				Eventually(func() (*routev1.Route, error) {
+					return routeClient.RouteV1().Routes(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+			})
+
+			It("should set owner references for all resources", func(ctx SpecContext) {
+				foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
+				Expect(err).To(Not(HaveOccurred()))
+
+				Expect(k8sClient.CoreV1().Secrets(namespaceName).Get(ctx, oauthSecretNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+				Expect(k8sClient.CoreV1().Secrets(namespaceName).Get(ctx, oauthSecretNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
+				Expect(k8sClient.CoreV1().Services(namespaceName).Get(ctx, oauthServiceNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+				Expect(k8sClient.CoreV1().Services(namespaceName).Get(ctx, oauthServiceNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
+				Expect(k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})).To(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+				Expect(k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})).To(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
+				Expect(k8sClient.RbacV1().ClusterRoleBindings().Get(ctx, crbNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+				Expect(k8sClient.RbacV1().ClusterRoleBindings().Get(ctx, crbNameFromCluster(foundRayCluster), metav1.GetOptions{})).To(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
+				Expect(routeClient.RouteV1().Routes(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})).To(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+				Expect(routeClient.RouteV1().Routes(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})).To(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
+			})
+
+			It("should delete OAuth resources when annotation is removed", func(ctx SpecContext) {
+				foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
+				Expect(err).To(Not(HaveOccurred()))
+
+				// Use loop to remove annotation until it succeed
+				Eventually(func() (*rayv1.RayCluster, error) {
+					foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
+					if err != nil {
+						return nil, err
+					}
+					delete(foundRayCluster.ObjectMeta.Annotations, "codeflare.dev/oauth")
+					return rayClient.RayV1().RayClusters(namespaceName).Update(ctx, foundRayCluster, metav1.UpdateOptions{})
+				}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+
 				Eventually(func() error {
-					foundRayCluster := rayv1.RayCluster{}
-					err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-					if err != nil {
-						return err
-					}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: oauthSecretNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Secret{})
-					if err != nil {
-						return err
-					}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: oauthServiceNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Service{})
-					if err != nil {
-						return err
-					}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &corev1.ServiceAccount{})
-					if err != nil {
-						return err
-					}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
-					if err != nil {
-						return err
-					}
-					err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &routev1.Route{})
-					if err != nil {
-						return err
-					}
-					return nil
-				}, SpecTimeout(time.Second*10)).Should(Not(HaveOccurred()))
+					_, err := k8sClient.CoreV1().Secrets(namespaceName).Get(ctx, oauthSecretNameFromCluster(foundRayCluster), metav1.GetOptions{})
+					return err
+				}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
+				Eventually(func() error {
+					_, err := k8sClient.CoreV1().Services(namespaceName).Get(ctx, oauthServiceNameFromCluster(foundRayCluster), metav1.GetOptions{})
+					return err
+				}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
+				Eventually(func() error {
+					_, err := k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})
+					return err
+				}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
+
+				// For some reason removal of the Route takes significant time on KinD, I suppose it is caused by Route CRD missing in KinD available schemas
+				Eventually(func() error {
+					_, err := routeClient.RouteV1().Routes(namespaceName).Get(ctx, foundRayCluster.Name, metav1.GetOptions{})
+					return err
+				}).WithTimeout(time.Second * 30).Should(Satisfy(errors.IsNotFound))
 			})
 
-			It("should set owner references for all resources", func() {
-				foundRayCluster := rayv1.RayCluster{}
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-				Expect(err).ToNot(HaveOccurred())
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: oauthSecretNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Secret{})
+			It("should remove CRB when the RayCluster is deleted", func(ctx SpecContext) {
+				foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
 				Expect(err).To(Not(HaveOccurred()))
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: oauthServiceNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Service{})
-				Expect(err).To(Not(HaveOccurred()))
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &corev1.ServiceAccount{})
-				Expect(err).To(Not(HaveOccurred()))
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
-				Expect(err).To(Not(HaveOccurred()))
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &routev1.Route{})
-				Expect(err).To(Not(HaveOccurred()))
-			})
 
-			It("should delete OAuth resources when annotation is removed", func() {
-				foundRayCluster := rayv1.RayCluster{}
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
+				err = rayClient.RayV1().RayClusters(namespaceName).Delete(ctx, foundRayCluster.Name, metav1.DeleteOptions{})
 				Expect(err).To(Not(HaveOccurred()))
-				delete(foundRayCluster.Annotations, "codeflare.dev/oauth")
-				err = k8sClient.Update(ctx, &foundRayCluster)
-				Expect(err).To(Not(HaveOccurred()))
-				Eventually(func() bool {
-					return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: oauthSecretNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Secret{}))
-				}, SpecTimeout(time.Second*10)).Should(Equal(true))
-				Eventually(func() bool {
-					return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: oauthServiceNameFromCluster(&foundRayCluster), Namespace: foundRayCluster.Namespace}, &corev1.Service{}))
-				}, SpecTimeout(time.Second*10)).Should(Equal(true))
-				Eventually(func() bool {
-					return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &corev1.ServiceAccount{}))
-				}, SpecTimeout(time.Second*10)).Should(Equal(true))
-				Eventually(func() bool {
-					return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{}))
-				}, SpecTimeout(time.Second*10)).Should(Equal(true))
-			})
 
-			It("should remove CRB when the RayCluster is deleted", func() {
-				foundRayCluster := rayv1.RayCluster{}
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-				Expect(err).To(Not(HaveOccurred()))
-				err = k8sClient.Delete(ctx, &foundRayCluster)
-				Expect(err).To(Not(HaveOccurred()))
-				Eventually(func() bool {
-					return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{}))
-				}, SpecTimeout(time.Second*10)).Should(Equal(true))
+				Eventually(func() error {
+					_, err := k8sClient.RbacV1().ClusterRoleBindings().Get(ctx, crbNameFromCluster(foundRayCluster), metav1.GetOptions{})
+					return err
+				}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
 			})
 		})
 	})
 })
+
+func OwnerReferenceKind(meta metav1.Object) string {
+	return meta.GetOwnerReferences()[0].Kind
+}
+
+func OwnerReferenceName(meta metav1.Object) string {
+	return meta.GetOwnerReferences()[0].Name
+}

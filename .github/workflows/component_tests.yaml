@@ -1,0 +1,76 @@
+name: Component tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release-*'
+    paths-ignore:
+      - 'docs/**'
+      - '**.adoc'
+      - '**.md'
+      - 'LICENSE'
+  push:
+    branches:
+      - main
+      - 'release-*'
+    paths-ignore:
+      - 'docs/**'
+      - '**.adoc'
+      - '**.md'
+      - 'LICENSE'
+
+concurrency:
+  group: ${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  kubernetes-component:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout common repo code
+        uses: actions/checkout@v4
+        with:
+          repository: 'project-codeflare/codeflare-common'
+          ref: 'main'
+          path: 'common'
+
+      - name: Set Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: v1.20
+
+      - name: Setup and start KinD cluster
+        uses: ./common/github-actions/kind
+
+      - name: Run component tests
+        run: |
+          export USE_EXISTING_CLUSTER=true
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+
+          set -euo pipefail
+          # Install Ginkgo
+          go install github.com/onsi/ginkgo/v2/ginkgo
+
+          ginkgo -v ./controllers/ | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log
+
+      - name: Export all KinD pod logs
+        uses: ./common/github-actions/kind-export-logs
+        if: always() && steps.deploy.outcome == 'success'
+        with:
+          output-directory: ${CODEFLARE_TEST_OUTPUT_DIR}
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        if: always() && steps.deploy.outcome == 'success'
+        with:
+          name: logs
+          retention-days: 10
+          path: |
+            ${{ env.CODEFLARE_TEST_OUTPUT_DIR }}/**/*.log
