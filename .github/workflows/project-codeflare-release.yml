@@ -38,10 +38,6 @@ on:
         description: 'Owner of target community-operators-prod repository used to open a PR against'
         required: true
         default: 'redhat-openshift-ecosystem'
-      upstream-repository-organization:
-        description: 'Owner of target upstream notebooks repository used to open a PR against'
-        required: false
-        default: 'opendatahub-io'
 
 jobs:
   release-parameters:
@@ -161,7 +157,7 @@ jobs:
         gh workflow run odh-notebooks-sync.yml \
           --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator \
           --ref ${{ github.ref }} \
-          --field upstream-repository-organization=${{ github.event.inputs.upstream-repository-organization }}
+          --field upstream-repository-organization=opendatahub-io
           --field codeflare-repository-organization=${{ github.event.inputs.codeflare-repository-organization }} \
           --field codeflare_sdk_release_version=${{ github.event.inputs.codeflare-sdk-version }}
       env:
