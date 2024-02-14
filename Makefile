@@ -85,6 +85,10 @@ ENVTEST_K8S_VERSION = 1.24.2
 # used to build the manifests.
 ENV ?= default
 
+# Image URL to build MNIST job test image
+MNIST_JOB_TEST_VERSION ?= v0.0.2
+MNIST_JOB_TEST_IMG ?= $(IMAGE_ORG_BASE)/mnist-job-test:${MNIST_JOB_TEST_VERSION}
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -383,3 +387,11 @@ imports: openshift-goimports ## Organize imports in go files using openshift-goi
 .PHONY: verify-imports
 verify-imports: openshift-goimports ## Run import verifications.
 	./hack/verify-imports.sh $(OPENSHIFT-GOIMPORTS)
+
+.PHONY: image-mnist-job-test-build
+image-mnist-job-test-build: ## Build container image with the MNIST job.
+	podman build -t ${MNIST_JOB_TEST_IMG} ./test/pytorch_mnist_image
+
+.PHONY: image-mnist-job-test-push
+image-mnist-job-test-push: image-mnist-job-test-build ## Push container image with the MNIST job.
+	podman push ${MNIST_JOB_TEST_IMG}
