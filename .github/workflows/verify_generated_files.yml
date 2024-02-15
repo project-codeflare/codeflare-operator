@@ -20,9 +20,9 @@ jobs:
   verify-imports:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: v1.20
     - name: Verify that imports are organized
@@ -31,9 +31,9 @@ jobs:
   verify-manifests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: v1.20
     - name: Verify that the latest WebhookConfigurations, ClusterRoles, and CustomResourceDefinitions have been generated

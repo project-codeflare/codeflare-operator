@@ -21,15 +21,15 @@ jobs:
       volumes:
         - /cache
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: v1.20
 
       - name: Activate cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /cache
           key: ${{ runner.os }}-cache-${{ hashFiles('**/go.sum', '.pre-commit-config.yaml') }}
