@@ -51,12 +51,14 @@ jobs:
         echo "MCAD Version: ${{ github.event.inputs.mcad-version }}"
         echo "CodeFlare SDK Version: ${{ github.event.inputs.codeflare-sdk-version }}"
         echo "InstaScale Version: ${{ github.event.inputs.instascale-version }}"
+        echo "Tested KubeRay Version: ${{ github.event.inputs.kuberay-version }}"
         echo "Is Stable: ${{ github.event.inputs.is-stable }}"
         echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
         echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
         echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
 
   release-mcad:
+    needs: check-kuberay-version
     runs-on: ubuntu-latest
 
     steps:
@@ -120,6 +122,7 @@ jobs:
       if: ${{ env.INSTASCALE_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-sdk:
+    needs: check-kuberay-version
     runs-on: ubuntu-latest
 
     steps:
@@ -186,3 +189,17 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+
+  check-kuberay-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check if KubeRay release exists
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/ray-project/kuberay/releases/tag/${{ github.event.inputs.kuberay-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "KubeRay release with version ${{ github.event.inputs.kuberay-version }} exists and available to use."
+        else
+          echo "KubeRay release with version ${{ github.event.inputs.kuberay-version }} does not exist. Please select an existing version."
+          exit 1
+        fi
