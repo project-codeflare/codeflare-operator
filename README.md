@@ -108,9 +108,10 @@ For ODH tests additional environment variables are needed:
 3. Verify that opened pull request to [OpenShift community operators repository](https://github.com/redhat-openshift-ecosystem/community-operators-prod) has proper content.
 4. Once PR is merged, announce the new release in slack and mail lists, if any.
 5. Release automation should open a PR with changes in [ODH CodeFlare operator repo](https://github.com/opendatahub-io/codeflare-operator). Review the changes proposed by automation. If all the changes are correct then manually cherrypick all `CARRY` and `PATCH` commits from the current main branch, push the result to a dedicated branch and ask on Slack channel for review of the result branch content. Once agreed then push the changes directly to the `main` branch (branch protection has to be temporarily disabled).
-6. Create a release branch on [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) for the next release if it doesn't exist yet.
-7. Create a dedicated branch containing changes from [ODH CodeFlare operator repo](https://github.com/opendatahub-io/codeflare-operator). Cherrypick all relevant changes available in [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) latest release branch which should be available also in the next release. Ask on Slack channel for review of the result branch content. Once agreed then push the changes directly to the release branch.
-8. Make sure that release automation created a PR updating CodeFlare SDK version in [ODH Notebooks repository](https://github.com/opendatahub-io/notebooks). Make sure the PR gets merged.
+6. Build ODH/CFO image by triggering [Build and Push action](https://github.com/opendatahub-io/codeflare-operator/actions/workflows/build-and-push.yaml)
+7. Create a release branch on [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) for the next release if it doesn't exist yet.
+8. Create a dedicated branch containing changes from [ODH CodeFlare operator repo](https://github.com/opendatahub-io/codeflare-operator). Cherrypick all relevant changes available in [Red Hat CodeFlare operator repo](https://github.com/red-hat-data-services/codeflare-operator) latest release branch which should be available also in the next release. Ask on Slack channel for review of the result branch content. Once agreed then push the changes directly to the release branch.
+9. Make sure that release automation created a PR updating CodeFlare SDK version in [ODH Notebooks repository](https://github.com/opendatahub-io/notebooks). Make sure the PR gets merged.
 
 ### Releases involving part of the stack
 
