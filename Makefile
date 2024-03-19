@@ -91,11 +91,12 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
+export BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
+
 BUILD_TAG_SHA := $(shell git rev-list --abbrev-commit --tags --max-count=1)
 BUILD_TAG_NAME := $(shell git describe --abbrev=0 --tags ${BUILD_TAG_SHA} 2>/dev/null || true)
 BUILD_SHA := $(shell git rev-parse --short HEAD)
-BUILD_VERSION := $(BUILD_TAG_NAME:v%=%)
+export BUILD_VERSION := $(BUILD_TAG_NAME:v%=%)
 ifneq ($(BUILD_SHA), $(BUILD_TAG_SHA))
 	BUILD_VERSION := $(BUILD_VERSION)-$(BUILD_SHA)
 endif
