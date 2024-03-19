@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	. "github.com/project-codeflare/codeflare-common/support"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 )
@@ -43,7 +43,7 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 	policyRules := []rbacv1.PolicyRule{
 		{
 			Verbs:     []string{"get", "create", "delete", "list", "patch", "update"},
-			APIGroups: []string{mcadv1beta1.GroupName},
+			APIGroups: []string{mcadv1beta2.GroupVersion.Group},
 			Resources: []string{"appwrappers"},
 		},
 		// Needed for job.logs()
@@ -62,16 +62,16 @@ func TestMnistPyTorchMCAD(t *testing.T) {
 	createNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
 
 	// Make sure the AppWrapper is created and running
-	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
 				ContainElement(WithTransform(AppWrapperName, HavePrefix("mnistjob"))),
-				ContainElement(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive))),
+				ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))),
 			),
 		)
 
 	// Make sure the AppWrapper finishes and is deleted
-	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace.Name), TestTimeoutLong).
 		Should(HaveLen(0))
 }

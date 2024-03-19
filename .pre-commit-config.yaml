@@ -21,8 +21,15 @@ repos:
         entry: yamllint --strict
 
   - repo: https://github.com/dnephin/pre-commit-golang
-    rev: c17f835cf9
+    rev: v0.5.1
     hooks:
       - id: go-fmt
-      - id: golangci-lint
       - id: go-mod-tidy
+
+  - repo: local
+    hooks:
+    - id: golangci-lint
+      name: golangci-lint
+      entry: make lint
+      language: system
+      pass_filenames: false
