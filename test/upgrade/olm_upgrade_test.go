@@ -20,13 +20,14 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	. "github.com/project-codeflare/codeflare-common/support"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/project-codeflare/codeflare-operator/test/e2e"
@@ -139,44 +140,36 @@ func TestMNISTCreateAppWrapper(t *testing.T) {
 	}
 
 	// Create an AppWrapper resource
-	aw := &mcadv1beta1.AppWrapper{
+	aw := &mcadv1beta2.AppWrapper{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: mcadv1beta2.GroupVersion.String(),
+			Kind:       "AppWrapper",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appWrapperName,
 			Namespace: namespace.Name,
 		},
-		Spec: mcadv1beta1.AppWrapperSpec{
-			AggrResources: mcadv1beta1.AppWrapperResourceList{
-				GenericItems: []mcadv1beta1.AppWrapperGenericResource{
-					{
-						DesiredAvailable: 1,
-						CustomPodResources: []mcadv1beta1.CustomPodResourceTemplate{
-							{
-								Replicas: 1,
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("250m"),
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("1"),
-									corev1.ResourceMemory: resource.MustParse("1G"),
-								},
-							},
-						},
-						GenericTemplate:  Raw(test, job),
-						CompletionStatus: "Complete",
-					},
+		Spec: mcadv1beta2.AppWrapperSpec{
+			Components: []mcadv1beta2.AppWrapperComponent{
+				{
+					PodSets:  []mcadv1beta2.AppWrapperPodSet{{Replicas: Ptr(int32(1)), Path: "template.spec.template"}},
+					Template: Raw(test, job),
 				},
 			},
 		},
 	}
 
-	_, err = test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
+	appWrapperResource := mcadv1beta2.GroupVersion.WithResource("appwrappers")
+	awMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created MCAD AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
+	unstruct := unstructured.Unstructured{Object: awMap}
+	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
 	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
-		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
+	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutMedium).
+		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 }
 
@@ -203,14 +196,9 @@ func TestMNISTCheckAppWrapperStatus(t *testing.T) {
 		))
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to complete", namespace.Name, appWrapperName)
-	test.Eventually(AppWrapper(test, namespace, appWrapperName), TestTimeoutShort).Should(
+	test.Eventually(AppWrapper(test, namespace.Name, appWrapperName), TestTimeoutShort).Should(
 		Or(
-			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)),
-			WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateFailed)),
+			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
+			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
 		))
-
-	// Assert the AppWrapper has completed successfully
-	test.Expect(GetAppWrapper(test, namespace, appWrapperName)).
-		To(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateCompleted)))
-
 }

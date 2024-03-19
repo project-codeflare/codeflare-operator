@@ -20,13 +20,15 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	. "github.com/project-codeflare/codeflare-common/support"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Trains the MNIST dataset as a RayJob, executed by a Ray cluster managed by MCAD,
@@ -173,43 +175,39 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	}
 
 	// Create an AppWrapper resource
-	aw := &mcadv1beta1.AppWrapper{
+	aw := &mcadv1beta2.AppWrapper{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: mcadv1beta2.GroupVersion.String(),
+			Kind:       "AppWrapper",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ray-cluster",
 			Namespace: namespace.Name,
 		},
-		Spec: mcadv1beta1.AppWrapperSpec{
-			AggrResources: mcadv1beta1.AppWrapperResourceList{
-				GenericItems: []mcadv1beta1.AppWrapperGenericResource{
-					{
-						DesiredAvailable: 1,
-						CustomPodResources: []mcadv1beta1.CustomPodResourceTemplate{
-							{
-								Replicas: 2,
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("100m"),
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("500m"),
-									corev1.ResourceMemory: resource.MustParse("1G"),
-								},
-							},
-						},
-						GenericTemplate: Raw(test, rayCluster),
+		Spec: mcadv1beta2.AppWrapperSpec{
+			Components: []mcadv1beta2.AppWrapperComponent{
+				{
+					PodSets: []mcadv1beta2.AppWrapperPodSet{
+						{Replicas: Ptr(int32(1)), Path: "template.spec.headGroupSpec.template"},
+						{Replicas: Ptr(int32(1)), Path: "template.spec.workerGroupSpecs[0].template"},
 					},
+					Template: Raw(test, rayCluster),
 				},
 			},
 		},
 	}
 
-	aw, err = test.Client().MCAD().WorkloadV1beta1().AppWrappers(namespace.Name).Create(test.Ctx(), aw, metav1.CreateOptions{})
+	appWrapperResource := mcadv1beta2.GroupVersion.WithResource("appwrappers")
+	awMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created MCAD %s/%s successfully", aw.Namespace, aw.Name)
+	unstruct := unstructured.Unstructured{Object: awMap}
+	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
-	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
-		Should(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive)))
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
+	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutMedium).
+		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 	rayJob := &rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{

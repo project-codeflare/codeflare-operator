@@ -11,15 +11,11 @@ PREVIOUS_VERSION ?= v0.0.0-dev
 VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
-# INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.4.0
-INSTASCALE_REPO ?= github.com/project-codeflare/instascale
-
-# MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.40.0
-MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
-# Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
-MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
+# APPWRAPPER_VERSION defines the default version of the AppWrapper controller
+APPWRAPPER_VERSION ?= v0.6.4
+APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
+# Upstream AppWrapper is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
+APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
 KUBERAY_VERSION ?= v1.0.0
@@ -139,8 +135,8 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen kustomize install-yq ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
-	$(KUSTOMIZE) build config/crd/mcad | $(YQ) -s '"crd-" + .spec.names.singular' --no-doc
+	$(SED) -i -E "s|(- )\${APPWRAPPER_REPO}.*|\1\${APPWRAPPER_CRD}|" config/crd/appwrapper/kustomization.yaml
+	$(KUSTOMIZE) build config/crd/appwrapper | $(YQ) -s '"crd-" + .spec.names.singular' --no-doc
 	mv crd-*.yml config/crd
 
 .PHONY: fmt
@@ -156,8 +152,6 @@ vet: ## Run go vet against code.
 
 .PHONY: modules
 modules: ## Update Go dependencies.
-	go get $(MCAD_REPO)@$(MCAD_VERSION)
-	go get $(INSTASCALE_REPO)@$(INSTASCALE_VERSION)
 	go get github.com/ray-project/kuberay/ray-operator@$(KUBERAY_VERSION)
 	go mod tidy
 
@@ -166,15 +160,14 @@ build: fmt vet ## Build manager binary.
 	go build \
 		-ldflags " \
 			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
-			-X 'main.McadVersion=$(MCAD_VERSION)'  \
-			-X 'main.InstaScaleVersion=$(INSTASCALE_VERSION)' \
+			-X 'main.AppWrapperVersion=$(APPWRAPPER_VERSION)' \
 			-X 'main.BuildDate=$(BUILD_DATE)' \
 		" \
 		-o bin/manager main.go
 
 .PHONY: run
 run: manifests fmt vet ## Run a controller from your host.
-	go run ./main.go
+	ENABLE_WEBHOOKS=false go run ./main.go
 
 .PHONY: image-build
 image-build: test-unit ## Build container image with the manager.
@@ -208,7 +201,7 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
+	$(SED) -i -E "s|(- )\${APPWRAPPER_REPO}.*|\1\${APPWRAPPER_CRD}|" config/crd/appwrapper/kustomization.yaml
 	$(KUSTOMIZE) build config/${ENV} | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
@@ -228,6 +221,7 @@ OPENSHIFT-GOIMPORTS ?= $(LOCALBIN)/openshift-goimports
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 GH_CLI ?= $(LOCALBIN)/gh
 SED ?= /usr/bin/sed
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.4
@@ -236,6 +230,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.9.2
 YQ_VERSION ?= v4.35.2 ## latest version that works with go1.20
 OPERATOR_SDK_VERSION ?= v1.27.0
 GH_CLI_VERSION ?= 2.30.0
+GOLANGCI_LINT_VERSION ?= v1.55.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -263,6 +258,10 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 install-yq: $(YQ) ## Download yq locally if necessary
 $(YQ): $(LOCALBIN)
 	test -s $(LOCALBIN)/yq || GOBIN=$(LOCALBIN) go install github.com/mikefarah/yq/v4@$(YQ_VERSION)
+
+.PHONY: install-golint
+install-golint: $(LOCALBIN)
+	test -s $(LOCALBIN)/golangci-lint || GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -387,6 +386,10 @@ imports: openshift-goimports ## Organize imports in go files using openshift-goi
 .PHONY: verify-imports
 verify-imports: openshift-goimports ## Run import verifications.
 	./hack/verify-imports.sh $(OPENSHIFT-GOIMPORTS)
+
+.PHONY: lint
+lint: install-golint ## Run golangci-lint linter
+	$(GOLANGCI_LINT) run
 
 .PHONY: image-mnist-job-test-build
 image-mnist-job-test-build: ## Build container image with the MNIST job.

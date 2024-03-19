@@ -12,16 +12,12 @@ on:
         description: 'The previous semantic version that this tag replaces.'
         required: true
         default: 'v0.0.0-dev'
-      mcad-version:
-        description: 'Published version of multi-cluster-app-dispatcher'
+      appwrapper-version:
+        description: 'Published version of appwrapper'
         required: true
         default: 'v0.0.0-dev'
       codeflare-sdk-version:
         description: 'Published version of CodeFlare-SDK'
-        required: true
-        default: 'v0.0.0-dev'
-      instascale-version:
-        description: 'Published version of InstaScale'
         required: true
         default: 'v0.0.0-dev'
       kuberay-version:
@@ -64,7 +60,7 @@ jobs:
     - name: Set Go
       uses: actions/setup-go@v5
       with:
-        go-version: v1.20
+        go-version-file: './go.mod'
 
     - name: Verify that release doesn't exist yet
       shell: bash {0}
@@ -90,16 +86,14 @@ jobs:
     - name: Adjust Compatibility Matrix in readme
       run: |
         sed -i -E "s|(.*CodeFlare Operator.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.version }}\2${{ github.event.inputs.version }}\3|" README.md
-        sed -i -E "s|(.*Multi-Cluster App Dispatcher.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.mcad-version }}\2${{ github.event.inputs.mcad-version }}\3|" README.md
+        sed -i -E "s|(.*AppWrapper.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.appwrapper-version }}\2${{ github.event.inputs.appwrapper-version }}\3|" README.md
         sed -i -E "s|(.*CodeFlare-SDK.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.codeflare-sdk-version }}\2${{ github.event.inputs.codeflare-sdk-version }}\3|" README.md
-        sed -i -E "s|(.*InstaScale.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.instascale-version }}\2${{ github.event.inputs.instascale-version }}\3|" README.md
         sed -i -E "s|(.*KubeRay.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.kuberay-version }}\2${{ github.event.inputs.kuberay-version }}\3|" README.md
 
-    - name: Adjust MCAD, SDK and InstaScale dependencies in the code
+    - name: Adjust AppWrapper and SDK dependencies in the code
       run: |
-        sed -i -E "s/(.*MCAD_VERSION \?= ).*/\1${{ github.event.inputs.mcad-version }}/" Makefile
-        sed -i -E "s/(.*MCAD_REF \?= ).*/\1release-\${MCAD_VERSION}/" Makefile
-        sed -i -E "s/(.*INSTASCALE_VERSION \?= ).*/\1${{ github.event.inputs.instascale-version }}/" Makefile
+        sed -i -E "s/(.*APPWRAPPER_VERSION \?= ).*/\1${{ github.event.inputs.appwrapper-version }}/" Makefile
+        sed -i -E "s/(.*APPWRAPPER_REF \?= ).*/\1release-\${APPWRAPPER_VERSION}/" Makefile
         sed -i -E "s/(.*KUBERAY_VERSION \?= ).*/\1${{ github.event.inputs.kuberay-version }}/" Makefile
 
     - name: Update image version in params.env
@@ -192,8 +186,7 @@ jobs:
       env:
         VERSION: ${{ github.event.inputs.version }}
         PREVIOUS_VERSION: ${{ github.event.inputs.replaces }}
-        INSTASCALE_VERSION: ${{ github.event.inputs.instascale-version }}
-        MCAD_VERSION: ${{ github.event.inputs.mcad-version }}
+        APPWRAPPER_VERSION: ${{ github.event.inputs.appwrapper-version }}
         GH_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
         OPERATORS_REPO_FORK_ORG: ${{ github.event.inputs.community-operators-prod-fork-organization }}
         OPERATORS_REPO_ORG: ${{ github.event.inputs.community-operators-prod-organization }}

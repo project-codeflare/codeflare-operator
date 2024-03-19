@@ -14,14 +14,14 @@ The following should be installed in your working environment:
 ## Basic Overview
 The main entrypoint for the operator is `main.go`
 
-The MCAD and InstaScale custom resources are defined under the `api` dir:
- - See `mcad_types.go` and `instascale_types.go`
+The AppWrapper custom resources are defined under the `api` dir:
+ - See `appwraper_types.go`
 
-The MCAD and InstaScale resource templates can be found under `config/internal`:
- - Sorted under `mcad` and `instascale` subdirs
+The AppWrapper resource templates can be found under `config/internal`:
+ - Sorted under `appwrapper` subdirs
 
-The code for MCAD/InstaScale resource reconcilliation can be found in the `controllers` dir:
- - See `mcad_controller.go` and `instascale_controller.go`
+The code for AppWrapper resource reconcilliation can be found in the `controllers` dir:
+ - See `appwrapper_controller.go`
 
 ## Building and Deployment
 If changes are made in the `api` dir, run: `make manifests`
@@ -53,7 +53,7 @@ The CodeFlare Operator currently has unit tests and pre-commit checks
  - Note that both are required for CI to pass on pull requests
 
 To write and inspect unit tests:
- - MCAD and InstaScale unit tests under `mcad_controller_test.go` and `instascale_controller_test.go` in the `controllers` dir
+ - AppWrapper unit tests under `appwrapper_controller_test.go` in the `controllers` dir
  - Unit test functions are defined in `suite_test.go` (with utils in `util/util.go`) in the `controllers dir`
  - Test cases defined under `controllers/testdata`
 

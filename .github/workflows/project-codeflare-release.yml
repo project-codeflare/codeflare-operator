@@ -10,14 +10,11 @@ on:
       replaces:
         description: 'The previous operator semantic version that this release replaces (for example: v0.0.0)'
         required: true
-      mcad-version:
-        description: 'Version of multi-cluster-app-dispatcher to be released (for example: v0.0.0)'
+      appwrapper-version:
+        description: 'Version of appwrapper to be released (for example: v0.0.0)'
         required: true
       codeflare-sdk-version:
         description: 'Version of CodeFlare-SDK to be released (for example: v0.0.0)'
-        required: true
-      instascale-version:
-        description: 'Version of InstaScale to be released (for example: v0.0.0)'
         required: true
       kuberay-version:
         description: 'Tested version of KubeRay (for example: v0.0.0)'
@@ -48,78 +45,46 @@ jobs:
         echo "Below are the release parameters set for the workflow:"
         echo "Operator Version: ${{ github.event.inputs.operator-version }}"
         echo "Replaces: ${{ github.event.inputs.replaces }}"
-        echo "MCAD Version: ${{ github.event.inputs.mcad-version }}"
+        echo "AppWrapper Version: ${{ github.event.inputs.appwrapper-version }}"
         echo "CodeFlare SDK Version: ${{ github.event.inputs.codeflare-sdk-version }}"
-        echo "InstaScale Version: ${{ github.event.inputs.instascale-version }}"
         echo "Tested KubeRay Version: ${{ github.event.inputs.kuberay-version }}"
         echo "Is Stable: ${{ github.event.inputs.is-stable }}"
         echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
         echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
         echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
 
-  release-mcad:
+  release-appwrapper:
     needs: check-kuberay-version
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check if MCAD release does exist
+    - name: Check if AppWrapper release does exist
       run: |
-        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/multi-cluster-app-dispatcher/releases/tag/${{ github.event.inputs.mcad-version }})
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/appwrapper/releases/tag/${{ github.event.inputs.appwrapper-version }})
         if [[ "$status_code" == "200" ]]; then
-          echo "MCAD release with version ${{ github.event.inputs.mcad-version }} already exist. Will not create MCAD release."
+          echo "AppWrapper release with version ${{ github.event.inputs.appwrapper-version }} already exist. Will not create AppWrapper release."
         fi
-        echo "MCAD_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
+        echo "APPWRAPPER_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
 
-    - name: Release MCAD
+    - name: Release AppWrapper
       run: |
-        gh workflow run mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --ref go-1.20 --field tag=${{ github.event.inputs.mcad-version }}
+        gh workflow run release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --field tag=${{ github.event.inputs.appwrapper-version }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
-      if: ${{ env.MCAD_RELEASE_STATUS_CODE != '200' }}
+      if: ${{ env.APPWRAPPER_RELEASE_STATUS_CODE != '200' }}
 
-    - name: Wait for MCAD run to finish
+    - name: Wait for AppWrapper run to finish
       run: |
         # wait for a while for Run to be started
         sleep 5
-        run_id=$(gh run list --workflow mcad-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --limit 1 --json databaseId --jq .[].databaseId)
-        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/multi-cluster-app-dispatcher --interval 10 --exit-status
+        run_id=$(gh run list --workflow release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --interval 10 --exit-status
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
-      if: ${{ env.MCAD_RELEASE_STATUS_CODE != '200' }}
+      if: ${{ env.APPWRAPPER_RELEASE_STATUS_CODE != '200' }}
 
-  release-instascale:
-    needs: release-mcad
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check if Instascale release does exist
-      run: |
-        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/instascale/releases/tag/${{ github.event.inputs.instascale-version }})
-        if [[ "$status_code" == "200" ]]; then
-          echo "Instascale release with version ${{ github.event.inputs.instascale-version }} already exist. Will not create Instascale release."
-        fi
-        echo "INSTASCALE_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
-
-    - name: Release InstaScale
-      run: |
-        gh workflow run instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --ref ${{ github.ref }} --field tag=${{ github.event.inputs.instascale-version }} --field mcad-version=${{ github.event.inputs.mcad-version }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-      shell: bash
-      if: ${{ env.INSTASCALE_RELEASE_STATUS_CODE != '200' }}
-
-    - name: Wait for InstaScale run to finish
-      run: |
-        # wait for a while for Run to be started
-        sleep 5
-        run_id=$(gh run list --workflow instascale-release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --limit 1 --json databaseId --jq .[].databaseId)
-        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/instascale --interval 10 --exit-status
-      env:
-        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-      shell: bash
-      if: ${{ env.INSTASCALE_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-sdk:
     needs: check-kuberay-version
@@ -156,13 +121,13 @@ jobs:
       if: ${{ env.SDK_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-operator:
-    needs: [release-mcad, release-instascale, release-codeflare-sdk]
+    needs: [release-appwrapper, release-codeflare-sdk]
     runs-on: ubuntu-latest
 
     steps:
     - name: Release CodeFlare operator
       run: |
-        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field mcad-version=${{ github.event.inputs.mcad-version }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field instascale-version=${{ github.event.inputs.instascale-version }} --field kuberay-version=${{ github.event.inputs.kuberay-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
+        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field appwrapper-version=${{ github.event.inputs.appwrapper-version }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field kuberay-version=${{ github.event.inputs.kuberay-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash

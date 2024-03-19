@@ -11,8 +11,6 @@ resources:
 - mcad_manager_role_binding.yaml
 - role.yaml
 - role_binding.yaml
-- instascale_role.yaml
-- instascale_role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
 - mcad-controller-ray-clusterrolebinding.yaml

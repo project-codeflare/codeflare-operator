@@ -4,41 +4,39 @@ metadata:
   annotations:
     alm-examples: |-
       [{
-        "apiVersion": "workload.codeflare.dev/v1beta1",
+        "apiVersion": "workload.codeflare.dev/v1beta2",
         "kind": "AppWrapper",
         "metadata": {"name": "0001-aw-generic-deployment-1"},
         "spec": {
-          "resources": {
-            "GenericItems": [{
-              "replicas": 1,
-              "generictemplate": {
-                "apiVersion": "apps/v1",
-                "kind": "Deployment",
-                "metadata": {
-                  "name": "0001-aw-generic-deployment-1",
-                  "labels": {"app": "0001-aw-generic-deployment-1"}
-                },
-                "spec": {
-                  "selector": {"matchLabels": {"app": "0001-aw-generic-deployment-1"}},
-                  "replicas": 2,
-                  "template": {
-                    "metadata": {"labels": {"app": "0001-aw-generic-deployment-1"}},
-                    "spec": {
-                      "containers": [{
-                        "name": "0001-aw-generic-deployment-1",
-                        "image": "kicbase/echo-server:1.0",
-                        "ports": [{"containerPort": 80}],
-                        "resources": {
-                          "requests": {"cpu": "100m", "memory": "256Mi"},
-                          "limits": {"cpu": "100m", "memory": "256Mi"}
-                        }
-                      }]
-                    }
+          "components": [{
+            "podSets" : [{ "replicas": 2, "path": "template.spec.template" }],
+            "template": {
+              "apiVersion": "apps/v1",
+              "kind": "Deployment",
+              "metadata": {
+                "name": "0001-aw-generic-deployment-1",
+                "labels": {"app": "0001-aw-generic-deployment-1"}
+              },
+              "spec": {
+                "selector": {"matchLabels": {"app": "0001-aw-generic-deployment-1"}},
+                "replicas": 2,
+                "template": {
+                  "metadata": {"labels": {"app": "0001-aw-generic-deployment-1"}},
+                  "spec": {
+                    "containers": [{
+                      "name": "0001-aw-generic-deployment-1",
+                      "image": "kicbase/echo-server:1.0",
+                      "ports": [{"containerPort": 80}],
+                      "resources": {
+                        "requests": {"cpu": "100m", "memory": "256Mi"},
+                        "limits": {"cpu": "100m", "memory": "256Mi"}
+                      }
+                    }]
                   }
                 }
               }
-            }]
-          }
+            }
+          }]
         }
       }]
     capabilities: Basic Install
@@ -56,17 +54,7 @@ spec:
       displayName: AppWrapper
       kind: AppWrappers
       name: appwrappers.workload.codeflare.dev
-      version: v1beta1
-    - description: SchedulingSpec is the Schema for the SchedulingSpec API
-      displayName: SchedulingSpec
-      kind: SchedulingSpecs
-      name: schedulingspecs.workload.codeflare.dev
-      version: v1beta1
-    - description: QuotaSubtree is the Schema for the QuotaSubtree API
-      displayName: QuotaSubtree
-      kind: QuotaSubtrees
-      name: quotasubtrees.quota.codeflare.dev
-      version: v1
+      version: v1beta2
   description: CodeFlare allows you to scale complex pipelines anywhere
   displayName: CodeFlare Operator
   icon:
@@ -88,9 +76,7 @@ spec:
   keywords:
   - Pipelines
   - Scaling
-  - MCAD
   - App
-  - InstaScale
   - Jobs
   links:
   - name: Codeflare Operator
