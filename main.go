@@ -30,13 +30,16 @@ import (
 	quotasubtreev1alpha1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1alpha1"
 	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
 	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -51,7 +54,9 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	routev1 "github.com/openshift/api/route/v1"
 
+	cfoControllers "github.com/project-codeflare/codeflare-operator/controllers"
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -75,6 +80,10 @@ func init() {
 	// InstaScale
 	utilruntime.Must(configv1.Install(scheme))
 	utilruntime.Must(machinev1beta1.Install(scheme))
+	// Ray
+	utilruntime.Must(rayv1.AddToScheme(scheme))
+	// OpenShift Route
+	utilruntime.Must(routev1.Install(scheme))
 }
 
 func main() {
@@ -171,6 +180,13 @@ func main() {
 		exitOnError(instaScaleController.SetupWithManager(context.Background(), mgr), "Error setting up InstaScale controller")
 	}
 
+	if v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster")); v {
+		rayClusterController := cfoControllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
+	} else if err != nil {
+		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
+	}
+
 	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
 	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
 
@@ -219,6 +235,23 @@ func createConfigMap(ctx context.Context, client kubernetes.Interface, ns, name 
 
 	_, err = client.CoreV1().ConfigMaps(ns).Create(ctx, configMap, metav1.CreateOptions{})
 	return err
+}
+
+func HasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
+	gv, kind := gvk.ToAPIVersionAndKind()
+	if resources, err := dc.ServerResourcesForGroupVersion(gv); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	} else {
+		for _, res := range resources.APIResources {
+			if res.Kind == kind {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func namespaceOrDie() string {

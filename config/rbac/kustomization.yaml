@@ -7,6 +7,8 @@ resources:
 - admin_role.yaml
 - editor_role.yaml
 - service_account.yaml
+- mcad_manager_role.yaml
+- mcad_manager_role_binding.yaml
 - role.yaml
 - role_binding.yaml
 - instascale_role.yaml
