@@ -21,6 +21,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -60,7 +61,6 @@ type RayClusterReconciler struct {
 	routeClient *routev1client.RouteV1Client
 	Scheme      *runtime.Scheme
 	CookieSalt  string
-	IsOpenShift bool
 }
 
 type IngressOptions struct {
@@ -87,6 +87,9 @@ const (
 	strTrue                 = "true"
 	strFalse                = "false"
 	logRequeueing           = "requeueing"
+	defaultIngressName      = "ray-dashboard"
+	defaultIngressPath      = "/"
+	defaultIngressPathType  = networkingv1.PathTypePrefix
 )
 
 var (
@@ -117,7 +120,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	var cluster rayv1.RayCluster
 
-	IsOpenShift := getClusterType(logger)
+	IsOpenShift, ingressHost := getClusterType(logger, r.kubeClient, cluster.Name, cluster.Namespace)
 
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
 		if !errors.IsNotFound(err) {
@@ -236,7 +239,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info(string(cluster.Status.State))
 		// create an ingress
 		logger.Info("Creating Ingress")
-		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, createIngressApplyConfiguration(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, createIngressApplyConfiguration(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update Ingress")
 		}
@@ -383,43 +386,6 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// getDiscoveryClient returns a discovery client for the current reconciler
-func getDiscoveryClient(config *rest.Config) (*discovery.DiscoveryClient, error) {
-	return discovery.NewDiscoveryClientForConfig(config)
-}
-
-// Check where we are running. We are trying to distinguish here whether
-// this is vanilla kubernetes cluster or Openshift
-func getClusterType(logger logr.Logger) bool {
-	// The discovery package is used to discover APIs supported by a Kubernetes API server.
-	config, err := ctrl.GetConfig()
-	if err == nil && config != nil {
-		dclient, err := getDiscoveryClient(config)
-		if err == nil && dclient != nil {
-			apiGroupList, err := dclient.ServerGroups()
-			if err != nil {
-				logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
-				return false
-			} else {
-				for i := 0; i < len(apiGroupList.Groups); i++ {
-					if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
-						logger.Info("We detected being on OpenShift!")
-						return true
-					}
-				}
-				logger.Info("We detected being on Vanilla Kubernetes!")
-				return false
-			}
-		} else {
-			logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
-			return false
-		}
-	} else {
-		logger.Info("Cannot retrieve config, assuming we're on Vanilla Kubernetes")
-		return false
-	}
-}
-
 func serviceNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-head-svc"
 }
@@ -439,9 +405,7 @@ func createRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration 
 }
 
 // Create an Ingress object for the RayCluster
-func createIngressApplyConfiguration(cluster *rayv1.RayCluster) *networkingv1ac.IngressApplyConfiguration {
-	pt := networkingv1.PathTypeImplementationSpecific
-
+func createIngressApplyConfiguration(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(cluster.Name, cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithOwnerReferences(v1.OwnerReference().
@@ -451,16 +415,16 @@ func createIngressApplyConfiguration(cluster *rayv1.RayCluster) *networkingv1ac.
 			WithUID(types.UID(cluster.UID))).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
-				WithHost("kind"). // Specify the host name here
+				WithHost(ingressHost). // host name for specific cluster type
 				WithHTTP(networkingv1ac.HTTPIngressRuleValue().
 					WithPaths(networkingv1ac.HTTPIngressPath().
-						WithPath("/"). // Specify the path here
-						WithPathType(pt).
+						WithPath(defaultIngressPath).
+						WithPathType(defaultIngressPathType).
 						WithBackend(networkingv1ac.IngressBackend().
 							WithService(networkingv1ac.IngressServiceBackend().
 								WithName(serviceNameFromCluster(cluster)).
 								WithPort(networkingv1ac.ServiceBackendPort().
-									WithName(RegularServicePortName), // Assuming RegularServicePortName is a string constant defining the port name
+									WithName(RegularServicePortName),
 								),
 							),
 						),
@@ -471,6 +435,63 @@ func createIngressApplyConfiguration(cluster *rayv1.RayCluster) *networkingv1ac.
 	// Optionally, add TLS configuration here if needed
 }
 
+// isOnKindCluster checks if the current cluster is a KinD cluster.
+// It searches for a node with a label commonly used by KinD clusters.
+func isOnKindCluster(clientset *kubernetes.Clientset) (bool, error) {
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "kubernetes.io/hostname=kind-control-plane",
+	})
+	if err != nil {
+		return false, err
+	}
+	// If we find one or more nodes with the label, assume it's a KinD cluster.
+	return len(nodes.Items) > 0, nil
+}
+
+// getDiscoveryClient returns a discovery client for the current reconciler
+func getDiscoveryClient(config *rest.Config) (*discovery.DiscoveryClient, error) {
+	return discovery.NewDiscoveryClientForConfig(config)
+}
+
+// Check where we are running. We are trying to distinguish here whether
+// this is vanilla kubernetes cluster or Openshift
+func getClusterType(logger logr.Logger, clientset *kubernetes.Clientset, clusterName string, namespace string) (bool, string) {
+	// The discovery package is used to discover APIs supported by a Kubernetes API server.
+	ingress_domain := "local" //TEMP until label is available
+	config, err := ctrl.GetConfig()
+	if err == nil && config != nil {
+		dclient, err := getDiscoveryClient(config)
+		if err == nil && dclient != nil {
+			apiGroupList, err := dclient.ServerGroups()
+			if err != nil {
+				logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
+				return false, ""
+			} else {
+				for i := 0; i < len(apiGroupList.Groups); i++ {
+					if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
+						logger.Info("We detected being on OpenShift!")
+						return true, ""
+					}
+				}
+				onKind, _ := isOnKindCluster(clientset)
+				if onKind && ingress_domain == "" { //TEMP until label is available
+					logger.Info("We detected being on a KinD cluster!")
+					return false, "kind"
+				}
+				// else if onKinD and ingress_domain is not none, use ingress_domain, else use ingress-domain
+				logger.Info("We detected being on Vanilla Kubernetes!")
+				return false, fmt.Sprintf("ray-dashboard-%s-%s.local", clusterName, namespace) //temp it would be .{ingress-domain}
+			}
+		} else {
+			logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
+			return false, "ingress-domain-here" //TEMP until label is available
+		}
+	} else {
+		logger.Info("Cannot retrieve config, assuming we're on Vanilla Kubernetes")
+		return false, "ingress-domain-here" //TEMP until label is available
+	}
+}
+
 // Need to create route for Ray Client for local_interactive
 // No more ingress_options - Removing completely.
-// What to do about ingress_domain?
+// What to do about ingress_domain? Needed for local_interactive?
