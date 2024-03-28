@@ -6,7 +6,7 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/project-codeflare/appwrapper v0.6.4
-	github.com/project-codeflare/codeflare-common v0.0.0-20240321160419-5fce7084f350
+	github.com/project-codeflare/codeflare-common v0.0.0-20240328004251-117c22817715
 	github.com/ray-project/kuberay/ray-operator v1.1.0-alpha.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.29.1

@@ -206,7 +206,7 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutMedium).
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 	rayJob := &rayv1.RayJob{
