@@ -98,11 +98,11 @@ func main() {
 			QPS:   ptr.To(float32(50)),
 			Burst: ptr.To(int32(100)),
 		},
+		AppWrapper: &awconfig.AppWrapperConfig{
+			ManageJobsWithoutQueueName: true,
+			StandaloneMode:             true, // TODO: Enables AWController to work without Kueue; simplifies testing for now.
+		},
 		ControllerManager: config.ControllerManager{
-			AppWrapper: awconfig.AppWrapperConfig{
-				ManageJobsWithoutQueueName: true,
-				StandaloneMode:             true, // TODO: Enables AWController to work without Kueue; simplifies testing for now.
-			},
 			Metrics: config.MetricsConfiguration{
 				BindAddress:   ":8080",
 				SecureServing: true,
@@ -163,7 +163,7 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	exitOnError(awctrl.SetupWithManager(ctx, mgr, &cfg.AppWrapper), "unable to setup AppWrapper controller")
+	exitOnError(awctrl.SetupWithManager(ctx, mgr, cfg.AppWrapper), "unable to setup AppWrapper controller")
 
 	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
 	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")

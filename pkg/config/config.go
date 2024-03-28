@@ -29,12 +29,12 @@ type CodeFlareOperatorConfiguration struct {
 
 	// ControllerManager returns the configurations for controllers
 	ControllerManager `json:",inline"`
+
+	// AppWrapper contains the AppWrapper controller configuration
+	AppWrapper *awconfig.AppWrapperConfig `json:"appwrapper,omitempty"`
 }
 
 type ControllerManager struct {
-	// AppWrapper constains the AppWrapper controller configuration
-	AppWrapper awconfig.AppWrapperConfig
-
 	// Metrics contains the controller metrics configuration
 	// +optional
 	Metrics MetricsConfiguration `json:"metrics,omitempty"`
