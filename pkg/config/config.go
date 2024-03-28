@@ -31,6 +31,9 @@ type CodeFlareOperatorConfiguration struct {
 	ControllerManager `json:",inline"`
         
 	KubeRay *KubeRayConfiguration `json:"kuberay,omitempty"`
+
+	// AppWrapper contains the AppWrapper controller configuration
+	AppWrapper *awconfig.AppWrapperConfig `json:"appwrapper,omitempty"`
 }
 
 type KubeRayConfiguration struct {
@@ -38,9 +41,6 @@ type KubeRayConfiguration struct {
 }
 
 type ControllerManager struct {
-	// AppWrapper constains the AppWrapper controller configuration
-	AppWrapper awconfig.AppWrapperConfig
-
 	// Metrics contains the controller metrics configuration
 	// +optional
 	Metrics MetricsConfiguration `json:"metrics,omitempty"`
