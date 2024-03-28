@@ -6,7 +6,7 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/project-codeflare/appwrapper v0.6.4
-	github.com/project-codeflare/codeflare-common v0.0.0-20240328004251-117c22817715
+	github.com/project-codeflare/codeflare-common v0.0.0-20240328133031-85b5315fd82b
 	github.com/ray-project/kuberay/ray-operator v1.1.0-alpha.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.29.1
@@ -51,6 +51,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kubeflow/training-operator v1.7.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.18 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -63,6 +64,7 @@ require (
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.46.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
