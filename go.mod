@@ -8,7 +8,7 @@ require (
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.6.4
-	github.com/project-codeflare/codeflare-common v0.0.0-20240328004251-117c22817715
+	github.com/project-codeflare/codeflare-common v0.0.0-20240328133031-85b5315fd82b
 	github.com/ray-project/kuberay/ray-operator v1.0.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.29.1
@@ -53,6 +53,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kubeflow/training-operator v1.7.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.18 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
