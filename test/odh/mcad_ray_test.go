@@ -88,7 +88,7 @@ func TestMCADRay(t *testing.T) {
 	createNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
 
 	// Make sure the AppWrapper is created and running
-	test.Eventually(AppWrappers(test, namespace.Name), TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -98,7 +98,7 @@ func TestMCADRay(t *testing.T) {
 		)
 
 	// Make sure the AppWrapper finishes and is deleted
-	test.Eventually(AppWrappers(test, namespace.Name), TestTimeoutLong).
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
 		Should(HaveLen(0))
 }
 

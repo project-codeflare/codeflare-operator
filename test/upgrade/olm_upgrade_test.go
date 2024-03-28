@@ -168,7 +168,7 @@ func TestMNISTCreateAppWrapper(t *testing.T) {
 	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
 	test.T().Logf("Waiting for MCAD %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutMedium).
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 }
@@ -196,7 +196,7 @@ func TestMNISTCheckAppWrapperStatus(t *testing.T) {
 		))
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to complete", namespace.Name, appWrapperName)
-	test.Eventually(AppWrapper(test, namespace.Name, appWrapperName), TestTimeoutShort).Should(
+	test.Eventually(AppWrapper(test, namespace, appWrapperName), TestTimeoutShort).Should(
 		Or(
 			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
 			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),

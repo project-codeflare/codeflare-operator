@@ -152,11 +152,11 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutMedium).
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
 		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to complete", job.Namespace, job.Name)
-	test.Eventually(AppWrapper(test, namespace.Name, aw.Name), TestTimeoutLong).Should(
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutLong).Should(
 		Or(
 			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
 			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
