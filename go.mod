@@ -7,8 +7,8 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/openshift/api v0.0.0-20230213134911-7ba313770556
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/appwrapper v0.6.4
-	github.com/project-codeflare/codeflare-common v0.0.0-20240328133031-85b5315fd82b
+	github.com/project-codeflare/appwrapper v0.7.1
+	github.com/project-codeflare/codeflare-common v0.0.0-20240328182412-38df643db183
 	github.com/ray-project/kuberay/ray-operator v1.0.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.29.1
@@ -59,6 +59,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/open-policy-agent/cert-controller v0.10.1 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.368 // indirect
 	github.com/orcaman/concurrent-map v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -70,6 +71,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect

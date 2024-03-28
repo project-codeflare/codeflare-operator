@@ -12,10 +12,13 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # APPWRAPPER_VERSION defines the default version of the AppWrapper controller
-APPWRAPPER_VERSION ?= v0.6.4
+APPWRAPPER_VERSION ?= v0.7.0
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 # Upstream AppWrapper is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
+
+# KUEUE_VERSION defines the default version of Kueue (used for testing)
+KUEUE_VERSION ?= v0.6.1
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
 KUBERAY_VERSION ?= v1.0.0
@@ -374,6 +377,10 @@ test-e2e: manifests fmt vet ## Run e2e tests.
 .PHONY: kind-e2e
 kind-e2e: ## Set up e2e KinD cluster
 	test/e2e/kind.sh
+
+.PHONY: kueue-e2e
+kueue-e2e: ## Deploy Kueue
+	KUEUE_VERSION=$(KUEUE_VERSION) test/e2e/kueue.sh
 
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.

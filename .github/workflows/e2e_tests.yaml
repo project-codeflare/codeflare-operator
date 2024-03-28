@@ -55,6 +55,10 @@ jobs:
       - name: Setup and start KinD cluster
         uses: ./common/github-actions/kind
 
+      - name: Deploy Kueue
+        run: |
+          make kueue-e2e
+
       - name: Deploy CodeFlare stack
         id: deploy
         run: |

@@ -46,7 +46,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
@@ -106,15 +105,13 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
+	namespace := namespaceOrDie()
 	cfg := &config.CodeFlareOperatorConfiguration{
 		ClientConnection: &config.ClientConnection{
 			QPS:   ptr.To(float32(50)),
 			Burst: ptr.To(int32(100)),
 		},
-		AppWrapper: &awconfig.AppWrapperConfig{
-			ManageJobsWithoutQueueName: true,
-			StandaloneMode:             true, // TODO: Enables AWController to work without Kueue; simplifies testing for now.
-		},
+		AppWrapper: awconfig.NewConfig(namespace),
 		ControllerManager: config.ControllerManager{
 			Metrics: config.MetricsConfiguration{
 				BindAddress:   ":8080",
@@ -131,6 +128,10 @@ func main() {
 			RayDashboardOAuthEnabled: pointer.Bool(true),
 		},
 	}
+	cfg.AppWrapper.CertManagement.WebhookSecretName = "codeflare-operator-webhook-server-cert"
+	cfg.AppWrapper.CertManagement.WebhookServiceName = "codeflare-operator-webhook-service"
+	cfg.AppWrapper.CertManagement.MutatingWebhookConfigName = "codeflare-operator-mutating-webhook-configuration"
+	cfg.AppWrapper.CertManagement.ValidatingWebhookConfigName = "codeflare-operator-validating-webhook-configuration"
 
 	kubeConfig, err := ctrl.GetConfig()
 	exitOnError(err, "unable to get client config")
@@ -179,7 +180,12 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	exitOnError(awctrl.SetupWithManager(ctx, mgr, cfg.AppWrapper), "unable to setup AppWrapper controller")
+	certsReady := make(chan struct{})
+	if os.Getenv("ENABLE_WEBHOOKS") == "false" {
+		close(certsReady)
+	} else {
+		exitOnError(awctrl.SetupCertManagement(mgr, &cfg.AppWrapper.CertManagement, certsReady), "unable to set up cert rotation")
+	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
 	if v && *cfg.KubeRay.RayDashboardOAuthEnabled {
@@ -189,8 +195,12 @@ func main() {
 		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
 	}
 
-	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
-	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
+	// Ascynchronous because controllers need to wait for certificate to be ready for webhooks to work
+	go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper, certsReady, setupLog)
+
+	exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper), "unable to setup indexers")
+
+	exitOnError(awctrl.SetupProbeEndpoints(mgr, certsReady), "unable to setup probe endpoints")
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")

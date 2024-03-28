@@ -33,6 +33,8 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
+    # Deploy Kueue
+    make kueue-e2e
     # Install the CRDs
     make install
     ```

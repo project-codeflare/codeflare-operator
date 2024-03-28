@@ -47,9 +47,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          # TODO: Disabling webhooks is a temporary hack.  Webhooks are required for Kueue integration.
-          - name: ENABLE_WEBHOOKS
-            value: "false"
         ports:
           - containerPort: 8080
             protocol: TCP
