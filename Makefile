@@ -174,7 +174,14 @@ build: fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests fmt vet ## Run a controller from your host.
-	go run ./main.go
+	go run \
+		-ldflags " \
+			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
+			-X 'main.McadVersion=$(MCAD_VERSION)'  \
+			-X 'main.InstaScaleVersion=$(INSTASCALE_VERSION)' \
+			-X 'main.BuildDate=$(BUILD_DATE)' \
+		" \
+		./main.go
 
 .PHONY: image-build
 image-build: test-unit ## Build container image with the manager.
