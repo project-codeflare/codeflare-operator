@@ -37,8 +37,9 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
-	// Create a namespace
+	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
+	localQueue := EnsureLocalQueue(test, namespace)
 
 	// MNIST training script
 	mnist := &corev1.ConfigMap{
@@ -181,8 +182,9 @@ func TestMNISTRayJobMCADRayCluster(t *testing.T) {
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ray-cluster",
-			Namespace: namespace.Name,
+			Name:        "ray-cluster",
+			Namespace:   namespace.Name,
+			Annotations: map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{

@@ -35,8 +35,9 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 
-	// Create a namespace
+	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
+	localQueue := EnsureLocalQueue(test, namespace)
 
 	// Test configuration
 	config := &corev1.ConfigMap{
@@ -130,8 +131,9 @@ func TestMNISTPyTorchMCAD(t *testing.T) {
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
-			Namespace: namespace.Name,
+			Name:        "mnist",
+			Namespace:   namespace.Name,
+			Annotations: map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
