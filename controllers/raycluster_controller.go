@@ -21,7 +21,6 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
-	"strconv"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
@@ -128,52 +127,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	val, ok := cluster.ObjectMeta.Annotations["codeflare.dev/oauth"]
-	boolVal, err := strconv.ParseBool(val)
-	if err != nil {
-		logger.Error(err, "Could not convert codeflare.dev/oauth value to bool", "codeflare.dev/oauth", val)
-	}
-	if !ok || err != nil || !boolVal {
-		logger.Info("Removing all OAuth Objects")
-		err := r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: oauthSecretNameFromCluster(&cluster)}, &corev1.Secret{},
-		)
-		if err != nil {
-			logger.Error(err, "Error deleting OAuth Secret, retrying", logRequeueing, strTrue)
-			return ctrl.Result{RequeueAfter: requeueTime}, nil
-		}
-		err = r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: oauthServiceNameFromCluster(&cluster)}, &corev1.Service{},
-		)
-		if err != nil {
-			logger.Error(err, "Error deleting OAuth Service, retrying", logRequeueing, strTrue)
-			return ctrl.Result{RequeueAfter: requeueTime}, nil
-		}
-		err = r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: oauthServiceAccountNameFromCluster(&cluster)}, &corev1.ServiceAccount{},
-		)
-		if err != nil {
-			logger.Error(err, "Error deleting OAuth ServiceAccount, retrying", logRequeueing, strTrue)
-			return ctrl.Result{RequeueAfter: requeueTime}, nil
-		}
-		err = r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: crbNameFromCluster(&cluster)}, &rbacv1.ClusterRoleBinding{},
-		)
-		if err != nil {
-			logger.Error(err, "Error deleting OAuth CRB, retrying", logRequeueing, strTrue)
-			return ctrl.Result{RequeueAfter: requeueTime}, nil
-		}
-		err = r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: routeNameFromCluster(&cluster)}, &routev1.Route{},
-		)
-		if err != nil {
-			logger.Error(err, "Error deleting OAuth Route, retrying", logRequeueing, strTrue)
-			return ctrl.Result{RequeueAfter: requeueTime}, nil
-		}
-		return ctrl.Result{}, nil
-	}
-
-	_, err = r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update OAuth Route")
 	}

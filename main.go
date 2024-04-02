@@ -134,6 +134,7 @@ func main() {
 				MaxScaleoutAllowed: 5,
 			},
 		},
+		RayClusterOAuth: pointer.Bool(true),
 	}
 
 	kubeConfig, err := ctrl.GetConfig()
@@ -180,7 +181,8 @@ func main() {
 		exitOnError(instaScaleController.SetupWithManager(context.Background(), mgr), "Error setting up InstaScale controller")
 	}
 
-	if v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster")); v {
+	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
+	if v && *cfg.RayClusterOAuth {
 		rayClusterController := cfoControllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {
