@@ -36,6 +36,8 @@ type CodeFlareOperatorConfiguration struct {
 
 	// The InstaScale controller configuration
 	InstaScale *InstaScaleConfiguration `json:"instascale,omitempty"`
+
+	RayClusterOAuth *bool `json:"rayClusterOAuth,omitempty"`
 }
 
 type InstaScaleConfiguration struct {
