@@ -134,7 +134,9 @@ func main() {
 				MaxScaleoutAllowed: 5,
 			},
 		},
-		RayClusterOAuth: pointer.Bool(true),
+		KubeRay: &config.KubeRayConfiguration{
+			RayDashboardOAuthEnabled: pointer.Bool(true),
+		},
 	}
 
 	kubeConfig, err := ctrl.GetConfig()
@@ -182,7 +184,7 @@ func main() {
 	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
-	if v && *cfg.RayClusterOAuth {
+	if v && *cfg.KubeRay.RayDashboardOAuthEnabled {
 		rayClusterController := cfoControllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {

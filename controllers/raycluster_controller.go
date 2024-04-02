@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	coreapply "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -56,12 +55,9 @@ type RayClusterReconciler struct {
 const (
 	requeueTime             = 10
 	controllerName          = "codeflare-raycluster-controller"
-	oauthAnnotation         = "codeflare.dev/oauth=true"
-	CodeflareOAuthFinalizer = "codeflare.dev/oauth-finalizer"
+	CodeflareOAuthFinalizer = "openshift.ai/oauth-finalizer"
 	OAuthServicePort        = 443
 	OAuthServicePortName    = "oauth-proxy"
-	strTrue                 = "true"
-	strFalse                = "false"
 	logRequeueing           = "requeueing"
 )
 
@@ -106,24 +102,30 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			controllerutil.AddFinalizer(&cluster, CodeflareOAuthFinalizer)
 			if err := r.Update(ctx, &cluster); err != nil {
 				// this log is info level since errors are not fatal and are expected
-				logger.Info("WARN: Failed to update RayCluster with finalizer", "error", err.Error(), logRequeueing, strTrue)
+				logger.Info("WARN: Failed to update RayCluster with finalizer", "error", err.Error(), logRequeueing, true)
 				return ctrl.Result{RequeueAfter: requeueTime}, err
 			}
 		}
 	} else if controllerutil.ContainsFinalizer(&cluster, CodeflareOAuthFinalizer) {
-		err := r.deleteIfNotExist(
-			ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: crbNameFromCluster(&cluster)}, &rbacv1.ClusterRoleBinding{},
-		)
+		err := client.IgnoreNotFound(r.Client.Delete(
+			ctx,
+			&rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: crbNameFromCluster(&cluster),
+				},
+			},
+			&deleteOptions,
+		))
 		if err != nil {
-			logger.Error(err, "Failed to remove OAuth ClusterRoleBinding.", logRequeueing, strTrue)
+			logger.Error(err, "Failed to remove OAuth ClusterRoleBinding.", logRequeueing, true)
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 		controllerutil.RemoveFinalizer(&cluster, CodeflareOAuthFinalizer)
 		if err := r.Update(ctx, &cluster); err != nil {
-			logger.Error(err, "Failed to remove finalizer from RayCluster", logRequeueing, strTrue)
+			logger.Error(err, "Failed to remove finalizer from RayCluster", logRequeueing, true)
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
-		logger.Info("Successfully removed finalizer.", logRequeueing, strFalse)
+		logger.Info("Successfully removed finalizer.", logRequeueing, false)
 		return ctrl.Result{}, nil
 	}
 
@@ -157,16 +159,6 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func crbNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-" + cluster.Namespace + "-auth" // NOTE: potential naming conflicts ie {name: foo, ns: bar-baz} and {name: foo-bar, ns: baz}
-}
-
-func (r *RayClusterReconciler) deleteIfNotExist(ctx context.Context, namespacedName types.NamespacedName, obj client.Object) error {
-	err := r.Client.Get(ctx, namespacedName, obj)
-	if err != nil && errors.IsNotFound(err) {
-		return nil
-	} else if err != nil {
-		return err
-	}
-	return r.Client.Delete(ctx, obj, &deleteOptions)
 }
 
 func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacapply.ClusterRoleBindingApplyConfiguration {
