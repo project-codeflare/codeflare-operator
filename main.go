@@ -142,6 +142,7 @@ func main() {
 	exitOnError(err, "unable to create Kubernetes client")
 
 	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespaceOrDie(), configMapName, cfg), "unable to initialise configuration")
+	exitOnError(awconfig.ValidateConfig(cfg.AppWrapper), "invalid AppWrapper configuration")
 
 	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
