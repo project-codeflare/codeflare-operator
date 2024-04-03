@@ -56,8 +56,8 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 
-	cfoControllers "github.com/project-codeflare/codeflare-operator/controllers"
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
+	"github.com/project-codeflare/codeflare-operator/pkg/controllers"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	// +kubebuilder:scaffold:imports
@@ -185,7 +185,7 @@ func main() {
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
 	if v && *cfg.KubeRay.RayDashboardOAuthEnabled {
-		rayClusterController := cfoControllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+		rayClusterController := controllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {
 		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
