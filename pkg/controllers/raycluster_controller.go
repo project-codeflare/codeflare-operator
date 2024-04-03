@@ -22,7 +22,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 
-	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +41,8 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+
+	"github.com/project-codeflare/codeflare-operator/pkg/config"
 )
 
 // RayClusterReconciler reconciles a RayCluster object
@@ -64,8 +65,8 @@ const (
 )
 
 var (
-	deletePolicy  = metav1.DeletePropagationForeground
-	deleteOptions = client.DeleteOptions{PropagationPolicy: &deletePolicy}
+	deletePolicy   = metav1.DeletePropagationForeground
+	deleteOptions  = client.DeleteOptions{PropagationPolicy: &deletePolicy}
 	configInstance *config.CodeFlareOperatorConfiguration
 )
 
@@ -328,4 +329,3 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&rayv1.RayCluster{}).
 		Complete(r)
 }
-

@@ -6,10 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"github.com/go-logr/logr"
-	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -21,6 +18,9 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 )
 
 func serviceNameFromCluster(cluster *rayv1.RayCluster) string {
