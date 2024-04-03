@@ -29,7 +29,7 @@ type CodeFlareOperatorConfiguration struct {
 
 	// ControllerManager returns the configurations for controllers
 	ControllerManager `json:",inline"`
-        
+
 	KubeRay *KubeRayConfiguration `json:"kuberay,omitempty"`
 
 	// AppWrapper contains the AppWrapper controller configuration

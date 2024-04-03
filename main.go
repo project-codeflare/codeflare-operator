@@ -25,10 +25,10 @@ import (
 	"strings"
 	"time"
 
-	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	awconfig "github.com/project-codeflare/appwrapper/pkg/config"
 	awctrl "github.com/project-codeflare/appwrapper/pkg/controller"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
 	corev1 "k8s.io/api/core/v1"
@@ -51,8 +51,6 @@ import (
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	"sigs.k8s.io/yaml"
 
-	configv1 "github.com/openshift/api/config/v1"
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
@@ -76,7 +74,7 @@ func init() {
 	utilruntime.Must(rayv1.AddToScheme(scheme))
 	// OpenShift Route
 	utilruntime.Must(routev1.Install(scheme))
-        // AppWrapper
+	// AppWrapper
 	utilruntime.Must(mcadv1beta2.AddToScheme(scheme))
 	utilruntime.Must(kueue.AddToScheme(scheme))
 }
@@ -125,7 +123,7 @@ func main() {
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
 		KubeRay: &config.KubeRayConfiguration{
-			RayDashboardOAuthEnabled: pointer.Bool(true),
+			RayDashboardOAuthEnabled: ptr.To(true),
 		},
 	}
 	cfg.AppWrapper.CertManagement.WebhookSecretName = "codeflare-operator-webhook-server-cert"

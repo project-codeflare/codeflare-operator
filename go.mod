@@ -9,19 +9,22 @@ require (
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.7.2
 	github.com/project-codeflare/codeflare-common v0.0.0-20240328182412-38df643db183
-	github.com/ray-project/kuberay/ray-operator v1.0.0
+	github.com/ray-project/kuberay/ray-operator v1.1.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.29.1
 	k8s.io/apimachinery v0.29.1
 	k8s.io/client-go v0.29.1
 	k8s.io/component-base v0.29.1
+	k8s.io/klog/v2 v2.110.1
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.17.0
+	sigs.k8s.io/kueue v0.6.1
+	sigs.k8s.io/yaml v1.4.0
 )
 
 replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apiserver v1.25.1-0.20230306170449-63d8c93851f3
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -47,7 +50,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20230323073829-e72429f035bd // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
@@ -61,19 +63,15 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/open-policy-agent/cert-controller v0.10.1 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.368 // indirect
-	github.com/orcaman/concurrent-map v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.46.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
@@ -86,16 +84,12 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.29.0 // indirect
 	k8s.io/apiserver v0.29.1 // indirect
-	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+	sigs.k8s.io/jobset v0.3.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
-	volcano.sh/apis v1.6.0-alpha.0.0.20221012070524-685db38b4fae // indirect
 )

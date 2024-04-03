@@ -6,6 +6,83 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - kube-scheduler
+  verbs:
+  - create
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - kube-scheduler
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - '*'
   resources:
   - deployments
@@ -88,83 +165,6 @@ rules:
   - get
   - update
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - delete
-  - get
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - delete
-  - get
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - endpoints
-  - kube-scheduler
-  verbs:
-  - create
-  - get
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - kube-scheduler
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/status
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - replicationcontrollers
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - events.k8s.io
   resources:
   - events
@@ -209,19 +209,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - machine.openshift.io
-  resources:
-  - '*'
->>>>>>> 2537d07 (port to AppWrapper controller using cert-controller)
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - ray.io
   resources:
   - rayclusters
@@ -263,6 +250,7 @@ rules:
   - delete
   - get
   - patch
+- apiGroups:
   - scheduling.k8s.io
   resources:
   - priorityclasses
