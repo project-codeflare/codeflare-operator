@@ -11,7 +11,7 @@ on:
         description: 'The previous operator semantic version that this release replaces (for example: v0.0.0)'
         required: true
       appwrapper-version:
-        description: 'Version of appwrapper to be released (for example: v0.0.0)'
+        description: 'Tested version of AppWrapper (for example: v0.0.0)'
         required: true
       codeflare-sdk-version:
         description: 'Version of CodeFlare-SDK to be released (for example: v0.0.0)'
@@ -45,49 +45,16 @@ jobs:
         echo "Below are the release parameters set for the workflow:"
         echo "Operator Version: ${{ github.event.inputs.operator-version }}"
         echo "Replaces: ${{ github.event.inputs.replaces }}"
-        echo "AppWrapper Version: ${{ github.event.inputs.appwrapper-version }}"
         echo "CodeFlare SDK Version: ${{ github.event.inputs.codeflare-sdk-version }}"
+        echo "Tested AppWrapper Version: ${{ github.event.inputs.appwrapper-version }}"
         echo "Tested KubeRay Version: ${{ github.event.inputs.kuberay-version }}"
         echo "Is Stable: ${{ github.event.inputs.is-stable }}"
         echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
         echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
         echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
 
-  release-appwrapper:
-    needs: check-kuberay-version
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check if AppWrapper release does exist
-      run: |
-        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/appwrapper/releases/tag/${{ github.event.inputs.appwrapper-version }})
-        if [[ "$status_code" == "200" ]]; then
-          echo "AppWrapper release with version ${{ github.event.inputs.appwrapper-version }} already exist. Will not create AppWrapper release."
-        fi
-        echo "APPWRAPPER_RELEASE_STATUS_CODE=$status_code" >> $GITHUB_ENV
-
-    - name: Release AppWrapper
-      run: |
-        gh workflow run release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --field tag=${{ github.event.inputs.appwrapper-version }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-      shell: bash
-      if: ${{ env.APPWRAPPER_RELEASE_STATUS_CODE != '200' }}
-
-    - name: Wait for AppWrapper run to finish
-      run: |
-        # wait for a while for Run to be started
-        sleep 5
-        run_id=$(gh run list --workflow release.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --limit 1 --json databaseId --jq .[].databaseId)
-        gh run watch ${run_id} --repo ${{ github.event.inputs.codeflare-repository-organization }}/appwrapper --interval 10 --exit-status
-      env:
-        GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
-      shell: bash
-      if: ${{ env.APPWRAPPER_RELEASE_STATUS_CODE != '200' }}
-
-
   release-codeflare-sdk:
-    needs: check-kuberay-version
+    needs: [check-appwrapper-version, check-kuberay-version]
     runs-on: ubuntu-latest
 
     steps:
@@ -121,7 +88,7 @@ jobs:
       if: ${{ env.SDK_RELEASE_STATUS_CODE != '200' }}
 
   release-codeflare-operator:
-    needs: [release-appwrapper, release-codeflare-sdk]
+    needs: [release-codeflare-sdk]
     runs-on: ubuntu-latest
 
     steps:
@@ -141,6 +108,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
+
+  check-appwrapper-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check if AppWrapper release exists
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/project-codeflare/appwrapper/releases/tag/${{ github.event.inputs.appwrapper-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "AppWrapper release with version ${{ github.event.inputs.appwrapper-version }} exists and available to use."
+        else
+          echo "AppWrapper release with version ${{ github.event.inputs.appwrapper-version }} does not exist. Please select an existing version."
+          exit 1
+        fi
 
   check-kuberay-version:
     runs-on: ubuntu-latest

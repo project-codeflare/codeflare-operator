@@ -119,7 +119,6 @@ For ODH tests additional environment variables are needed:
 There may be instances in which a new CodeFlare stack release requires releases of only a subset of the stack components. Examples could be hotfixes for a specific component. In these instances:
 
 1. Build updated components as needed:
-    - Build and release [AppWrapper](https://github.com/project-codeflare/appwrapper)
     - Build and release [CodeFlare-SDK](https://github.com/project-codeflare/codeflare-sdk)
 
 2. Invoke [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, this action will create a repository tag, build and push operator image.
