@@ -73,6 +73,7 @@ var (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
 // +kubebuilder:rbac:groups=core,resources=services,verbs=patch;delete;get
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=patch;delete;get
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=patch;delete;get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
