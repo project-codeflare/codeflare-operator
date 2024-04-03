@@ -14,15 +14,6 @@ The following should be installed in your working environment:
 ## Basic Overview
 The main entrypoint for the operator is `main.go`
 
-The AppWrapper custom resources are defined under the `api` dir:
- - See `appwraper_types.go`
-
-The AppWrapper resource templates can be found under `config/internal`:
- - Sorted under `appwrapper` subdirs
-
-The code for AppWrapper resource reconcilliation can be found in the `controllers` dir:
- - See `appwrapper_controller.go`
-
 ## Building and Deployment
 If changes are made in the `api` dir, run: `make manifests`
  - This will generate new CRDs and associated files
@@ -53,7 +44,6 @@ The CodeFlare Operator currently has unit tests and pre-commit checks
  - Note that both are required for CI to pass on pull requests
 
 To write and inspect unit tests:
- - AppWrapper unit tests under `appwrapper_controller_test.go` in the `controllers` dir
  - Unit test functions are defined in `suite_test.go` (with utils in `util/util.go`) in the `controllers dir`
  - Test cases defined under `controllers/testdata`
 
