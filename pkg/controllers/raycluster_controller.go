@@ -53,12 +53,12 @@ type RayClusterReconciler struct {
 }
 
 const (
-	requeueTime             = 10
-	controllerName          = "codeflare-raycluster-controller"
-	CodeflareOAuthFinalizer = "openshift.ai/oauth-finalizer"
-	OAuthServicePort        = 443
-	OAuthServicePortName    = "oauth-proxy"
-	logRequeueing           = "requeueing"
+	requeueTime          = 10
+	controllerName       = "codeflare-raycluster-controller"
+	oAuthFinalizer       = "ray.openshift.ai/oauth-finalizer"
+	oAuthServicePort     = 443
+	oAuthServicePortName = "oauth-proxy"
+	logRequeueing        = "requeueing"
 )
 
 var (
@@ -66,13 +66,13 @@ var (
 	deleteOptions = client.DeleteOptions{PropagationPolicy: &deletePolicy}
 )
 
-//+kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ray.io,resources=rayclusters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ray.io,resources=rayclusters/finalizers,verbs=update
-//+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=patch;delete;get
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
-//+kubebuilder:rbac:groups=core,resources=services,verbs=patch;delete;get
-//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=patch;delete;get
+// +kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ray.io,resources=rayclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ray.io,resources=rayclusters/finalizers,verbs=update
+// +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=patch;delete;get
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
+// +kubebuilder:rbac:groups=core,resources=services,verbs=patch;delete;get
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=patch;delete;get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -97,16 +97,16 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(&cluster, CodeflareOAuthFinalizer) {
-			logger.Info("Add a finalizer", "finalizer", CodeflareOAuthFinalizer)
-			controllerutil.AddFinalizer(&cluster, CodeflareOAuthFinalizer)
+		if !controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
+			logger.Info("Add a finalizer", "finalizer", oAuthFinalizer)
+			controllerutil.AddFinalizer(&cluster, oAuthFinalizer)
 			if err := r.Update(ctx, &cluster); err != nil {
 				// this log is info level since errors are not fatal and are expected
 				logger.Info("WARN: Failed to update RayCluster with finalizer", "error", err.Error(), logRequeueing, true)
 				return ctrl.Result{RequeueAfter: requeueTime}, err
 			}
 		}
-	} else if controllerutil.ContainsFinalizer(&cluster, CodeflareOAuthFinalizer) {
+	} else if controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
 		err := client.IgnoreNotFound(r.Client.Delete(
 			ctx,
 			&rbacv1.ClusterRoleBinding{
@@ -120,7 +120,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to remove OAuth ClusterRoleBinding.", logRequeueing, true)
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
-		controllerutil.RemoveFinalizer(&cluster, CodeflareOAuthFinalizer)
+		controllerutil.RemoveFinalizer(&cluster, oAuthFinalizer)
 		if err := r.Update(ctx, &cluster); err != nil {
 			logger.Error(err, "Failed to remove finalizer from RayCluster", logRequeueing, true)
 			return ctrl.Result{RequeueAfter: requeueTime}, err
@@ -208,7 +208,7 @@ func desiredClusterRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfig
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
-			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString((OAuthServicePortName)))).
+			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString((oAuthServicePortName)))).
 			WithTLS(routeapply.TLSConfig().
 				WithInsecureEdgeTerminationPolicy(routev1.InsecureEdgeTerminationPolicyRedirect).
 				WithTermination(routev1.TLSTerminationReencrypt),
@@ -235,9 +235,9 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *coreapply.ServiceApplyConfi
 			coreapply.ServiceSpec().
 				WithPorts(
 					coreapply.ServicePort().
-						WithName(OAuthServicePortName).
-						WithPort(OAuthServicePort).
-						WithTargetPort(intstr.FromString(OAuthServicePortName)).
+						WithName(oAuthServicePortName).
+						WithPort(oAuthServicePort).
+						WithTargetPort(intstr.FromString(oAuthServicePortName)).
 						WithProtocol(corev1.ProtocolTCP),
 				).
 				WithSelector(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"}),

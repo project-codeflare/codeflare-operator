@@ -121,7 +121,7 @@ var _ = Describe("RayCluster controller", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
 				Expect(err).To(Not(HaveOccurred()))
-				return stringInList(foundRayCluster.Finalizers, CodeflareOAuthFinalizer)
+				return stringInList(foundRayCluster.Finalizers, oAuthFinalizer)
 			}, SpecTimeout(time.Second*10)).Should(Equal(true))
 		})
 
