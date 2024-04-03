@@ -57,6 +57,14 @@ rules:
   - patch
   - update
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  verbs:
+  - delete
+  - get
+  - patch
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
