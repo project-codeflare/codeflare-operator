@@ -32,7 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	coreapply "k8s.io/client-go/applyconfigurations/core/v1"
+	metav1apply "k8s.io/client-go/applyconfigurations/meta/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	networkingapply "k8s.io/client-go/applyconfigurations/networking/v1"
 	rbacapply "k8s.io/client-go/applyconfigurations/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -205,6 +207,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	if err != nil {
+		logger.Error(err, "Failed to update NetworkPolicy")
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -335,6 +342,41 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, r *RayClusterReconciler) *cor
 			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 	// Create a Kubernetes secret to store the cookie secret
+}
+
+func desiredNetworkPolicy(cluster *rayv1.RayCluster) *networkingapply.NetworkPolicyApplyConfiguration {
+
+	return networkingapply.NetworkPolicy(cluster.Name, cluster.Namespace).
+		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithSpec(networkingapply.NetworkPolicySpec().
+			WithPodSelector(metav1apply.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
+			WithIngress(
+				networkingapply.NetworkPolicyIngressRule().
+					WithPorts(
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(6379)),
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
+					).WithFrom(
+					networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector()),
+				),
+				networkingapply.NetworkPolicyIngressRule().WithFrom(
+					networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector().
+						WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
+						WithNamespaceSelector(metav1apply.LabelSelector().WithMatchLabels(map[string]string{"opendatahub.io/generated-namespace": "true"})),
+				).WithPorts(
+					networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
+					networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+				),
+				networkingapply.NetworkPolicyIngressRule().
+					WithPorts(
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
+					),
+			),
+		).
+		WithOwnerReferences(
+			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+		)
 }
 
 // SetupWithManager sets up the controller with the Manager.
