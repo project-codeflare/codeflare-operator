@@ -194,10 +194,14 @@ func main() {
 		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
 	}
 
-	// Ascynchronous because controllers need to wait for certificate to be ready for webhooks to work
-	go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper, certsReady, setupLog)
-
-	exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper), "unable to setup indexers")
+	v, err = HasAPIResourceForGVK(kubeClient.DiscoveryClient, kueue.GroupVersion.WithKind("Workload"))
+	if v {
+		// Ascynchronous because controllers need to wait for certificate to be ready for webhooks to work
+		go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper, certsReady, setupLog)
+		exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper), "unable to setup indexers")
+	} else if err != nil {
+		exitOnError(err, "Could not determine if Workload CR present on cluster.")
+	}
 
 	exitOnError(awctrl.SetupProbeEndpoints(mgr, certsReady), "unable to setup probe endpoints")
 
