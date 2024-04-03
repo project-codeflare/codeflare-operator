@@ -188,7 +188,7 @@ func main() {
 	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
-	if v && *cfg.KubeRay.RayDashboardOAuthEnabled {
+	if v {
 		rayClusterController := controllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {

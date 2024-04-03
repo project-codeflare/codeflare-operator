@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -63,19 +64,19 @@ type RayClusterReconciler struct {
 }
 
 const (
-	requeueTime             = 10
-	controllerName          = "codeflare-raycluster-controller"
-	oAuthFinalizer          = "ray.openshift.ai/oauth-finalizer"
-	oAuthServicePort        = 443
-	oAuthServicePortName    = "oauth-proxy"
-	oauthAnnotation         = "codeflare.dev/oauth"
-	RegularServicePortName  = "dashboard"
-	logRequeueing           = "requeueing"
+	requeueTime            = 10
+	controllerName         = "codeflare-raycluster-controller"
+	oAuthFinalizer         = "ray.openshift.ai/oauth-finalizer"
+	oAuthServicePort       = 443
+	oAuthServicePortName   = "oauth-proxy"
+	regularServicePortName = "dashboard"
+	logRequeueing          = "requeueing"
 )
 
 var (
 	deletePolicy  = metav1.DeletePropagationForeground
 	deleteOptions = client.DeleteOptions{PropagationPolicy: &deletePolicy}
+	configInstance *config.CodeFlareOperatorConfiguration
 )
 
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
@@ -146,7 +147,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if cluster.Status.State != "suspended" && annotationBoolVal(logger, &cluster, oauthAnnotation) && isOpenShift {
+	if cluster.Status.State != "suspended" && isRayDashboardOAuthEnabled() && isOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
@@ -173,7 +174,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
 		}
 
-	} else if cluster.Status.State != "suspended" && !annotationBoolVal(logger, &cluster, oauthAnnotation) && isOpenShift {
+	} else if cluster.Status.State != "suspended" && !isRayDashboardOAuthEnabled() && isOpenShift {
 		logger.Info("Creating Dashboard Route")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, createRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
@@ -188,7 +189,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return ctrl.Result{}, nil
 
-	} else if cluster.Status.State != "suspended" && !annotationBoolVal(logger, &cluster, oauthAnnotation) && !isOpenShift {
+	} else if cluster.Status.State != "suspended" && !isRayDashboardOAuthEnabled() && !isOpenShift {
 		logger.Info("Creating Dashboard Ingress")
 		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, createIngressApplyConfiguration(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
@@ -360,7 +361,7 @@ func createRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration 
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(serviceNameFromCluster(cluster))).
-			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString(RegularServicePortName))).
+			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString(regularServicePortName))).
 			WithTLS(routeapply.TLSConfig().
 				WithTermination("edge")),
 		).
@@ -442,7 +443,7 @@ func createIngressApplyConfiguration(cluster *rayv1.RayCluster, ingressHost stri
 							WithService(networkingv1ac.IngressServiceBackend().
 								WithName(serviceNameFromCluster(cluster)).
 								WithPort(networkingv1ac.ServiceBackendPort().
-									WithName(RegularServicePortName),
+									WithName(regularServicePortName),
 								),
 							),
 						),
@@ -510,5 +511,9 @@ func getClusterType(logger logr.Logger, clientset *kubernetes.Clientset, cluster
 	}
 }
 
-// No more ingress_options - Removing completely.
-// What to do about ingress_domain? Needed for local_interactive?
+func isRayDashboardOAuthEnabled() bool {
+	if configInstance.KubeRay != nil && configInstance.KubeRay.RayDashboardOAuthEnabled != nil {
+		return *configInstance.KubeRay.RayDashboardOAuthEnabled
+	}
+	return true
+}
