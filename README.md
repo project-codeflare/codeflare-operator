@@ -91,7 +91,7 @@ The e2e tests can be executed locally by running the following commands:
 
 To properly run e2e tests on disconnected cluster user has to provide additional environment variables to properly configure testing environment:
 
-- `CODEFLARE_TEST_PYTORCH_IMAGE` - image tag for image used to run training job using AppWrapper
+- `CODEFLARE_TEST_PYTORCH_IMAGE` - image tag for image used to run training job
 - `CODEFLARE_TEST_RAY_IMAGE` - image tag for Ray cluster image
 - `MNIST_DATASET_URL` - URL where MNIST dataset is available
 - `PIP_INDEX_URL` - URL where PyPI server with needed dependencies is running
