@@ -127,7 +127,8 @@ func main() {
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
-		MCAD: &mcadconfig.MCADConfiguration{},
+		MCADEnabled: pointer.Bool(false),
+		MCAD:        &mcadconfig.MCADConfiguration{},
 		InstaScale: &config.InstaScaleConfiguration{
 			Enabled: pointer.Bool(false),
 			InstaScaleConfiguration: instascaleconfig.InstaScaleConfiguration{
@@ -167,12 +168,14 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	mcadQueueController := mcad.NewJobController(mgr.GetConfig(), cfg.MCAD, &mcadconfig.MCADConfigurationExtended{})
-	if mcadQueueController == nil {
-		// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
-		os.Exit(1)
+	if pointer.BoolDeref(cfg.MCADEnabled, false) {
+		mcadQueueController := mcad.NewJobController(mgr.GetConfig(), cfg.MCAD, &mcadconfig.MCADConfigurationExtended{})
+		if mcadQueueController == nil {
+			// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
+			os.Exit(1)
+		}
+		mcadQueueController.Run(ctx.Done())
 	}
-	mcadQueueController.Run(ctx.Done())
 
 	if pointer.BoolDeref(cfg.InstaScale.Enabled, false) {
 		instaScaleController := &instascale.AppWrapperReconciler{

@@ -32,7 +32,9 @@ type CodeFlareOperatorConfiguration struct {
 	ControllerManager `json:",inline"`
 
 	// The MCAD controller configuration
-	MCAD *mcad.MCADConfiguration `json:"mcad,omitempty"`
+	// MCADEnabled defaults to false
+	MCADEnabled *bool                   `json:"mcadEnabled,omitempty"`
+	MCAD        *mcad.MCADConfiguration `json:"mcad,omitempty"`
 
 	// The InstaScale controller configuration
 	InstaScale *InstaScaleConfiguration `json:"instascale,omitempty"`
