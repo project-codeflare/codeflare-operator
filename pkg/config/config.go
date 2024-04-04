@@ -33,7 +33,14 @@ type CodeFlareOperatorConfiguration struct {
 	KubeRay *KubeRayConfiguration `json:"kuberay,omitempty"`
 
 	// AppWrapper contains the AppWrapper controller configuration
-	AppWrapper *awconfig.AppWrapperConfig `json:"appwrapper,omitempty"`
+	AppWrapper *AppWrapperConfiguration `json:"appwrapper,omitempty"`
+}
+
+type AppWrapperConfiguration struct {
+	// Enabled controls whether or not the AppWrapper Controller is enababled
+	Enabled *bool `json:"appWrapperControllerEnabled"`
+	// AppWrapper contains the AppWrapper controller configuration
+	Config *awconfig.AppWrapperConfig `json:"appwrapper,omitempty"`
 }
 
 type KubeRayConfiguration struct {

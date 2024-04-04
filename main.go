@@ -109,7 +109,10 @@ func main() {
 			QPS:   ptr.To(float32(50)),
 			Burst: ptr.To(int32(100)),
 		},
-		AppWrapper: awconfig.NewConfig(namespace),
+		AppWrapper: &config.AppWrapperConfiguration{
+			Enabled: ptr.To(true),
+			Config:  awconfig.NewConfig(namespace),
+		},
 		ControllerManager: config.ControllerManager{
 			Metrics: config.MetricsConfiguration{
 				BindAddress:   ":8080",
@@ -126,10 +129,10 @@ func main() {
 			RayDashboardOAuthEnabled: ptr.To(true),
 		},
 	}
-	cfg.AppWrapper.CertManagement.WebhookSecretName = "codeflare-operator-webhook-server-cert"
-	cfg.AppWrapper.CertManagement.WebhookServiceName = "codeflare-operator-webhook-service"
-	cfg.AppWrapper.CertManagement.MutatingWebhookConfigName = "codeflare-operator-mutating-webhook-configuration"
-	cfg.AppWrapper.CertManagement.ValidatingWebhookConfigName = "codeflare-operator-validating-webhook-configuration"
+	cfg.AppWrapper.Config.CertManagement.WebhookSecretName = "codeflare-operator-webhook-server-cert"
+	cfg.AppWrapper.Config.CertManagement.WebhookServiceName = "codeflare-operator-webhook-service"
+	cfg.AppWrapper.Config.CertManagement.MutatingWebhookConfigName = "codeflare-operator-mutating-webhook-configuration"
+	cfg.AppWrapper.Config.CertManagement.ValidatingWebhookConfigName = "codeflare-operator-validating-webhook-configuration"
 
 	kubeConfig, err := ctrl.GetConfig()
 	exitOnError(err, "unable to get client config")
@@ -140,7 +143,7 @@ func main() {
 	exitOnError(err, "unable to create Kubernetes client")
 
 	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespaceOrDie(), configMapName, cfg), "unable to initialise configuration")
-	exitOnError(awconfig.ValidateConfig(cfg.AppWrapper), "invalid AppWrapper configuration")
+	exitOnError(awconfig.ValidateConfig(cfg.AppWrapper.Config), "invalid AppWrapper configuration")
 
 	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
@@ -183,7 +186,7 @@ func main() {
 	if os.Getenv("ENABLE_WEBHOOKS") == "false" {
 		close(certsReady)
 	} else {
-		exitOnError(awctrl.SetupCertManagement(mgr, &cfg.AppWrapper.CertManagement, certsReady), "unable to set up cert rotation")
+		exitOnError(awctrl.SetupCertManagement(mgr, &cfg.AppWrapper.Config.CertManagement, certsReady), "unable to set up cert rotation")
 	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
@@ -196,12 +199,15 @@ func main() {
 
 	v1, err1 := HasAPIResourceForGVK(kubeClient.DiscoveryClient, kueue.GroupVersion.WithKind("Workload"))
 	v2, err2 := HasAPIResourceForGVK(kubeClient.DiscoveryClient, mcadv1beta2.GroupVersion.WithKind("AppWrapper"))
-	if v1 && v2 {
+	if v1 && v2 && *cfg.AppWrapper.Enabled {
 		// Ascynchronous because controllers need to wait for certificate to be ready for webhooks to work
-		go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper, certsReady, setupLog)
-		exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper), "unable to setup indexers")
+		go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper.Config, certsReady, setupLog)
+		exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config), "unable to setup indexers")
 	} else if err1 != nil || err2 != nil {
-		exitOnError(err, "Could not determine if AppWrapper and Workload CRs present on cluster.")
+		exitOnError(err, "Could not determine if AppWrapper and Workload CRDs present on cluster.")
+	} else {
+		setupLog.Info("AppWrapper controller disabled", "Workload CRD present", v1,
+			"AppWrapper CRD present", v2, "Config flag value", *cfg.AppWrapper.Enabled)
 	}
 
 	exitOnError(awctrl.SetupProbeEndpoints(mgr, certsReady), "unable to setup probe endpoints")
