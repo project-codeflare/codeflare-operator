@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-logr/logr"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -27,26 +26,11 @@ func serviceNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-head-svc"
 }
 
-func createRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
-	return routeapply.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
-		WithSpec(routeapply.RouteSpec().
-			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(serviceNameFromCluster(cluster))).
-			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString(regularServicePortName))).
-			WithTLS(routeapply.TLSConfig().
-				WithTermination("edge")),
-		).
-		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
-		)
-}
-
-func createRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
-	ingress_domain := cluster.ObjectMeta.Annotations["sdk.codeflare.dev/ingress_domain"]
+func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
 	return routeapply.Route(rayClientNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
-			WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace + "." + ingress_domain).
+			WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace).
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(serviceNameFromCluster(cluster)).WithWeight(100)).
 			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString("client"))).
 			WithTLS(routeapply.TLSConfig().WithTermination("passthrough")),
@@ -57,8 +41,7 @@ func createRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfi
 }
 
 // Create an Ingress object for the RayCluster
-func createRayClientIngress(cluster *rayv1.RayCluster) *networkingv1ac.IngressApplyConfiguration {
-	ingress_domain := cluster.ObjectMeta.Annotations["sdk.codeflare.dev/ingress_domain"]
+func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressDomain string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(rayClientNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithAnnotations(map[string]string{
@@ -74,7 +57,7 @@ func createRayClientIngress(cluster *rayv1.RayCluster) *networkingv1ac.IngressAp
 		WithSpec(networkingv1ac.IngressSpec().
 			WithIngressClassName("nginx").
 			WithRules(networkingv1ac.IngressRule().
-				WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace + "." + ingress_domain).
+				WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace + "." + ingressDomain).
 				WithHTTP(networkingv1ac.HTTPIngressRuleValue().
 					WithPaths(networkingv1ac.HTTPIngressPath().
 						WithPath("/").
@@ -94,7 +77,7 @@ func createRayClientIngress(cluster *rayv1.RayCluster) *networkingv1ac.IngressAp
 }
 
 // Create an Ingress object for the RayCluster
-func createIngressApplyConfiguration(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
+func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(dashboardNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithOwnerReferences(v1.OwnerReference().
@@ -104,7 +87,7 @@ func createIngressApplyConfiguration(cluster *rayv1.RayCluster, ingressHost stri
 			WithUID(types.UID(cluster.UID))).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
-				WithHost(ingressHost). // kind host name or ingress_domain
+				WithHost(ingressHost). // KinD hostname or ingressDomain
 				WithHTTP(networkingv1ac.HTTPIngressRuleValue().
 					WithPaths(networkingv1ac.HTTPIngressPath().
 						WithPath("/").
@@ -113,7 +96,7 @@ func createIngressApplyConfiguration(cluster *rayv1.RayCluster, ingressHost stri
 							WithService(networkingv1ac.IngressServiceBackend().
 								WithName(serviceNameFromCluster(cluster)).
 								WithPort(networkingv1ac.ServiceBackendPort().
-									WithName(regularServicePortName),
+									WithName(ingressServicePortName),
 								),
 							),
 						),
@@ -143,59 +126,56 @@ func getDiscoveryClient(config *rest.Config) (*discovery.DiscoveryClient, error)
 
 // Check where we are running. We are trying to distinguish here whether
 // this is vanilla kubernetes cluster or Openshift
-func getClusterType(logger logr.Logger, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster) (bool, string) {
+func getClusterType(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressDomain string) (bool, string) {
 	// The discovery package is used to discover APIs supported by a Kubernetes API server.
-	ingress_domain := cluster.ObjectMeta.Annotations["sdk.codeflare.dev/ingress_domain"]
+	logger := ctrl.LoggerFrom(ctx)
 	config, err := ctrl.GetConfig()
-	if err == nil && config != nil {
-		dclient, err := getDiscoveryClient(config)
-		if err == nil && dclient != nil {
-			apiGroupList, err := dclient.ServerGroups()
-			if err != nil {
-				logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
-				return false, ""
-			} else {
-				for i := 0; i < len(apiGroupList.Groups); i++ {
-					if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
-						logger.Info("We detected being on OpenShift!")
-						return true, ""
-					}
-				}
-				onKind, _ := isOnKindCluster(clientset)
-				if onKind && ingress_domain == "" {
-					logger.Info("We detected being on a KinD cluster!")
-					return false, "kind"
-				} else {
-					logger.Info("We detected being on Vanilla Kubernetes!")
-					return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingress_domain)
-				}
-			}
-		} else {
-			logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
-			return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingress_domain)
-		}
-	} else {
+	if err != nil && config == nil {
 		logger.Info("Cannot retrieve config, assuming we're on Vanilla Kubernetes")
-		return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingress_domain)
+		return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
 	}
+	dclient, err := getDiscoveryClient(config)
+	if err != nil && dclient == nil {
+		logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
+		return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
+	}
+	apiGroupList, err := dclient.ServerGroups()
+	if err != nil {
+		logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
+		return false, ""
+	}
+	for i := 0; i < len(apiGroupList.Groups); i++ {
+		if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
+			logger.Info("We detected being on OpenShift!")
+			return true, ""
+		}
+	}
+	onKind, _ := isOnKindCluster(clientset)
+	if onKind && ingressDomain == "" {
+		logger.Info("We detected being on a KinD cluster!")
+		return false, "kind"
+	}
+	logger.Info("We detected being on Vanilla Kubernetes!")
+	return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
 }
 
-func isRayDashboardOAuthEnabled() bool {
-	if configInstance.KubeRay != nil && configInstance.KubeRay.RayDashboardOAuthEnabled != nil {
-		return *configInstance.KubeRay.RayDashboardOAuthEnabled
+func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
+	if r.Config != nil && r.Config.KubeRay != nil && r.Config.KubeRay.RayDashboardOAuthEnabled != nil {
+		return *r.Config.KubeRay.RayDashboardOAuthEnabled
 	}
 	return true
 }
 
-func annotationBoolVal(logger logr.Logger, cluster *rayv1.RayCluster, annotation string) bool {
-	val := cluster.ObjectMeta.Annotations[annotation]
+func annotationBoolVal(ctx context.Context, cluster *rayv1.RayCluster, annotation string, defaultValue bool) bool {
+	logger := ctrl.LoggerFrom(ctx)
+	val, exists := cluster.ObjectMeta.Annotations[annotation]
+	if !exists || val == "" {
+		return defaultValue
+	}
 	boolVal, err := strconv.ParseBool(val)
 	if err != nil {
-		logger.Error(err, "Could not convert", annotation, "value to bool", val)
+		logger.Error(err, "Could not convert annotation value to bool", "annotation", annotation, "value", val)
+		return defaultValue
 	}
-	if boolVal {
-		return true
-	} else {
-		return false
-	}
+	return boolVal
 }

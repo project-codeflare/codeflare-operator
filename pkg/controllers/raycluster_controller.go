@@ -52,6 +52,7 @@ type RayClusterReconciler struct {
 	routeClient *routev1client.RouteV1Client
 	Scheme      *runtime.Scheme
 	CookieSalt  string
+	Config      *config.CodeFlareOperatorConfiguration
 }
 
 const (
@@ -60,14 +61,13 @@ const (
 	oAuthFinalizer         = "ray.openshift.ai/oauth-finalizer"
 	oAuthServicePort       = 443
 	oAuthServicePortName   = "oauth-proxy"
-	regularServicePortName = "dashboard"
+	ingressServicePortName = "dashboard"
 	logRequeueing          = "requeueing"
 )
 
 var (
-	deletePolicy   = metav1.DeletePropagationForeground
-	deleteOptions  = client.DeleteOptions{PropagationPolicy: &deletePolicy}
-	configInstance *config.CodeFlareOperatorConfiguration
+	deletePolicy  = metav1.DeletePropagationForeground
+	deleteOptions = client.DeleteOptions{PropagationPolicy: &deletePolicy}
 )
 
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
@@ -101,9 +101,9 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	isLocalInteractive := annotationBoolVal(logger, &cluster, "sdk.codeflare.dev/local_interactive")
-	isOpenShift, ingressHost := getClusterType(logger, r.kubeClient, &cluster)
-	ingressDomain := cluster.ObjectMeta.Annotations["sdk.codeflare.dev/ingress_domain"]
+	isLocalInteractive := annotationBoolVal(ctx, &cluster, "sdk.codeflare.dev/local_interactive", false)
+	ingressDomain := "" // FIX - CFO will retrieve it.
+	isOpenShift, ingressHost := getClusterType(ctx, r.kubeClient, &cluster, ingressDomain)
 
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
@@ -138,63 +138,63 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if cluster.Status.State != "suspended" && isRayDashboardOAuthEnabled() && isOpenShift {
+	if cluster.Status.State != "suspended" && r.isRayDashboardOAuthEnabled() && isOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update OAuth Route")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
 		_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredOAuthSecret(&cluster, r), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to create OAuth Secret")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
 		_, err = r.kubeClient.CoreV1().Services(cluster.Namespace).Apply(ctx, desiredOAuthService(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update OAuth Service")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
 		_, err = r.kubeClient.CoreV1().ServiceAccounts(cluster.Namespace).Apply(ctx, desiredServiceAccount(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update OAuth ServiceAccount")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
 		_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-	} else if cluster.Status.State != "suspended" && !isRayDashboardOAuthEnabled() && isOpenShift {
-		logger.Info("Creating Dashboard Route")
-		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, createRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-		if err != nil {
-			logger.Error(err, "Failed to update Dashboard Route")
-		}
-		if isLocalInteractive && ingressDomain != "" {
+		if isLocalInteractive {
 			logger.Info("Creating RayClient Route")
-			_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, createRayClientRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredRayClientRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 			if err != nil {
 				logger.Error(err, "Failed to update RayClient Route")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
 			}
 		}
-		return ctrl.Result{}, nil
 
-	} else if cluster.Status.State != "suspended" && !isRayDashboardOAuthEnabled() && !isOpenShift {
+	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !isOpenShift {
 		logger.Info("Creating Dashboard Ingress")
-		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, createIngressApplyConfiguration(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			// This log is info level since errors are not fatal and are expected
 			logger.Info("WARN: Failed to update Dashboard Ingress", "error", err.Error(), logRequeueing, true)
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 		if isLocalInteractive && ingressDomain != "" {
 			logger.Info("Creating RayClient Ingress")
-			_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, createRayClientIngress(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredRayClientIngress(&cluster, ingressDomain), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 			if err != nil {
 				logger.Error(err, "Failed to update RayClient Ingress")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
 			}
 		}
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
