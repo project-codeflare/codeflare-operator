@@ -62,6 +62,17 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+type certManagementConfig struct {
+	Namespace                   string `json:"namespace,omitempty"`
+	CertificateDir              string `json:"certificateDir,omitempty"`
+	CertificateName             string `json:"certificateName,omitempty"`
+	CertificateOrg              string `json:"certificateOrg,omitempty"`
+	MutatingWebhookConfigName   string `json:"mutatingWebhookConfigName,omitempty"`
+	ValidatingWebhookConfigName string `json:"validatingWebhookConfigName,omitempty"`
+	WebhookServiceName          string `json:"webhookServiceName,omitempty"`
+	WebhookSecretName           string `json:"webhookSecretName,omitempty"`
+}
+
 var (
 	scheme            = runtime.NewScheme()
 	setupLog          = ctrl.Log.WithName("setup")
@@ -122,16 +133,6 @@ func main() {
 				LivenessEndpointName:  "healthz",
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
-		},
-		CertManagement: &config.CertManagementConfig{
-			Namespace:                   namespace,
-			CertificateDir:              "/tmp/k8s-webhook-server/serving-certs",
-			CertificateName:             "codeflare-ca",
-			CertificateOrg:              "codeflare",
-			MutatingWebhookConfigName:   "codeflare-operator-mutating-webhook-configuration",
-			ValidatingWebhookConfigName: "codeflare-operator-validating-webhook-configuration",
-			WebhookServiceName:          "codeflare-operator-webhook-service",
-			WebhookSecretName:           "codeflare-operator-webhook-server-cert",
 		},
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: ptr.To(true),
@@ -194,7 +195,17 @@ func main() {
 	if os.Getenv("ENABLE_WEBHOOKS") == "false" {
 		close(certsReady)
 	} else {
-		exitOnError(setupCertManagement(mgr, cfg.CertManagement, certsReady), "unable to set up cert rotation")
+		certConfig := &certManagementConfig{
+			Namespace:                   namespace,
+			CertificateDir:              "/tmp/k8s-webhook-server/serving-certs",
+			CertificateName:             "codeflare-ca",
+			CertificateOrg:              "codeflare",
+			MutatingWebhookConfigName:   "codeflare-operator-mutating-webhook-configuration",
+			ValidatingWebhookConfigName: "codeflare-operator-validating-webhook-configuration",
+			WebhookServiceName:          "codeflare-operator-webhook-service",
+			WebhookSecretName:           "codeflare-operator-webhook-server-cert",
+		}
+		exitOnError(setupCertManagement(mgr, certConfig, certsReady), "unable to set up cert rotation")
 	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
@@ -288,7 +299,7 @@ func HasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersi
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;update
 
-func setupCertManagement(mgr ctrl.Manager, config *config.CertManagementConfig, certsReady chan struct{}) error {
+func setupCertManagement(mgr ctrl.Manager, config *certManagementConfig, certsReady chan struct{}) error {
 	// DNSName is <service name>.<namespace>.svc
 	var dnsName = fmt.Sprintf("%s.%s.svc", config.WebhookServiceName, config.Namespace)
 
