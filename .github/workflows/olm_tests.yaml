@@ -54,10 +54,6 @@ jobs:
       - name: Setup and start KinD cluster
         uses: ./common/github-actions/kind
 
-      - name: Deploy Kueue
-        run: |
-          make kueue-e2e
-
       - name: Install OLM
         run: |
           kubectl create -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/crds.yaml
@@ -126,83 +122,80 @@ jobs:
           BUNDLE_PUSH_OPT: "--tls-verify=false"
           CATALOG_PUSH_OPT: "--tls-verify=false"
 
-      # TODO: Disabled during the MCAD to Kueue transition.
-      #       We do not intend to support the scenario of in place updating
-      #       from an MCAD-based Codeflare Operator to a Kueue-based one.
-      # - name: Run OLM Upgrade e2e AppWrapper creation test
-      #   run: |
-      #     export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-      #     echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
-      #     set -euo pipefail
-      #     go test -timeout 30m -v ./test/upgrade -run TestMNISTCreateAppWrapper -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+      - name: Run OLM Upgrade e2e AppWrapper creation test
+        run: |
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+          set -euo pipefail
+          go test -timeout 30m -v ./test/upgrade -run TestMNISTCreateAppWrapper -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
-      # - name: Update Operator to the built version
-      #   run: |
-      #     ORIGINAL_POD_NAME=$(kubectl get pod -l app.kubernetes.io/name=codeflare-operator -n openshift-operators -o json | jq -r .items[].metadata.name)
-      #     echo "Running old operator pod name is ${ORIGINAL_POD_NAME}"
+      - name: Update Operator to the built version
+        run: |
+          ORIGINAL_POD_NAME=$(kubectl get pod -l app.kubernetes.io/name=codeflare-operator -n openshift-operators -o json | jq -r .items[].metadata.name)
+          echo "Running old operator pod name is ${ORIGINAL_POD_NAME}"
 
-      #     echo Updating custom CatalogSource image to the built CatalogSource with latest operator
-      #     kubectl patch CatalogSource codeflare-olm-test -n olm --type merge --patch "{\"spec\":{\"image\":\"${CATALOG_IMG}\"}}"
+          echo Updating custom CatalogSource image to the built CatalogSource with latest operator
+          kubectl patch CatalogSource codeflare-olm-test -n olm --type merge --patch "{\"spec\":{\"image\":\"${CATALOG_IMG}\"}}"
 
-      #     echo Waiting for previous operator pod to get deleted
-      #     kubectl wait --timeout=120s --for=delete pod/${ORIGINAL_POD_NAME} -n openshift-operators
+          echo Waiting for previous operator pod to get deleted
+          kubectl wait --timeout=120s --for=delete pod/${ORIGINAL_POD_NAME} -n openshift-operators
 
-      #     echo Waiting for Subscription to be ready
-      #     kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} subscription/${{ env.SUBSCRIPTION_NAME }} --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+          echo Waiting for Subscription to be ready
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} subscription/${{ env.SUBSCRIPTION_NAME }} --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 
-      #     echo Waiting for Deployment to be ready
-      #     timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
-      #     kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
+          echo Waiting for Deployment to be ready
+          timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
+          kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
 
-      #     echo Checking that correct CSV is available
-      #     CSV_VERSION=$(kubectl get ClusterServiceVersion/codeflare-operator.${VERSION} -n openshift-operators -o json | jq -r .spec.version)
-      #     if [ "v${CSV_VERSION}" != "${VERSION}" ]; then
-      #       echo "CSV version v${CSV_VERSION} doesn't match expected version ${VERSION}"
-      #       exit 1
-      #     fi
-      #   env:
-      #     CATALOG_IMG: "${{ env.REGISTRY_ADDRESS }}/codeflare-operator-catalog:v0.0.1"
-      #     SUBSCRIPTION_NAME: "codeflare-operator"
-      #     SUBSCRIPTION_NAMESPACE: "openshift-operators"
+          echo Checking that correct CSV is available
+          CSV_VERSION=$(kubectl get ClusterServiceVersion/codeflare-operator.${VERSION} -n openshift-operators -o json | jq -r .spec.version)
+          if [ "v${CSV_VERSION}" != "${VERSION}" ]; then
+            echo "CSV version v${CSV_VERSION} doesn't match expected version ${VERSION}"
+            exit 1
+          fi
+        env:
+          CATALOG_IMG: "${{ env.REGISTRY_ADDRESS }}/codeflare-operator-catalog:v0.0.1"
+          SUBSCRIPTION_NAME: "codeflare-operator"
+          SUBSCRIPTION_NAMESPACE: "openshift-operators"
 
-      # - name: Run OLM Upgrade e2e Appwrapper Job status test to monitor training
-      #   run: |
-      #     export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-      #     echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
-      #     set -euo pipefail
-      #     go test -timeout 30m -v ./test/upgrade -run TestMNISTCheckAppWrapperStatus -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+      - name: Run OLM Upgrade e2e Appwrapper Job status test to monitor training
+        run: |
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+          set -euo pipefail
+          go test -timeout 30m -v ./test/upgrade -run TestMNISTCheckAppWrapperStatus -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
-      # - name: Run e2e tests against built operator
-      #   run: |
-      #     export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-      #     echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
+      - name: Run e2e tests against built operator
+        run: |
+          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
+          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
 
-      #     set -euo pipefail
-      #     go test -timeout 30m -v ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+          set -euo pipefail
+          go test -timeout 30m -v ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
-      # - name: Print CodeFlare operator logs
-      #   if: always() && steps.deploy.outcome == 'success'
-      #   run: |
-      #     echo "Printing CodeFlare operator logs"
-      #     kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee ${CODEFLARE_TEST_OUTPUT_DIR}/codeflare-operator.log
+      - name: Print CodeFlare operator logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          echo "Printing CodeFlare operator logs"
+          kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee ${CODEFLARE_TEST_OUTPUT_DIR}/codeflare-operator.log
 
-      # - name: Print KubeRay operator logs
-      #   if: always() && steps.deploy.outcome == 'success'
-      #   run: |
-      #     echo "Printing KubeRay operator logs"
-      #     kubectl logs -n ray-system --tail -1 -l app.kubernetes.io/name=kuberay | tee ${CODEFLARE_TEST_OUTPUT_DIR}/kuberay.log
+      - name: Print KubeRay operator logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: |
+          echo "Printing KubeRay operator logs"
+          kubectl logs -n ray-system --tail -1 -l app.kubernetes.io/name=kuberay | tee ${CODEFLARE_TEST_OUTPUT_DIR}/kuberay.log
 
-      # - name: Export all KinD pod logs
-      #   uses: ./common/github-actions/kind-export-logs
-      #   if: always() && steps.deploy.outcome == 'success'
-      #   with:
-      #     output-directory: ${CODEFLARE_TEST_OUTPUT_DIR}
+      - name: Export all KinD pod logs
+        uses: ./common/github-actions/kind-export-logs
+        if: always() && steps.deploy.outcome == 'success'
+        with:
+          output-directory: ${CODEFLARE_TEST_OUTPUT_DIR}
 
-      # - name: Upload logs
-      #   uses: actions/upload-artifact@v4
-      #   if: always() && steps.deploy.outcome == 'success'
-      #   with:
-      #     name: logs
-      #     retention-days: 10
-      #     path: |
-      #       ${{ env.CODEFLARE_TEST_OUTPUT_DIR }}/**/*.log
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always() && steps.deploy.outcome == 'success'
+        with:
+          name: logs
+          retention-days: 10
+          path: |
+            ${{ env.CODEFLARE_TEST_OUTPUT_DIR }}/**/*.log
