@@ -200,7 +200,7 @@ func main() {
 	v1, err1 := HasAPIResourceForGVK(kubeClient.DiscoveryClient, kueue.GroupVersion.WithKind("Workload"))
 	v2, err2 := HasAPIResourceForGVK(kubeClient.DiscoveryClient, mcadv1beta2.GroupVersion.WithKind("AppWrapper"))
 	if v1 && v2 && *cfg.AppWrapper.Enabled {
-		// Ascynchronous because controllers need to wait for certificate to be ready for webhooks to work
+		// Asynchronous because controllers need to wait for certificate to be ready for webhooks to work
 		go awctrl.SetupControllers(ctx, mgr, cfg.AppWrapper.Config, certsReady, setupLog)
 		exitOnError(awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config), "unable to setup indexers")
 	} else if err1 != nil || err2 != nil {
