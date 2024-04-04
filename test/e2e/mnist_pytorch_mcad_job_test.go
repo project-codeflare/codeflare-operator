@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Trains the MNIST dataset as a batch Job managed by MCAD, and asserts successful completion of the training job.
-func TestMNISTPyTorchMCAD(t *testing.T) {
+// Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
+func TestMNISTPyTorchAppWrapper(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
 

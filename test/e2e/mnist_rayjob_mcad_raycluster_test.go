@@ -31,13 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Trains the MNIST dataset as a RayJob, executed by a Ray cluster managed by MCAD,
+// Trains the MNIST dataset as a RayJob, executed by a Ray cluster deployed in an AppWrapper,
 // and asserts successful completion of the training job.
-func TestMNISTRayJobMCADRayCluster(t *testing.T) {
+func TestMNISTRayJobAppWrapperRayCluster(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
-
-	test.T().Skip("Disabled to workaround apparent Kueue 0.6.1 bug")
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
