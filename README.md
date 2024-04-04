@@ -9,7 +9,7 @@ CodeFlare Stack Compatibility Matrix
 | Component                | Version                                                                                  |
 |--------------------------|------------------------------------------------------------------------------------------|
 | CodeFlare Operator       | [v1.2.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.2.0)    |
-| AppWrapper               | [v0.7.2](https://github.com/project-codeflare/appwrapper/releases/tag/v0.7.2)            |
+| AppWrapper               | [v0.7.3](https://github.com/project-codeflare/appwrapper/releases/tag/v0.7.3)            |
 | CodeFlare-SDK            | [v0.14.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.14.0)       |
 | KubeRay                  | [v1.0.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.0.0)                  |
 <!-- Compatibility Matrix end -->

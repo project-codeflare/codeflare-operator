@@ -30,6 +30,9 @@ type CodeFlareOperatorConfiguration struct {
 	// ControllerManager returns the configurations for controllers
 	ControllerManager `json:",inline"`
 
+	// CertManagement configures the open-policy-agent cert-controller
+	CertManagement *CertManagementConfig `json:"certManagement,omitempty"`
+
 	KubeRay *KubeRayConfiguration `json:"kuberay,omitempty"`
 
 	// AppWrapper contains the AppWrapper controller configuration
@@ -45,6 +48,17 @@ type AppWrapperConfiguration struct {
 
 type KubeRayConfiguration struct {
 	RayDashboardOAuthEnabled *bool `json:"rayDashboardOAuthEnabled,omitempty"`
+}
+
+type CertManagementConfig struct {
+	Namespace                   string `json:"namespace,omitempty"`
+	CertificateDir              string `json:"certificateDir,omitempty"`
+	CertificateName             string `json:"certificateName,omitempty"`
+	CertificateOrg              string `json:"certificateOrg,omitempty"`
+	MutatingWebhookConfigName   string `json:"mutatingWebhookConfigName,omitempty"`
+	ValidatingWebhookConfigName string `json:"validatingWebhookConfigName,omitempty"`
+	WebhookServiceName          string `json:"webhookServiceName,omitempty"`
+	WebhookSecretName           string `json:"webhookSecretName,omitempty"`
 }
 
 type ControllerManager struct {

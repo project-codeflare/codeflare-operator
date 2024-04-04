@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	cert "github.com/open-policy-agent/cert-controller/pkg/rotator"
 	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	awconfig "github.com/project-codeflare/appwrapper/pkg/config"
 	awctrl "github.com/project-codeflare/appwrapper/pkg/controller"
@@ -36,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
@@ -109,10 +111,6 @@ func main() {
 			QPS:   ptr.To(float32(50)),
 			Burst: ptr.To(int32(100)),
 		},
-		AppWrapper: &config.AppWrapperConfiguration{
-			Enabled: ptr.To(true),
-			Config:  awconfig.NewConfig(namespace),
-		},
 		ControllerManager: config.ControllerManager{
 			Metrics: config.MetricsConfiguration{
 				BindAddress:   ":8080",
@@ -125,14 +123,24 @@ func main() {
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
+		CertManagement: &config.CertManagementConfig{
+			Namespace:                   namespace,
+			CertificateDir:              "/tmp/k8s-webhook-server/serving-certs",
+			CertificateName:             "codeflare-ca",
+			CertificateOrg:              "codeflare",
+			MutatingWebhookConfigName:   "codeflare-operator-mutating-webhook-configuration",
+			ValidatingWebhookConfigName: "codeflare-operator-validating-webhook-configuration",
+			WebhookServiceName:          "codeflare-operator-webhook-service",
+			WebhookSecretName:           "codeflare-operator-webhook-server-cert",
+		},
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: ptr.To(true),
 		},
+		AppWrapper: &config.AppWrapperConfiguration{
+			Enabled: ptr.To(false),
+			Config:  awconfig.NewAppWrapperConfig(),
+		},
 	}
-	cfg.AppWrapper.Config.CertManagement.WebhookSecretName = "codeflare-operator-webhook-server-cert"
-	cfg.AppWrapper.Config.CertManagement.WebhookServiceName = "codeflare-operator-webhook-service"
-	cfg.AppWrapper.Config.CertManagement.MutatingWebhookConfigName = "codeflare-operator-mutating-webhook-configuration"
-	cfg.AppWrapper.Config.CertManagement.ValidatingWebhookConfigName = "codeflare-operator-validating-webhook-configuration"
 
 	kubeConfig, err := ctrl.GetConfig()
 	exitOnError(err, "unable to get client config")
@@ -142,8 +150,8 @@ func main() {
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	exitOnError(err, "unable to create Kubernetes client")
 
-	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespaceOrDie(), configMapName, cfg), "unable to initialise configuration")
-	exitOnError(awconfig.ValidateConfig(cfg.AppWrapper.Config), "invalid AppWrapper configuration")
+	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespace, configMapName, cfg), "unable to initialise configuration")
+	exitOnError(awconfig.ValidateAppWrapperConfig(cfg.AppWrapper.Config), "invalid AppWrapper configuration")
 
 	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
@@ -186,7 +194,7 @@ func main() {
 	if os.Getenv("ENABLE_WEBHOOKS") == "false" {
 		close(certsReady)
 	} else {
-		exitOnError(awctrl.SetupCertManagement(mgr, &cfg.AppWrapper.Config.CertManagement, certsReady), "unable to set up cert rotation")
+		exitOnError(setupCertManagement(mgr, cfg.CertManagement, certsReady), "unable to set up cert rotation")
 	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
@@ -274,6 +282,31 @@ func HasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersi
 		}
 	}
 	return false, nil
+}
+
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;update
+
+func setupCertManagement(mgr ctrl.Manager, config *config.CertManagementConfig, certsReady chan struct{}) error {
+	// DNSName is <service name>.<namespace>.svc
+	var dnsName = fmt.Sprintf("%s.%s.svc", config.WebhookServiceName, config.Namespace)
+
+	return cert.AddRotator(mgr, &cert.CertRotator{
+		SecretKey:      types.NamespacedName{Namespace: config.Namespace, Name: config.WebhookSecretName},
+		CertDir:        config.CertificateDir,
+		CAName:         config.CertificateName,
+		CAOrganization: config.CertificateOrg,
+		DNSName:        dnsName,
+		IsReady:        certsReady,
+		Webhooks: []cert.WebhookInfo{
+			{Type: cert.Validating, Name: config.ValidatingWebhookConfigName},
+			{Type: cert.Mutating, Name: config.MutatingWebhookConfigName},
+		},
+		// When the controller is running in the leader election mode,
+		// we expect webhook server will run in primary and secondary instance
+		RequireLeaderElection: false,
+	})
 }
 
 func namespaceOrDie() string {

@@ -44,8 +44,3 @@ package controllers
 // permissions needed by Webhook to enable SubjectAccessReview
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=list
-
-// needed by the cert-controller
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
-// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;update
-// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;update
