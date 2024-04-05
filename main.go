@@ -127,8 +127,9 @@ func main() {
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
-		MCADEnabled: pointer.Bool(false),
-		MCAD:        &mcadconfig.MCADConfiguration{},
+		MCAD: &config.MCADConfiguration{
+			Enabled: pointer.Bool(false),
+		},
 		InstaScale: &config.InstaScaleConfiguration{
 			Enabled: pointer.Bool(false),
 			InstaScaleConfiguration: instascaleconfig.InstaScaleConfiguration{
@@ -168,8 +169,8 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	if pointer.BoolDeref(cfg.MCADEnabled, false) {
-		mcadQueueController := mcad.NewJobController(mgr.GetConfig(), cfg.MCAD, &mcadconfig.MCADConfigurationExtended{})
+	if pointer.BoolDeref(cfg.MCAD.Enabled, false) {
+		mcadQueueController := mcad.NewJobController(mgr.GetConfig(), &cfg.MCAD.MCADConfiguration, &mcadconfig.MCADConfigurationExtended{})
 		if mcadQueueController == nil {
 			// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
 			os.Exit(1)

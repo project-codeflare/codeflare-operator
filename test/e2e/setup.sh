@@ -56,13 +56,3 @@ roleRef:
   kind: ClusterRole
   name: mcad-controller-rayclusters
 EOF
-
-cat <<EOF | kubectl apply -f -
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: codeflare-operator-config
-data:
-  config.yaml: |
-    mcadEnabled: true
-EOF
