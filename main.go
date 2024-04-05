@@ -113,12 +113,6 @@ func main() {
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
-		MCAD: &config.MCADConfiguration{
-			Enabled: pointer.Bool(false),
-		},
-		InstaScale: &config.InstaScaleConfiguration{
-			Enabled: pointer.Bool(false),
-		},
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: pointer.Bool(true),
 		},
