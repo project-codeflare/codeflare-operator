@@ -92,6 +92,10 @@ jobs:
           echo Waiting for Deployment to be ready
           timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
           kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
+
+          echo Patch the CodeFlare operator ConfigMap
+          kubectl patch -n '${{ env.SUBSCRIPTION_NAMESPACE }}' cm codeflare-operator-config --type merge -p '{"data":{"config.yaml":"mcad:\n  enabled: true"}}'
+
         env:
           CATALOG_SOURCE_NAME: "codeflare-olm-test"
           CATALOG_SOURCE_NAMESPACE: "olm"
