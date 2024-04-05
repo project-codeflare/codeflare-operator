@@ -22,6 +22,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 
+	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +76,7 @@ var (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
 // +kubebuilder:rbac:groups=core,resources=services,verbs=patch;delete;get
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=patch;delete;get
+// +kubebuilder:rbac:groups=dscinitialization.opendatahub.io,resources=dscinitializations,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -156,7 +158,21 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	// Locate the KubeRay operator deployment:
+	// - First try to get the ODH / RHOAI application namespace from the DSCInitialization
+	// - Or fallback to the well-known defaults
+	var kubeRayNamespaces []string
+	dsci := &dsciv1.DSCInitialization{}
+	err = r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
+	if errors.IsNotFound(err) {
+		kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
+	} else if err != nil {
+		return ctrl.Result{}, err
+	} else {
+		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+	}
+
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(&cluster, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
@@ -274,8 +290,7 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, r *RayClusterReconciler) *cor
 	// Create a Kubernetes secret to store the cookie secret
 }
 
-func desiredNetworkPolicy(cluster *rayv1.RayCluster) *networkingapply.NetworkPolicyApplyConfiguration {
-
+func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string) *networkingapply.NetworkPolicyApplyConfiguration {
 	return networkingapply.NetworkPolicy(cluster.Name, cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(networkingapply.NetworkPolicySpec().
@@ -290,14 +305,19 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster) *networkingapply.NetworkPol
 					).WithFrom(
 					networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector()),
 				),
-				networkingapply.NetworkPolicyIngressRule().WithFrom(
-					networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector().
-						WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
-						WithNamespaceSelector(metav1apply.LabelSelector().WithMatchLabels(map[string]string{"opendatahub.io/generated-namespace": "true"})),
-				).WithPorts(
-					networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
-					networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
-				),
+				networkingapply.NetworkPolicyIngressRule().
+					WithFrom(
+						networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector().
+							WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
+							WithNamespaceSelector(metav1apply.LabelSelector().
+								WithMatchExpressions(metav1apply.LabelSelectorRequirement().
+									WithKey(corev1.LabelMetadataName).
+									WithOperator(metav1.LabelSelectorOpIn).
+									WithValues(kubeRayNamespaces...)))).
+					WithPorts(
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+					),
 				networkingapply.NetworkPolicyIngressRule().
 					WithPorts(
 						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),

@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	odhv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/features/v1"
 	instascale "github.com/project-codeflare/instascale/controllers"
 	instascaleconfig "github.com/project-codeflare/instascale/pkg/config"
 	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
@@ -84,6 +85,8 @@ func init() {
 	utilruntime.Must(rayv1.AddToScheme(scheme))
 	// OpenShift Route
 	utilruntime.Must(routev1.Install(scheme))
+	// ODH
+	utilruntime.Must(odhv1.AddToScheme(scheme))
 }
 
 func main() {
