@@ -20,11 +20,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	gomega "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	rayv1alpha1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1alpha1"
+	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMCADRay(t *testing.T) {
@@ -45,13 +47,8 @@ func TestMCADRay(t *testing.T) {
 	// Create RBAC, retrieve token for user with limited rights
 	policyRules := []rbacv1.PolicyRule{
 		{
-			Verbs:     []string{"get", "create", "delete", "list", "patch", "update"},
-			APIGroups: []string{mcadv1beta1.GroupName},
-			Resources: []string{"appwrappers"},
-		},
-		{
 			Verbs:     []string{"get", "list"},
-			APIGroups: []string{rayv1alpha1.GroupVersion.Group},
+			APIGroups: []string{rayv1.GroupVersion.Group},
 			Resources: []string{"rayclusters", "rayclusters/status"},
 		},
 		{
@@ -87,18 +84,17 @@ func TestMCADRay(t *testing.T) {
 	// Create Notebook CR
 	createNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
 
-	// Make sure the AppWrapper is created and running
-	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
+	// Make sure the RayCluster is created and running
+	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
-				ContainElement(WithTransform(AppWrapperName, HavePrefix("mnisttest"))),
-				ContainElement(WithTransform(AppWrapperState, Equal(mcadv1beta1.AppWrapperStateActive))),
+				ContainElement(WithTransform(AppWrapperState, Equal(rayv1.Ready))),
 			),
 		)
 
-	// Make sure the AppWrapper finishes and is deleted
-	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).
+	// Make sure the RayCluster finishes and is deleted
+	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
 		Should(HaveLen(0))
 }
 
@@ -133,4 +129,19 @@ func readMnistPy(test Test) []byte {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	return ParseTemplate(test, template, props)
+}
+
+// TODO: This belongs on codeflare-common/support/ray.go
+func rayClusters(t Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*rayv1.RayCluster {
+	return func(g gomega.Gomega) []*rayv1.RayCluster {
+		rcs, err := t.Client().Ray().RayV1().RayClusters(namespace.Name).List(t.Ctx(), metav1.ListOptions{})
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+
+		rcsp := []*rayv1.RayCluster{}
+		for _, v := range rcs.Items {
+			rcsp = append(rcsp, &v)
+		}
+
+		return rcsp
+	}
 }

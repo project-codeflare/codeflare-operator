@@ -24,12 +24,6 @@ import (
 	"strings"
 	"time"
 
-	instascale "github.com/project-codeflare/instascale/controllers"
-	instascaleconfig "github.com/project-codeflare/instascale/pkg/config"
-	mcadv1beta1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/controller/v1beta1"
-	quotasubtreev1alpha1 "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/apis/quotaplugins/quotasubtree/v1alpha1"
-	mcadconfig "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
-	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/controller/queuejob"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
@@ -52,8 +46,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 
-	configv1 "github.com/openshift/api/config/v1"
-	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
@@ -74,12 +66,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	// MCAD
-	utilruntime.Must(mcadv1beta1.AddToScheme(scheme))
-	utilruntime.Must(quotasubtreev1alpha1.AddToScheme(scheme))
-	// InstaScale
-	utilruntime.Must(configv1.Install(scheme))
-	utilruntime.Must(machinev1beta1.Install(scheme))
 	// Ray
 	utilruntime.Must(rayv1.AddToScheme(scheme))
 	// OpenShift Route
@@ -127,15 +113,6 @@ func main() {
 			},
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
-		MCAD: &config.MCADConfiguration{
-			Enabled: pointer.Bool(false),
-		},
-		InstaScale: &config.InstaScaleConfiguration{
-			Enabled: pointer.Bool(false),
-			InstaScaleConfiguration: instascaleconfig.InstaScaleConfiguration{
-				MaxScaleoutAllowed: 5,
-			},
-		},
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: pointer.Bool(true),
 		},
@@ -168,24 +145,6 @@ func main() {
 		RenewDeadline:              &cfg.LeaderElection.RenewDeadline.Duration,
 	})
 	exitOnError(err, "unable to start manager")
-
-	if pointer.BoolDeref(cfg.MCAD.Enabled, false) {
-		mcadQueueController := mcad.NewJobController(mgr.GetConfig(), &cfg.MCAD.MCADConfiguration, &mcadconfig.MCADConfigurationExtended{})
-		if mcadQueueController == nil {
-			// FIXME: update NewJobController so it follows Go idiomatic error handling and return an error instead of a nil object
-			os.Exit(1)
-		}
-		mcadQueueController.Run(ctx.Done())
-	}
-
-	if pointer.BoolDeref(cfg.InstaScale.Enabled, false) {
-		instaScaleController := &instascale.AppWrapperReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-			Config: cfg.InstaScale.InstaScaleConfiguration,
-		}
-		exitOnError(instaScaleController.SetupWithManager(context.Background(), mgr), "Error setting up InstaScale controller")
-	}
 
 	v, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
 	if v {
