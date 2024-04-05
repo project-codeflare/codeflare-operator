@@ -16,7 +16,6 @@ limitations under the License.
 
 package odh
 
-/*
 import (
 	"bytes"
 
@@ -94,4 +93,3 @@ func getRecommendedImageStreamTag(test Test, is *imagev1.ImageStream) (tagName s
 	test.T().Fatalf("tag with annotation '%s' not found in ImageStream %s", recommendedTagAnnotation, is.Name)
 	return
 }
-*/
