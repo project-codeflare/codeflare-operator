@@ -41,6 +41,8 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+
+	"github.com/project-codeflare/codeflare-operator/pkg/config"
 )
 
 // RayClusterReconciler reconciles a RayCluster object
@@ -50,15 +52,17 @@ type RayClusterReconciler struct {
 	routeClient *routev1client.RouteV1Client
 	Scheme      *runtime.Scheme
 	CookieSalt  string
+	Config      *config.CodeFlareOperatorConfiguration
 }
 
 const (
-	requeueTime          = 10
-	controllerName       = "codeflare-raycluster-controller"
-	oAuthFinalizer       = "ray.openshift.ai/oauth-finalizer"
-	oAuthServicePort     = 443
-	oAuthServicePortName = "oauth-proxy"
-	logRequeueing        = "requeueing"
+	requeueTime            = 10
+	controllerName         = "codeflare-raycluster-controller"
+	oAuthFinalizer         = "ray.openshift.ai/oauth-finalizer"
+	oAuthServicePort       = 443
+	oAuthServicePortName   = "oauth-proxy"
+	ingressServicePortName = "dashboard"
+	logRequeueing          = "requeueing"
 )
 
 var (
@@ -97,6 +101,10 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	isLocalInteractive := annotationBoolVal(ctx, &cluster, "sdk.codeflare.dev/local_interactive", false)
+	ingressDomain := "" // FIX - CFO will retrieve it.
+	isOpenShift, ingressHost := getClusterType(ctx, r.kubeClient, &cluster, ingressDomain)
+
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
 			logger.Info("Add a finalizer", "finalizer", oAuthFinalizer)
@@ -130,29 +138,63 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-	if err != nil {
-		logger.Error(err, "Failed to update OAuth Route")
-	}
+	if cluster.Status.State != "suspended" && r.isRayDashboardOAuthEnabled() && isOpenShift {
+		logger.Info("Creating OAuth Objects")
+		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to update OAuth Route")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
 
-	_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredOAuthSecret(&cluster, r), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-	if err != nil {
-		logger.Error(err, "Failed to create OAuth Secret")
-	}
+		_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredOAuthSecret(&cluster, r), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to create OAuth Secret")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
 
-	_, err = r.kubeClient.CoreV1().Services(cluster.Namespace).Apply(ctx, desiredOAuthService(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-	if err != nil {
-		logger.Error(err, "Failed to update OAuth Service")
-	}
+		_, err = r.kubeClient.CoreV1().Services(cluster.Namespace).Apply(ctx, desiredOAuthService(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to update OAuth Service")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
 
-	_, err = r.kubeClient.CoreV1().ServiceAccounts(cluster.Namespace).Apply(ctx, desiredServiceAccount(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-	if err != nil {
-		logger.Error(err, "Failed to update OAuth ServiceAccount")
-	}
+		_, err = r.kubeClient.CoreV1().ServiceAccounts(cluster.Namespace).Apply(ctx, desiredServiceAccount(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to update OAuth ServiceAccount")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
 
-	_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-	if err != nil {
-		logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
+		_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+
+		if isLocalInteractive {
+			logger.Info("Creating RayClient Route")
+			_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredRayClientRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			if err != nil {
+				logger.Error(err, "Failed to update RayClient Route")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
+		}
+
+	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !isOpenShift {
+		logger.Info("Creating Dashboard Ingress")
+		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			// This log is info level since errors are not fatal and are expected
+			logger.Info("WARN: Failed to update Dashboard Ingress", "error", err.Error(), logRequeueing, true)
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+		if isLocalInteractive && ingressDomain != "" {
+			logger.Info("Creating RayClient Ingress")
+			_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredRayClientIngress(&cluster, ingressDomain), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			if err != nil {
+				logger.Error(err, "Failed to update RayClient Ingress")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -193,19 +235,23 @@ func desiredServiceAccount(cluster *rayv1.RayCluster) *coreapply.ServiceAccountA
 		WithAnnotations(map[string]string{
 			"serviceaccounts.openshift.io/oauth-redirectreference.first": "" +
 				`{"kind":"OAuthRedirectReference","apiVersion":"v1",` +
-				`"reference":{"kind":"Route","name":"` + routeNameFromCluster(cluster) + `"}}`,
+				`"reference":{"kind":"Route","name":"` + dashboardNameFromCluster(cluster) + `"}}`,
 		}).
 		WithOwnerReferences(
 			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 
-func routeNameFromCluster(cluster *rayv1.RayCluster) string {
+func dashboardNameFromCluster(cluster *rayv1.RayCluster) string {
 	return "ray-dashboard-" + cluster.Name
 }
 
+func rayClientNameFromCluster(cluster *rayv1.RayCluster) string {
+	return "rayclient-" + cluster.Name
+}
+
 func desiredClusterRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
-	return routeapply.Route(routeNameFromCluster(cluster), cluster.Namespace).
+	return routeapply.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
