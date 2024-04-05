@@ -214,7 +214,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// - Or fallback to the well-known defaults
 	var kubeRayNamespaces []string
 	dsci := &dsciv1.DSCInitialization{}
-	err = r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
+	err := r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
 	if errors.IsNotFound(err) {
 		kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
 	} else if err != nil {
