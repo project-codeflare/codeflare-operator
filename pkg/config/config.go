@@ -17,9 +17,6 @@ limitations under the License.
 package config
 
 import (
-	instascale "github.com/project-codeflare/instascale/pkg/config"
-	mcad "github.com/project-codeflare/multi-cluster-app-dispatcher/pkg/config"
-
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
@@ -48,9 +45,6 @@ type MCADConfiguration struct {
 	// enabled controls whether the MCAD controller is started.
 	// It defaults to false.
 	Enabled *bool `json:"enabled,omitempty"`
-
-	// The InstaScale controller configuration
-	mcad.MCADConfiguration `json:",inline,omitempty"`
 }
 
 type InstaScaleConfiguration struct {
@@ -58,9 +52,6 @@ type InstaScaleConfiguration struct {
 	// It may default to true on platforms that InstaScale supports.
 	// Otherwise, it defaults to false.
 	Enabled *bool `json:"enabled,omitempty"`
-
-	// The InstaScale controller configuration
-	instascale.InstaScaleConfiguration `json:",inline,omitempty"`
 }
 
 type ControllerManager struct {

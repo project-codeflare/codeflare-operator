@@ -11,16 +11,6 @@ PREVIOUS_VERSION ?= v0.0.0-dev
 VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
-# INSTASCALE_VERSION defines the default version of the InstaScale controller
-INSTASCALE_VERSION ?= v0.4.0
-INSTASCALE_REPO ?= github.com/project-codeflare/instascale
-
-# MCAD_VERSION defines the default version of the MCAD controller
-MCAD_VERSION ?= v1.40.0
-MCAD_REPO ?= github.com/project-codeflare/multi-cluster-app-dispatcher
-# Upstream MCAD is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
-MCAD_CRD ?= ${MCAD_REPO}/config/crd?ref=${MCAD_VERSION}
-
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
 KUBERAY_VERSION ?= v1.0.0
 
@@ -139,9 +129,6 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen kustomize install-yq ## Generate RBAC objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
-	$(KUSTOMIZE) build config/crd/mcad | $(YQ) -s '"crd-" + .spec.names.singular' --no-doc
-	mv crd-*.yml config/crd
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -156,8 +143,6 @@ vet: ## Run go vet against code.
 
 .PHONY: modules
 modules: ## Update Go dependencies.
-	go get $(MCAD_REPO)@$(MCAD_VERSION)
-	go get $(INSTASCALE_REPO)@$(INSTASCALE_VERSION)
 	go get github.com/ray-project/kuberay/ray-operator@$(KUBERAY_VERSION)
 	go mod tidy
 
@@ -166,8 +151,6 @@ build: fmt vet ## Build manager binary.
 	go build \
 		-ldflags " \
 			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
-			-X 'main.McadVersion=$(MCAD_VERSION)'  \
-			-X 'main.InstaScaleVersion=$(INSTASCALE_VERSION)' \
 			-X 'main.BuildDate=$(BUILD_DATE)' \
 		" \
 		-o bin/manager main.go
@@ -208,7 +191,6 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(SED) -i -E "s|(- )\${MCAD_REPO}.*|\1\${MCAD_CRD}|" config/crd/mcad/kustomization.yaml
 	$(KUSTOMIZE) build config/${ENV} | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 	git restore config/*
 
