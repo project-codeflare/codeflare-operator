@@ -32,9 +32,7 @@ type CodeFlareOperatorConfiguration struct {
 	ControllerManager `json:",inline"`
 
 	// The MCAD controller configuration
-	// MCADEnabled defaults to false
-	MCADEnabled *bool                   `json:"mcadEnabled,omitempty"`
-	MCAD        *mcad.MCADConfiguration `json:"mcad,omitempty"`
+	MCAD *MCADConfiguration `json:"mcad,omitempty"`
 
 	// The InstaScale controller configuration
 	InstaScale *InstaScaleConfiguration `json:"instascale,omitempty"`
@@ -44,6 +42,15 @@ type CodeFlareOperatorConfiguration struct {
 
 type KubeRayConfiguration struct {
 	RayDashboardOAuthEnabled *bool `json:"rayDashboardOAuthEnabled,omitempty"`
+}
+
+type MCADConfiguration struct {
+	// enabled controls whether the MCAD controller is started.
+	// It defaults to false.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// The InstaScale controller configuration
+	mcad.MCADConfiguration `json:",inline,omitempty"`
 }
 
 type InstaScaleConfiguration struct {
