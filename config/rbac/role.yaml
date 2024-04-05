@@ -84,6 +84,12 @@ rules:
   - patch
   - update
 - apiGroups:
+  - dscinitialization.opendatahub.io
+  resources:
+  - dscinitializations
+  verbs:
+  - get
+- apiGroups:
   - ray.io
   resources:
   - rayclusters
