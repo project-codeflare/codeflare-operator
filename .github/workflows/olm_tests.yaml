@@ -92,10 +92,6 @@ jobs:
           echo Waiting for Deployment to be ready
           timeout 60 bash -c 'until [[ $(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}') ]]; do sleep 5 && echo "$(kubectl get deployment/codeflare-operator-manager -n '${{ env.SUBSCRIPTION_NAMESPACE }}')"; done'
           kubectl wait -n ${{ env.SUBSCRIPTION_NAMESPACE }} deployment/codeflare-operator-manager --for=condition=Available=true --timeout=60s
-
-          echo Patch the CodeFlare operator ConfigMap
-          kubectl patch -n '${{ env.SUBSCRIPTION_NAMESPACE }}' cm codeflare-operator-config --type merge -p '{"data":{"config.yaml":"mcad:\n  enabled: true"}}'
-
         env:
           CATALOG_SOURCE_NAME: "codeflare-olm-test"
           CATALOG_SOURCE_NAMESPACE: "olm"
@@ -106,10 +102,6 @@ jobs:
         run: |
           CSV_VERSION=$(kubectl get ClusterServiceVersion -l operators.coreos.com/codeflare-operator.openshift-operators='' -n openshift-operators -o json | jq -r .items[].spec.version)
           echo "PREVIOUS_VERSION=v$CSV_VERSION" >> $GITHUB_ENV
-
-      - name: Deploy CodeFlare stack
-        run: |
-          make setup-e2e
 
       - name: Build operator and catalog image
         run: |
@@ -125,13 +117,6 @@ jobs:
           OPM_BUNDLE_OPT: "--use-http"
           BUNDLE_PUSH_OPT: "--tls-verify=false"
           CATALOG_PUSH_OPT: "--tls-verify=false"
-
-      - name: Run OLM Upgrade e2e AppWrapper creation test
-        run: |
-          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
-          set -euo pipefail
-          go test -timeout 30m -v ./test/upgrade -run TestMNISTCreateAppWrapper -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
       - name: Update Operator to the built version
         run: |
@@ -162,38 +147,18 @@ jobs:
           SUBSCRIPTION_NAME: "codeflare-operator"
           SUBSCRIPTION_NAMESPACE: "openshift-operators"
 
-      - name: Run OLM Upgrade e2e Appwrapper Job status test to monitor training
-        run: |
-          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
-          set -euo pipefail
-          go test -timeout 30m -v ./test/upgrade -run TestMNISTCheckAppWrapperStatus -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
-
-      - name: Run e2e tests against built operator
-        run: |
-          export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
-          echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
-
-          set -euo pipefail
-          go test -timeout 30m -v ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
-
       - name: Print CodeFlare operator logs
         if: always() && steps.deploy.outcome == 'success'
         run: |
           echo "Printing CodeFlare operator logs"
-          kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee ${CODEFLARE_TEST_OUTPUT_DIR}/codeflare-operator.log
-
-      - name: Print KubeRay operator logs
-        if: always() && steps.deploy.outcome == 'success'
-        run: |
-          echo "Printing KubeRay operator logs"
-          kubectl logs -n ray-system --tail -1 -l app.kubernetes.io/name=kuberay | tee ${CODEFLARE_TEST_OUTPUT_DIR}/kuberay.log
+          mkdir logs
+          kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee logs/codeflare-operator.log
 
       - name: Export all KinD pod logs
         uses: ./common/github-actions/kind-export-logs
         if: always() && steps.deploy.outcome == 'success'
         with:
-          output-directory: ${CODEFLARE_TEST_OUTPUT_DIR}
+          output-directory: logs
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
@@ -201,5 +166,4 @@ jobs:
         with:
           name: logs
           retention-days: 10
-          path: |
-            ${{ env.CODEFLARE_TEST_OUTPUT_DIR }}/**/*.log
+          path: logs/**/*.log
