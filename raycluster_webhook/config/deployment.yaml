@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raycluster-mutating-webhook
+  namespace: default
+  labels:
+    app: raycluster-mutating-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: raycluster-mutating-webhook
+  template:
+    metadata:
+      labels:
+        app: raycluster-mutating-webhook
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: raycluster-mutating-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1234
+      containers:
+        - name: server
+          image: quay.io/rh_ee_egallina/altwebhook:v83
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: tls
+            - containerPort: 80
+              name: metrics
+          volumeMounts:
+            - name: webhook-tls-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-tls-certs
+          secret:
+            secretName: raycluster-webhook-cert
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: raycluster-mutating-webhook
+  namespgce: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: raycluster-mutating-webhook
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: ["ray.io"]
+    resources: ["rayclusters"]
+    verbs: ["get", "watch", "list", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: raycluster-mutating-webhook
+subjects:
+  - kind: ServiceAccount
+    name: raycluster-mutating-webhook
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: raycluster-mutating-webhook
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: raycluster-mutating-webhook
+  namespace: default
+spec:
+  selector:
+    app: raycluster-mutating-webhook
+  ports:
+    - port: 443
+      targetPort: tls
+      name: application
+    - port: 80
+      targetPort: metrics
+      name: metrics
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: raycluster-mutating-webhook
+webhooks:
+  - name: raycluster-mutating-webhook.codeflare.com
+    admissionReviewVersions: ["v1beta1"]
+    sideEffects: None
+    timeoutSeconds: 30
+    failurePolicy: Ignore
+    clientConfig:
+      service:
+        name: raycluster-mutating-webhook
+        namespace: default
+        path: "/mutate"
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: ["ray.io"]
+        apiVersions: ["v1"]
+        resources: ["rayclusters"]
