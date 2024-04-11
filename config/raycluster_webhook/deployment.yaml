@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raycluster-mutating-webhook
+  namespace: system
+  labels:
+    app: raycluster-mutating-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: raycluster-mutating-webhook
+  template:
+    metadata:
+      labels:
+        app: raycluster-mutating-webhook
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: raycluster-mutating-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1234
+      containers:
+        - name: server
+          image: quay.io/rh_ee_egallina/altwebhook:v89
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: tls
+            - containerPort: 80
+              name: metrics
+          volumeMounts:
+            - name: webhook-tls-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-tls-certs
+          secret:
+            secretName: raycluster-webhook-cert

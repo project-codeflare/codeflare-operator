@@ -79,5 +79,21 @@ func createPatch(rayCluster *rayv1api.RayCluster) ([]patchOperation, error) {
 		Value: newOAuthSidecar,
 	})
 
+	tlsSecretVolume := corev1.Volume{
+		Name: "proxy-tls-secret",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: rayclusterName + "-proxy-tls-secret",
+			},
+		},
+	}
+
+	// Patch to add new volume
+	patches = append(patches, patchOperation{
+		Op:    "add",
+		Path:  "/spec/headGroupSpec/template/spec/volumes/-",
+		Value: tlsSecretVolume,
+	})
+
 	return patches, nil
 }
