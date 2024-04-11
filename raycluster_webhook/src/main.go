@@ -49,6 +49,8 @@ func main() {
 	flag.StringVar(&serverParameters.certFile, "tlsCertFile", "/etc/webhook/certs/tls.crt", "File containing the x509 Certificate for HTTPS.")
 	flag.StringVar(&serverParameters.keyFile, "tlsKeyFile", "/etc/webhook/certs/tls.key", "File containing the x509 private key to --tlsCertFile.")
 	flag.Parse()
+	
+	k8sClientSet = createClientSet()
 
 	// Configure HTTPS server
 	http.HandleFunc("/", HandleRoot)

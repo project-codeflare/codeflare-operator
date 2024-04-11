@@ -23,7 +23,7 @@ spec:
         runAsUser: 1234
       containers:
         - name: server
-          image: quay.io/rh_ee_egallina/altwebhook:v83
+          image: quay.io/rh_ee_egallina/altwebhook:v89
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
@@ -43,7 +43,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: raycluster-mutating-webhook
-  namespgce: default
+  namespace: default
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -56,6 +56,9 @@ rules:
   - apiGroups: ["ray.io"]
     resources: ["rayclusters"]
     verbs: ["get", "watch", "list", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "watch", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -75,6 +78,8 @@ kind: Service
 metadata:
   name: raycluster-mutating-webhook
   namespace: default
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: raycluster-webhook-cert
 spec:
   selector:
     app: raycluster-mutating-webhook
@@ -101,6 +106,7 @@ webhooks:
         name: raycluster-mutating-webhook
         namespace: default
         path: "/mutate"
+      caBundle: ''
     rules:
       - operations: ["CREATE", "UPDATE"]
         apiGroups: ["ray.io"]
