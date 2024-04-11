@@ -50,23 +50,7 @@ metadata:
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
-  customresourcedefinitions:
-    owned:
-    - description: AppWrapper is the Schema for the AppWrapper API
-      displayName: AppWrapper
-      kind: AppWrappers
-      name: appwrappers.workload.codeflare.dev
-      version: v1beta1
-    - description: SchedulingSpec is the Schema for the SchedulingSpec API
-      displayName: SchedulingSpec
-      kind: SchedulingSpecs
-      name: schedulingspecs.workload.codeflare.dev
-      version: v1beta1
-    - description: QuotaSubtree is the Schema for the QuotaSubtree API
-      displayName: QuotaSubtree
-      kind: QuotaSubtrees
-      name: quotasubtrees.quota.codeflare.dev
-      version: v1
+  customresourcedefinitions: {}
   description: CodeFlare allows you to scale complex pipelines anywhere
   displayName: CodeFlare Operator
   icon:
