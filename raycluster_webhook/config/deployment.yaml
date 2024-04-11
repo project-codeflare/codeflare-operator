@@ -95,6 +95,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: raycluster-mutating-webhook
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
 webhooks:
   - name: raycluster-mutating-webhook.codeflare.com
     admissionReviewVersions: ["v1beta1"]
@@ -102,11 +104,11 @@ webhooks:
     timeoutSeconds: 30
     failurePolicy: Ignore
     clientConfig:
+      caBundle: Cg==
       service:
         name: raycluster-mutating-webhook
         namespace: default
         path: "/mutate"
-      caBundle: ''
     rules:
       - operations: ["CREATE", "UPDATE"]
         apiGroups: ["ray.io"]
