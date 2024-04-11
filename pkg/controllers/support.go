@@ -126,42 +126,49 @@ func getDiscoveryClient(config *rest.Config) (*discovery.DiscoveryClient, error)
 
 // Check where we are running. We are trying to distinguish here whether
 // this is vanilla kubernetes cluster or Openshift
-func getClusterType(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressDomain string) (bool, string) {
+func isOpenShift(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster) bool {
 	// The discovery package is used to discover APIs supported by a Kubernetes API server.
 	logger := ctrl.LoggerFrom(ctx)
 	config, err := ctrl.GetConfig()
 	if err != nil && config == nil {
 		logger.Info("Cannot retrieve config, assuming we're on Vanilla Kubernetes")
-		return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
+		return false
 	}
 	dclient, err := getDiscoveryClient(config)
 	if err != nil && dclient == nil {
 		logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
-		return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
+		return false
 	}
 	apiGroupList, err := dclient.ServerGroups()
 	if err != nil {
 		logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
-		return false, ""
+		return false
 	}
 	for i := 0; i < len(apiGroupList.Groups); i++ {
 		if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
 			logger.Info("We detected being on OpenShift!")
-			return true, ""
+			return true
 		}
 	}
+	logger.Info("We detected being on Vanilla Kubernetes!")
+	return false
+}
+
+// getIngressHost generates the cluster URL string based on the cluster type, RayCluster, and ingress domain.
+func getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressDomain string) string {
+	logger := ctrl.LoggerFrom(ctx)
 	onKind, _ := isOnKindCluster(clientset)
 	if onKind && ingressDomain == "" {
 		logger.Info("We detected being on a KinD cluster!")
-		return false, "kind"
+		return "kind"
 	}
 	logger.Info("We detected being on Vanilla Kubernetes!")
-	return false, fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
+	return fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
 }
 
 func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
-	if r.Config != nil && r.Config.KubeRay != nil && r.Config.KubeRay.RayDashboardOAuthEnabled != nil {
-		return *r.Config.KubeRay.RayDashboardOAuthEnabled
+	if r.Config != nil && r.Config.RayDashboardOAuthEnabled != nil {
+		return *r.Config.RayDashboardOAuthEnabled
 	}
 	return true
 }
