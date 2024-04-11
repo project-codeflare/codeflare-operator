@@ -48,11 +48,13 @@ import (
 // RayClusterReconciler reconciles a RayCluster object
 type RayClusterReconciler struct {
 	client.Client
-	kubeClient  *kubernetes.Clientset
-	routeClient *routev1client.RouteV1Client
-	Scheme      *runtime.Scheme
-	CookieSalt  string
-	Config      *config.CodeFlareOperatorConfiguration
+	kubeClient             *kubernetes.Clientset
+	routeClient            *routev1client.RouteV1Client
+	Scheme                 *runtime.Scheme
+	CookieSalt             string
+	Config                 *config.KubeRayConfiguration
+	IsOpenShift            bool
+	IsOpenShiftInitialized bool
 }
 
 const (
@@ -105,8 +107,10 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	isLocalInteractive := annotationBoolVal(ctx, &cluster, "sdk.codeflare.dev/local_interactive", false)
-	ingressDomain := "" // FIX - CFO will retrieve it.
-	isOpenShift, ingressHost := getClusterType(ctx, r.kubeClient, &cluster, ingressDomain)
+	if !r.IsOpenShiftInitialized {
+		r.IsOpenShift = isOpenShift(ctx, r.kubeClient, &cluster)
+		r.IsOpenShiftInitialized = true
+	}
 
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
@@ -141,7 +145,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if cluster.Status.State != "suspended" && r.isRayDashboardOAuthEnabled() && isOpenShift {
+	if cluster.Status.State != "suspended" && r.isRayDashboardOAuthEnabled() && r.IsOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
@@ -182,9 +186,10 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 		}
 
-	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !isOpenShift {
+	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !r.IsOpenShift {
+		ingressDomain := ""
 		logger.Info("Creating Dashboard Ingress")
-		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, ingressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, getIngressHost(ctx, r.kubeClient, &cluster, ingressDomain)), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			// This log is info level since errors are not fatal and are expected
 			logger.Info("WARN: Failed to update Dashboard Ingress", "error", err.Error(), logRequeueing, true)
