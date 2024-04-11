@@ -6,6 +6,18 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
   - ""
   resources:
   - secrets
@@ -19,17 +31,31 @@ rules:
   resources:
   - serviceaccounts
   verbs:
+  - create
   - delete
   - get
   - patch
+  - update
 - apiGroups:
   - ""
   resources:
   - services
   verbs:
+  - create
   - delete
   - get
   - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
 - apiGroups:
   - ray.io
   resources:
@@ -61,14 +87,19 @@ rules:
   resources:
   - clusterrolebindings
   verbs:
+  - create
   - delete
   - get
   - patch
+  - update
 - apiGroups:
   - route.openshift.io
   resources:
   - routes
+  - routes/custom-host
   verbs:
+  - create
   - delete
   - get
   - patch
+  - update
