@@ -23,7 +23,7 @@ spec:
         runAsUser: 1234
       containers:
         - name: server
-          image: quay.io/rh_ee_egallina/altwebhook:v89
+          image: quay.io/mcampbel/webhook:v6
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
@@ -59,6 +59,9 @@ rules:
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "watch", "list"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

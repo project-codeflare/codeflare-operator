@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"strconv"
 
+	routeclientsetscheme "github.com/openshift/client-go/route/clientset/versioned/scheme"
 	rayv1api "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,7 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	_ "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/kubernetes"
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 type ServerParameters struct {
@@ -42,15 +46,30 @@ var (
 	k8sConfig             *rest.Config
 	k8sClientSet          *kubernetes.Clientset
 	serverParameters      ServerParameters
+	k8Client              client.Client
+	err                   error
 )
+
+func init() {
+	// OpenShift Route
+	_ = routeclientsetscheme.AddToScheme(clientsetscheme.Scheme)
+}
 
 func main() {
 	flag.IntVar(&serverParameters.port, "port", 8443, "Webhook server port.")
 	flag.StringVar(&serverParameters.certFile, "tlsCertFile", "/etc/webhook/certs/tls.crt", "File containing the x509 Certificate for HTTPS.")
 	flag.StringVar(&serverParameters.keyFile, "tlsKeyFile", "/etc/webhook/certs/tls.key", "File containing the x509 private key to --tlsCertFile.")
 	flag.Parse()
-	
-	k8sClientSet = createClientSet()
+
+	// Get a config to talk to the apiserver
+	cfg := config.GetConfigOrDie()
+	k8sClientSet, _ = kubernetes.NewForConfig(cfg)
+	// Create a new client
+	err = nil
+	k8Client, err = client.New(cfg, client.Options{})
+	if err != nil {
+		fmt.Errorf(err.Error(), "unable to create a client")
+	}
 
 	// Configure HTTPS server
 	http.HandleFunc("/", HandleRoot)
