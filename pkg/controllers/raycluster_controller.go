@@ -187,7 +187,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 
 	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !r.IsOpenShift {
-		ingressDomain := ""
+		ingressDomain := "" // TODO: ingressDomain should be retrieved by the CFO and used here to fix local_interactive. Jira: https://issues.redhat.com/browse/RHOAIENG-5330
 		logger.Info("Creating Dashboard Ingress")
 		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, getIngressHost(ctx, r.kubeClient, &cluster, ingressDomain)), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
