@@ -22,7 +22,7 @@ Requirements:
   When you have a version of the GNU sed installed on a macOS you may specify the binary using
   ```bash
   # brew install gnu-sed
-  make install -e SED=/usr/local/bin/gsed
+  NAMESPACE=default make run
   ```
 
 ### Testing
@@ -34,8 +34,6 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
-    # Install the CRDs
-    make install
     ```
 
    [!NOTE]

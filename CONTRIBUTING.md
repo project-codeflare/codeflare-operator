@@ -36,7 +36,6 @@ For building and pushing a new version of the operator image:
 
 For deploying onto a cluster:
  - First, either set `KUBECONFIG` or ensure you are logged into a cluster in your environment
- - `make install`
  - `make deploy -e IMG=<image-repo/image-name>`
 
 For building and pushing a new version of the bundled operator image:
