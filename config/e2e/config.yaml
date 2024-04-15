@@ -6,3 +6,4 @@ data:
   config.yaml: |
     kuberay:
       rayDashboardOAuthEnabled: false
+      ingressDomain: "kind"

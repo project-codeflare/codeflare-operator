@@ -33,6 +33,8 @@ type CodeFlareOperatorConfiguration struct {
 
 type KubeRayConfiguration struct {
 	RayDashboardOAuthEnabled *bool `json:"rayDashboardOAuthEnabled,omitempty"`
+
+	IngressDomain string `json:"ingressDomain,omitempty"`
 }
 
 type ControllerManager struct {
