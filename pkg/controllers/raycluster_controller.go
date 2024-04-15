@@ -106,7 +106,6 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	isLocalInteractive := annotationBoolVal(ctx, &cluster, "sdk.codeflare.dev/local_interactive", false)
 	if !r.IsOpenShiftInitialized {
 		r.IsOpenShift = isOpenShift(ctx, r.kubeClient, &cluster)
 		r.IsOpenShiftInitialized = true
@@ -177,13 +176,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-		if isLocalInteractive {
-			logger.Info("Creating RayClient Route")
-			_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredRayClientRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
-			if err != nil {
-				logger.Error(err, "Failed to update RayClient Route")
-				return ctrl.Result{RequeueAfter: requeueTime}, err
-			}
+		logger.Info("Creating RayClient Route")
+		_, err = r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredRayClientRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		if err != nil {
+			logger.Error(err, "Failed to update RayClient Route")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
 	} else if cluster.Status.State != "suspended" && !r.isRayDashboardOAuthEnabled() && !r.IsOpenShift {
@@ -195,7 +192,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Info("WARN: Failed to update Dashboard Ingress", "error", err.Error(), logRequeueing, true)
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
-		if isLocalInteractive && ingressDomain != "" {
+		if ingressDomain != "" {
 			logger.Info("Creating RayClient Ingress")
 			_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredRayClientIngress(&cluster, ingressDomain), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 			if err != nil {

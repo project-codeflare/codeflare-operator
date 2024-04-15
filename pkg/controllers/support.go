@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
@@ -30,7 +29,6 @@ func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConf
 	return routeapply.Route(rayClientNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
-			WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace).
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(serviceNameFromCluster(cluster)).WithWeight(100)).
 			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString("client"))).
 			WithTLS(routeapply.TLSConfig().WithTermination("passthrough")),
@@ -171,18 +169,4 @@ func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
 		return *r.Config.RayDashboardOAuthEnabled
 	}
 	return true
-}
-
-func annotationBoolVal(ctx context.Context, cluster *rayv1.RayCluster, annotation string, defaultValue bool) bool {
-	logger := ctrl.LoggerFrom(ctx)
-	val, exists := cluster.ObjectMeta.Annotations[annotation]
-	if !exists || val == "" {
-		return defaultValue
-	}
-	boolVal, err := strconv.ParseBool(val)
-	if err != nil {
-		logger.Error(err, "Could not convert annotation value to bool", "annotation", annotation, "value", val)
-		return defaultValue
-	}
-	return boolVal
 }
