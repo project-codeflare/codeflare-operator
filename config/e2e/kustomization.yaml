@@ -1,6 +1,7 @@
 namespace: openshift-operators
 
 bases:
+- config.yaml
 - ../default
 
 patches:
