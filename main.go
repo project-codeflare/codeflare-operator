@@ -115,7 +115,7 @@ func main() {
 		},
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: pointer.Bool(true),
-			IngressDomain:            "fake.domain",
+			IngressDomain:            "",
 		},
 	}
 

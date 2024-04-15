@@ -187,7 +187,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("We detected being on Vanilla Kubernetes!")
 		logger.Info("Creating Dashboard Ingress")
 		dashboardName := dashboardNameFromCluster(&cluster)
-		_, err := r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, r.getIngressHost(ctx, r.kubeClient, &cluster, dashboardName)), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		dashboardIngressHost, err := r.getIngressHost(ctx, r.kubeClient, &cluster, dashboardName)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+		_, err = r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredClusterIngress(&cluster, dashboardIngressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			// This log is info level since errors are not fatal and are expected
 			logger.Info("WARN: Failed to update Dashboard Ingress", "error", err.Error(), logRequeueing, true)
@@ -195,7 +199,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		logger.Info("Creating RayClient Ingress")
 		rayClientName := rayClientNameFromCluster(&cluster)
-		_, err = r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredRayClientIngress(&cluster, r.getIngressHost(ctx, r.kubeClient, &cluster, rayClientName)), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		rayClientIngressHost, err := r.getIngressHost(ctx, r.kubeClient, &cluster, rayClientName)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+		_, err = r.kubeClient.NetworkingV1().Ingresses(cluster.Namespace).Apply(ctx, desiredRayClientIngress(&cluster, rayClientIngressHost), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update RayClient Ingress")
 			return ctrl.Result{RequeueAfter: requeueTime}, err
