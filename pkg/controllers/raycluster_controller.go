@@ -223,7 +223,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(&cluster, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(cluster, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}

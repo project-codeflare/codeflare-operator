@@ -27,7 +27,6 @@ import (
 	"time"
 
 	cert "github.com/open-policy-agent/cert-controller/pkg/rotator"
-	odhv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/features/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
@@ -75,7 +74,7 @@ func init() {
 	// OpenShift Route
 	utilruntime.Must(routev1.Install(scheme))
 	// ODH
-	utilruntime.Must(odhv1.AddToScheme(scheme))
+	utilruntime.Must(dsciv1.AddToScheme(scheme))
 }
 
 func main() {
