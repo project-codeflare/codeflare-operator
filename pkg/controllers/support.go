@@ -146,9 +146,6 @@ func (r *RayClusterReconciler) getIngressHost(ctx context.Context, clientset *ku
 	} else {
 		return "", fmt.Errorf("missing IngressDomain configuration in ConfigMap 'codeflare-operator-config'")
 	}
-	if ingressDomain == "kind" {
-		return ingressDomain, nil
-	}
 	return fmt.Sprintf("%s-%s.%s", ingressNameFromCluster, cluster.Namespace, ingressDomain), nil
 }
 

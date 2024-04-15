@@ -17,6 +17,9 @@ limitations under the License.
 package e2e
 
 import (
+	"crypto/tls"
+	"net/http"
+	"net/url"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -221,7 +224,7 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
 
-	rayDashboardURL := ExposeService(test, "ray-dashboard", namespace.Name, "raycluster-head-svc", "dashboard")
+	rayDashboardURL := getRayDashboardURL(test, rayCluster.Namespace, rayCluster.Name)
 
 	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
 	rayClient := NewRayClusterClient(rayDashboardURL)
@@ -240,4 +243,44 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
 		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
+}
+
+func getRayDashboardURL(test Test, namespace, rayClusterName string) url.URL {
+	dashboardName := "ray-dashboard-" + rayClusterName
+
+	if IsOpenShift(test) {
+		route := GetRoute(test, namespace, dashboardName)
+		hostname := route.Status.Ingress[0].Host
+
+		// Wait for expected HTTP code
+		test.T().Logf("Waiting for Route %s/%s to be available", route.Namespace, route.Name)
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr}
+
+		test.Eventually(func() (int, error) {
+			resp, err := client.Get("https://" + hostname)
+			if err != nil {
+				return -1, err
+			}
+			return resp.StatusCode, nil
+		}, TestTimeoutShort).Should(Not(Equal(503)))
+
+		return url.URL{
+			Scheme: "https",
+			Host:   hostname,
+		}
+	}
+
+	ingress := GetIngress(test, namespace, dashboardName)
+
+	test.T().Logf("Waiting for Ingress %s/%s to be admitted", ingress.Namespace, ingress.Name)
+	test.Eventually(Ingress(test, ingress.Namespace, ingress.Name), TestTimeoutShort).
+		Should(WithTransform(LoadBalancerIngresses, HaveLen(1)))
+
+	return url.URL{
+		Scheme: "http",
+		Host:   ingress.Spec.Rules[0].Host,
+	}
 }
