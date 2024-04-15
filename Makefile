@@ -12,7 +12,7 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
-KUBERAY_VERSION ?= v1.1.0
+KUBERAY_VERSION ?= v1.0.0
 
 # RAY_VERSION defines the default version of Ray (used for testing)
 RAY_VERSION ?= 2.5.0
