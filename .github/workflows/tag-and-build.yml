@@ -85,6 +85,10 @@ jobs:
         sed -i -E "s|(.*CodeFlare-SDK.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.codeflare-sdk-version }}\2${{ github.event.inputs.codeflare-sdk-version }}\3|" README.md
         sed -i -E "s|(.*KubeRay.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.kuberay-version }}\2${{ github.event.inputs.kuberay-version }}\3|" README.md
 
+    - name: Adjust Kuberay dependency in the code
+      run: |
+        sed -i -E "s/(.*KUBERAY_VERSION \?= ).*/\1${{ github.event.inputs.kuberay-version }}/" Makefile
+
     - name: Update image version in params.env
       run: |
         VERSION=${{ github.event.inputs.version }} perl -i -pe 's/:(.*)$/:$ENV{"VERSION"}/' config/manager/params.env
