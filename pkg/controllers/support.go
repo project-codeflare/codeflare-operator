@@ -139,15 +139,17 @@ func isOpenShift(ctx context.Context, clientset *kubernetes.Clientset, cluster *
 }
 
 // getIngressHost generates the cluster URL string based on the cluster type, RayCluster, and ingress domain.
-func (r *RayClusterReconciler) getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressNameFromCluster string) string {
-	ingressDomain := "fake.domain"
+func (r *RayClusterReconciler) getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressNameFromCluster string) (string, error) {
+	ingressDomain := ""
 	if r.Config != nil && r.Config.IngressDomain != "" {
 		ingressDomain = r.Config.IngressDomain
+	} else {
+		return "", fmt.Errorf("missing IngressDomain configuration in ConfigMap 'codeflare-operator-config'")
 	}
 	if ingressDomain == "kind" {
-		return ingressDomain
+		return ingressDomain, nil
 	}
-	return fmt.Sprintf("%s-%s.%s", ingressNameFromCluster, cluster.Namespace, ingressDomain)
+	return fmt.Sprintf("%s-%s.%s", ingressNameFromCluster, cluster.Namespace, ingressDomain), nil
 }
 
 func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
