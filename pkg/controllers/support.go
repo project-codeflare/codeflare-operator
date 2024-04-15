@@ -8,7 +8,6 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -39,7 +38,7 @@ func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConf
 }
 
 // Create an Ingress object for the RayCluster
-func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressDomain string) *networkingv1ac.IngressApplyConfiguration {
+func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(rayClientNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithAnnotations(map[string]string{
@@ -55,7 +54,7 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressDomain string) *n
 		WithSpec(networkingv1ac.IngressSpec().
 			WithIngressClassName("nginx").
 			WithRules(networkingv1ac.IngressRule().
-				WithHost(rayClientNameFromCluster(cluster) + "-" + cluster.Namespace + "." + ingressDomain).
+				WithHost(ingressHost).
 				WithHTTP(networkingv1ac.HTTPIngressRuleValue().
 					WithPaths(networkingv1ac.HTTPIngressPath().
 						WithPath("/").
@@ -85,7 +84,7 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 			WithUID(types.UID(cluster.UID))).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
-				WithHost(ingressHost). // KinD hostname or ingressDomain
+				WithHost(ingressHost). // Full Hostname
 				WithHTTP(networkingv1ac.HTTPIngressRuleValue().
 					WithPaths(networkingv1ac.HTTPIngressPath().
 						WithPath("/").
@@ -102,19 +101,6 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 				),
 			),
 		)
-}
-
-// isOnKindCluster checks if the current cluster is a KinD cluster.
-// It searches for a node with a label commonly used by KinD clusters.
-func isOnKindCluster(clientset *kubernetes.Clientset) (bool, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "kubernetes.io/hostname=kind-control-plane",
-	})
-	if err != nil {
-		return false, err
-	}
-	// If we find one or more nodes with the label, assume it's a KinD cluster.
-	return len(nodes.Items) > 0, nil
 }
 
 // getDiscoveryClient returns a discovery client for the current reconciler
@@ -153,15 +139,15 @@ func isOpenShift(ctx context.Context, clientset *kubernetes.Clientset, cluster *
 }
 
 // getIngressHost generates the cluster URL string based on the cluster type, RayCluster, and ingress domain.
-func getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressDomain string) string {
-	logger := ctrl.LoggerFrom(ctx)
-	onKind, _ := isOnKindCluster(clientset)
-	if onKind && ingressDomain == "" {
-		logger.Info("We detected being on a KinD cluster!")
-		return "kind"
+func (r *RayClusterReconciler) getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressNameFromCluster string) string {
+	ingressDomain := "fake.domain"
+	if r.Config != nil && r.Config.IngressDomain != "" {
+		ingressDomain = r.Config.IngressDomain
 	}
-	logger.Info("We detected being on Vanilla Kubernetes!")
-	return fmt.Sprintf("ray-dashboard-%s-%s.%s", cluster.Name, cluster.Namespace, ingressDomain)
+	if ingressDomain == "kind" {
+		return ingressDomain
+	}
+	return fmt.Sprintf("%s-%s.%s", ingressNameFromCluster, cluster.Namespace, ingressDomain)
 }
 
 func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
