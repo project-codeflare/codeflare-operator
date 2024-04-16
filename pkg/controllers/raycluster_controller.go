@@ -34,6 +34,7 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,6 +49,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	routev1 "github.com/openshift/api/route/v1"
 	routev1ac "github.com/openshift/client-go/route/applyconfigurations/route/v1"
@@ -78,6 +81,8 @@ const (
 
 	CAPrivateKeyKey = "ca.key"
 	CACertKey       = "ca.crt"
+
+	RayClusterNameLabel = "ray.openshift.ai/cluster-name"
 )
 
 var (
@@ -88,16 +93,16 @@ var (
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters/finalizers,verbs=update
-// +kubebuilder:rbac:groups=route.openshift.io,resources=routes;routes/custom-host,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
-// +kubebuilder:rbac:groups=core,resources=services,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=route.openshift.io,resources=routes;routes/custom-host,verbs=get;list;create;update;patch;delete;watch
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;create;update;patch;delete;watch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;create;patch;delete;get;watch
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;create;update;patch;delete;watch
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;create;update;patch;delete;watch
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;create;update;patch;delete;watch
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create;
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create;
 // +kubebuilder:rbac:groups=dscinitialization.opendatahub.io,resources=dscinitializations,verbs=get;list;watch
-// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;create;update;patch;delete;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -301,7 +306,7 @@ func crbNameFromCluster(cluster *rayv1.RayCluster) string {
 func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.ClusterRoleBindingApplyConfiguration {
 	return rbacv1ac.ClusterRoleBinding(
 		crbNameFromCluster(cluster)).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name, "ray.openshift.ai/cluster-namespace": cluster.Namespace}).
 		WithSubjects(
 			rbacv1ac.Subject().
 				WithKind("ServiceAccount").
@@ -322,14 +327,14 @@ func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountApplyConfiguration {
 	return corev1ac.ServiceAccount(oauthServiceAccountNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithAnnotations(map[string]string{
 			"serviceaccounts.openshift.io/oauth-redirectreference.first": "" +
 				`{"kind":"OAuthRedirectReference","apiVersion":"v1",` +
 				`"reference":{"kind":"Route","name":"` + dashboardNameFromCluster(cluster) + `"}}`,
 		}).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
@@ -343,7 +348,7 @@ func rayClientNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfiguration {
 	return routev1ac.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(routev1ac.RouteSpec().
 			WithTo(routev1ac.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
 			WithPort(routev1ac.RoutePort().WithTargetPort(intstr.FromString((oAuthServicePortName)))).
@@ -353,7 +358,7 @@ func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfigu
 			),
 		).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
@@ -367,7 +372,7 @@ func oauthServiceTLSSecretName(cluster *rayv1.RayCluster) string {
 
 func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfiguration {
 	return corev1ac.Service(oauthServiceNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithAnnotations(map[string]string{"service.beta.openshift.io/serving-cert-secret-name": oauthServiceTLSSecretName(cluster)}).
 		WithSpec(
 			corev1ac.ServiceSpec().
@@ -381,7 +386,7 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfig
 				WithSelector(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"}),
 		).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
@@ -397,10 +402,10 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.
 	cookieSecret := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
 	return corev1ac.Secret(oauthSecretNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithStringData(map[string]string{"cookie_secret": cookieSecret}).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
@@ -410,7 +415,7 @@ func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.SecretApplyConfiguration {
 	return corev1ac.Secret(caSecretNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithData(map[string][]byte{
 			CAPrivateKeyKey: key,
 			CACertKey:       cert,
@@ -419,7 +424,8 @@ func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.Secr
 			WithUID(cluster.UID).
 			WithName(cluster.Name).
 			WithKind(cluster.Kind).
-			WithAPIVersion(cluster.APIVersion))
+			WithAPIVersion(cluster.APIVersion).
+			WithController(true))
 }
 
 func generateCACertificate() ([]byte, []byte, error) {
@@ -466,7 +472,7 @@ func generateCACertificate() ([]byte, []byte, error) {
 }
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
 			WithIngress(
@@ -477,7 +483,7 @@ func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.Netw
 			),
 		).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
@@ -488,7 +494,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
@@ -534,7 +540,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 			),
 		).
 		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
@@ -548,8 +554,35 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	r.CookieSalt = string(b)
-	return ctrl.NewControllerManagedBy(mgr).
+	// despite ownership, we need to check for labels because we can't use
+	controller := ctrl.NewControllerManagedBy(mgr).
 		Named(controllerName).
 		For(&rayv1.RayCluster{}).
-		Complete(r)
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
+		Owns(&networkingv1.Ingress{}).
+		Owns(&networkingv1.NetworkPolicy{}).
+		Watches(&rbacv1.ClusterRoleBinding{}, handler.EnqueueRequestsFromMapFunc(
+			func(c context.Context, o client.Object) []reconcile.Request {
+				name, ok := o.GetLabels()[RayClusterNameLabel]
+				if !ok {
+					return []reconcile.Request{}
+				}
+				namespace, ok := o.GetLabels()["ray.openshift.ai/cluster-namespace"]
+				if !ok {
+					return []reconcile.Request{}
+				}
+				return []reconcile.Request{{
+					NamespacedName: client.ObjectKey{
+						Name:      name,
+						Namespace: namespace,
+					}}}
+			}),
+		)
+	if r.IsOpenShift {
+		controller.Owns(&routev1.Route{})
+	}
+
+	return controller.Complete(r)
 }
