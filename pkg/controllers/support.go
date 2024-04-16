@@ -20,20 +20,20 @@ func serviceNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
 	return routeapply.Route(rayClientNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(routeapply.RouteSpec().
 			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(serviceNameFromCluster(cluster)).WithWeight(100)).
 			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString("client"))).
 			WithTLS(routeapply.TLSConfig().WithTermination("passthrough")),
 		).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
 
 func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(rayClientNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithAnnotations(map[string]string{
 			"nginx.ingress.kubernetes.io/rewrite-target":  "/",
 			"nginx.ingress.kubernetes.io/ssl-redirect":    "true",
@@ -43,7 +43,8 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 			WithAPIVersion(cluster.APIVersion).
 			WithKind(cluster.Kind).
 			WithName(cluster.Name).
-			WithUID(cluster.UID)).
+			WithUID(cluster.UID).
+			WithController(true)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithIngressClassName("nginx").
 			WithRules(networkingv1ac.IngressRule().
@@ -68,12 +69,13 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 
 func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(dashboardNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithOwnerReferences(v1.OwnerReference().
 			WithAPIVersion(cluster.APIVersion).
 			WithKind(cluster.Kind).
 			WithName(cluster.Name).
-			WithUID(cluster.UID)).
+			WithUID(cluster.UID).
+			WithController(true)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
 				WithHost(ingressHost). // Full Hostname

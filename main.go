@@ -36,10 +36,13 @@ import (
 	"golang.org/x/exp/slices"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -49,12 +52,14 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
+	clientcache "k8s.io/client-go/tools/cache"
 	retrywatch "k8s.io/client-go/tools/watch"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -166,6 +171,38 @@ func main() {
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
 	setupLog.V(2).Info("REST client", "qps", kubeConfig.QPS, "burst", kubeConfig.Burst)
 
+	selector, err := labels.Parse(controllers.RayClusterNameLabel)
+	exitOnError(err, "unable to parse label selector")
+
+	cacheOpts := cache.Options{
+		ByObject: map[client.Object]cache.ByObject{
+			&corev1.Secret{}: {
+				Label: selector,
+			},
+			&corev1.Service{}: {
+				Label: selector,
+			},
+			&corev1.ServiceAccount{}: {
+				Label: selector,
+			},
+			&networkingv1.Ingress{}: {
+				Label: selector,
+			},
+			&networkingv1.NetworkPolicy{}: {
+				Label: selector,
+			},
+			&rbacv1.ClusterRoleBinding{}: {
+				Label: selector,
+			},
+		},
+	}
+
+	if isOpenShift(ctx, kubeClient.DiscoveryClient) {
+		cacheOpts.ByObject[&routev1.Route{}] = cache.ByObject{
+			Label: selector,
+		}
+	}
+
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
@@ -179,6 +216,7 @@ func main() {
 		LeaseDuration:              &cfg.LeaderElection.LeaseDuration.Duration,
 		RetryPeriod:                &cfg.LeaderElection.RetryPeriod.Duration,
 		RenewDeadline:              &cfg.LeaderElection.RenewDeadline.Duration,
+		Cache:                      cacheOpts,
 	})
 	exitOnError(err, "unable to create manager")
 
@@ -451,7 +489,7 @@ func waitForAPI(ctx context.Context, mgr ctrl.Manager, apiName string, action fu
 
 	// Wait for the API to become available then invoke action
 	setupLog.Info(fmt.Sprintf("API %v not available, setting up retry watcher", apiName))
-	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &cache.ListWatch{
+	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &clientcache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
 		},
