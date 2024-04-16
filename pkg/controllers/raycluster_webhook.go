@@ -75,7 +75,6 @@ func (r *RayClusterDefaulter) Default(ctx context.Context, obj runtime.Object) e
 				"--tls-key=/etc/tls/private/tls.key",
 				"--cookie-secret=$(COOKIE_SECRET)",
 				"--openshift-delegate-urls={\"/\":{\"resource\":\"pods\",\"namespace\":\"default\",\"verb\":\"get\"}}",
-				"--added-label=True",
 			},
 			Env: []corev1.EnvVar{
 				{
