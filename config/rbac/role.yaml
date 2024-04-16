@@ -126,6 +126,7 @@ rules:
   - delete
   - get
   - patch
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -136,6 +137,7 @@ rules:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -146,6 +148,7 @@ rules:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - dscinitialization.opendatahub.io
   resources:
@@ -218,6 +221,7 @@ rules:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -264,6 +268,7 @@ rules:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - route.openshift.io
   resources:
@@ -275,6 +280,7 @@ rules:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - scheduling.k8s.io
   resources:
