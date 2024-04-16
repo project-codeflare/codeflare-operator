@@ -18,7 +18,9 @@ package controllers
 
 import (
 	"context"
+
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,7 +34,7 @@ var rayclusterlog = logf.Log.WithName("raycluster-resource")
 func (r *RayClusterDefaulter) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&rayv1.RayCluster{}).
-		WithDefaulter(r).
+		WithDefaulter(&RayClusterDefaulter{}).
 		Complete()
 }
 
