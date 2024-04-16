@@ -15,5 +15,9 @@ resources:
   domain: codeflare.dev
   group: ray
   kind: RayCluster
+  path: github.com/project-codeflare/codeflare-operator/pkg/controllers
   version: v1
+  webhooks:
+    defaulting: true
+    webhookVersion: v1
 version: "3"
