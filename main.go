@@ -147,8 +147,7 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	rayClusterDefaulter := &controllers.RayClusterDefaulter{}
-	exitOnError(rayClusterDefaulter.SetupWebhookWithManager(mgr), "error setting up webhook")
+	exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
 
 	ok, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
 	if ok {
