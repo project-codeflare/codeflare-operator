@@ -1,9 +1,6 @@
 package controllers
 
 import (
-	"context"
-	"fmt"
-
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
@@ -11,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	networkingv1ac "k8s.io/client-go/applyconfigurations/networking/v1"
-	"k8s.io/client-go/kubernetes"
 
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 )
@@ -97,22 +93,4 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 				),
 			),
 		)
-}
-
-// getIngressHost generates the cluster URL string based on the cluster type, RayCluster, and ingress domain.
-func (r *RayClusterReconciler) getIngressHost(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster, ingressNameFromCluster string) (string, error) {
-	ingressDomain := ""
-	if r.Config != nil && r.Config.IngressDomain != "" {
-		ingressDomain = r.Config.IngressDomain
-	} else {
-		return "", fmt.Errorf("missing IngressDomain configuration in ConfigMap 'codeflare-operator-config'")
-	}
-	return fmt.Sprintf("%s-%s.%s", ingressNameFromCluster, cluster.Namespace, ingressDomain), nil
-}
-
-func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
-	if r.Config != nil && r.Config.RayDashboardOAuthEnabled != nil {
-		return *r.Config.RayDashboardOAuthEnabled
-	}
-	return true
 }
