@@ -25,7 +25,6 @@ import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +35,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
@@ -60,27 +58,20 @@ type RayClusterReconciler struct {
 const (
 	requeueTime            = 10
 	controllerName         = "codeflare-raycluster-controller"
-	oAuthFinalizer         = "ray.openshift.ai/oauth-finalizer"
 	oAuthServicePort       = 443
 	oAuthServicePortName   = "oauth-proxy"
 	ingressServicePortName = "dashboard"
 	logRequeueing          = "requeueing"
 )
 
-var (
-	deletePolicy  = metav1.DeletePropagationForeground
-	deleteOptions = client.DeleteOptions{PropagationPolicy: &deletePolicy}
-)
-
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=ray.io,resources=rayclusters/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ray.io,resources=rayclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes;routes/custom-host,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;create;patch;delete;get
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create;
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create;
 
@@ -111,39 +102,6 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.IsOpenShiftInitialized = true
 	}
 
-	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
-			logger.Info("Add a finalizer", "finalizer", oAuthFinalizer)
-			controllerutil.AddFinalizer(&cluster, oAuthFinalizer)
-			if err := r.Update(ctx, &cluster); err != nil {
-				// this log is info level since errors are not fatal and are expected
-				logger.Info("WARN: Failed to update RayCluster with finalizer", "error", err.Error(), logRequeueing, true)
-				return ctrl.Result{RequeueAfter: requeueTime}, err
-			}
-		}
-	} else if controllerutil.ContainsFinalizer(&cluster, oAuthFinalizer) {
-		err := client.IgnoreNotFound(r.Client.Delete(
-			ctx,
-			&rbacv1.ClusterRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: crbNameFromCluster(&cluster),
-				},
-			},
-			&deleteOptions,
-		))
-		if err != nil {
-			logger.Error(err, "Failed to remove OAuth ClusterRoleBinding.", logRequeueing, true)
-			return ctrl.Result{RequeueAfter: requeueTime}, err
-		}
-		controllerutil.RemoveFinalizer(&cluster, oAuthFinalizer)
-		if err := r.Update(ctx, &cluster); err != nil {
-			logger.Error(err, "Failed to remove finalizer from RayCluster", logRequeueing, true)
-			return ctrl.Result{RequeueAfter: requeueTime}, err
-		}
-		logger.Info("Successfully removed finalizer.", logRequeueing, false)
-		return ctrl.Result{}, nil
-	}
-
 	if cluster.Status.State != "suspended" && r.isRayDashboardOAuthEnabled() && r.IsOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
@@ -170,9 +128,9 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-		_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		_, err = r.kubeClient.RbacV1().RoleBindings(cluster.Namespace).Apply(ctx, desiredOAuthRoleBinding(&cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
-			logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
+			logger.Error(err, "Failed to update OAuth RoleBinding")
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
@@ -213,13 +171,12 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func crbNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-" + cluster.Namespace + "-auth" // NOTE: potential naming conflicts ie {name: foo, ns: bar-baz} and {name: foo-bar, ns: baz}
+func roleBindingNameFromCluster(cluster *rayv1.RayCluster) string {
+	return cluster.Name + "-" + cluster.Namespace + "-auth"
 }
 
-func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacapply.ClusterRoleBindingApplyConfiguration {
-	return rbacapply.ClusterRoleBinding(
-		crbNameFromCluster(cluster)).
+func desiredOAuthRoleBinding(cluster *rayv1.RayCluster) *rbacapply.RoleBindingApplyConfiguration {
+	return rbacapply.RoleBinding(roleBindingNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSubjects(
 			rbacapply.Subject().

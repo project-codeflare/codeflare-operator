@@ -34,15 +34,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 )
 
-func stringInList(l []string, s string) bool {
-	for _, i := range l {
-		if i == s {
-			return true
-		}
-	}
-	return false
-}
-
 var letters = []rune("abcdefghijklmnopqrstuvwxyz")
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -116,15 +107,6 @@ var _ = Describe("RayCluster controller", func() {
 			}, SpecTimeout(time.Second*10)).Should(Equal(true))
 		})
 
-		It("should have oauth finalizer set", func() {
-			foundRayCluster := rayv1.RayCluster{}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, typeNamespaceName, &foundRayCluster)
-				Expect(err).To(Not(HaveOccurred()))
-				return stringInList(foundRayCluster.Finalizers, oAuthFinalizer)
-			}, SpecTimeout(time.Second*10)).Should(Equal(true))
-		})
-
 		It("should create all oauth resources", func() {
 			Eventually(func() error {
 				foundRayCluster := rayv1.RayCluster{}
@@ -144,7 +126,7 @@ var _ = Describe("RayCluster controller", func() {
 				if err != nil {
 					return err
 				}
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: roleBindingNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
 				if err != nil {
 					return err
 				}
@@ -166,7 +148,7 @@ var _ = Describe("RayCluster controller", func() {
 			Expect(err).To(Not(HaveOccurred()))
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &corev1.ServiceAccount{})
 			Expect(err).To(Not(HaveOccurred()))
-			err = k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: roleBindingNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{})
 			Expect(err).To(Not(HaveOccurred()))
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: foundRayCluster.Name, Namespace: foundRayCluster.Namespace}, &routev1.Route{})
 			Expect(err).To(Not(HaveOccurred()))
@@ -179,7 +161,7 @@ var _ = Describe("RayCluster controller", func() {
 			err = k8sClient.Delete(ctx, &foundRayCluster)
 			Expect(err).To(Not(HaveOccurred()))
 			Eventually(func() bool {
-				return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: crbNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{}))
+				return errors.IsNotFound(k8sClient.Get(ctx, types.NamespacedName{Name: roleBindingNameFromCluster(&foundRayCluster)}, &rbacv1.ClusterRoleBinding{}))
 			}, SpecTimeout(time.Second*10)).Should(Equal(true))
 		})
 	})
