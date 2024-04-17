@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	routev1 "github.com/openshift/api/route/v1"
+	clientset "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	"github.com/project-codeflare/codeflare-operator/pkg/controllers"
@@ -74,6 +75,8 @@ func init() {
 	// OpenShift Route
 	utilruntime.Must(routev1.Install(scheme))
 }
+
+// +kubebuilder:rbac:groups=config.openshift.io,resources=ingresses,verbs=get;
 
 func main() {
 	var configMapName string
@@ -117,6 +120,7 @@ func main() {
 		KubeRay: &config.KubeRayConfiguration{
 			RayDashboardOAuthEnabled: ptr.To(true),
 			IngressDomain:            "",
+			MTLSEnabled:              ptr.To(true),
 		},
 	}
 
@@ -154,6 +158,13 @@ func main() {
 
 	certsReady := make(chan struct{})
 	exitOnError(setupCertManagement(mgr, namespace, certsReady), "unable to setup cert-controller")
+
+	if cfg.KubeRay.IngressDomain == "" {
+		configClient, err := clientset.NewForConfig(kubeConfig)
+		exitOnError(err, "unable to create Route Client Set")
+		cfg.KubeRay.IngressDomain, err = getClusterDomain(ctx, configClient)
+		exitOnError(err, cfg.KubeRay.IngressDomain)
+	}
 
 	go setupControllers(mgr, kubeClient, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
 
@@ -331,4 +342,18 @@ func isOpenShift(ctx context.Context, dc discovery.DiscoveryInterface) bool {
 	}
 	logger.Info("We detected being on Vanilla Kubernetes!")
 	return false
+}
+
+func getClusterDomain(ctx context.Context, configClient *clientset.Clientset) (string, error) {
+	ingress, err := configClient.ConfigV1().Ingresses().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get Ingress object: %v", err)
+	}
+
+	domain := ingress.Spec.Domain
+	if domain == "" {
+		return "", fmt.Errorf("domain is not set in the Ingress object")
+	}
+
+	return domain, nil
 }

@@ -35,6 +35,8 @@ type KubeRayConfiguration struct {
 	RayDashboardOAuthEnabled *bool `json:"rayDashboardOAuthEnabled,omitempty"`
 
 	IngressDomain string `json:"ingressDomain"`
+
+	MTLSEnabled *bool `json:"mTLSEnabled,omitempty"`
 }
 
 type ControllerManager struct {

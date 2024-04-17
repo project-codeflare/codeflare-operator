@@ -140,3 +140,14 @@ func withVolumeName(name string) compare[corev1.Volume] {
 		return v1.Name == name
 	}
 }
+
+var byEnvVarName = compare[corev1.EnvVar](
+	func(e1, e2 corev1.EnvVar) bool {
+		return e1.Name == e2.Name
+	})
+
+func withEnvVarName(name string) compare[corev1.EnvVar] {
+	return func(e1, e2 corev1.EnvVar) bool {
+		return e1.Name == name
+	}
+}
