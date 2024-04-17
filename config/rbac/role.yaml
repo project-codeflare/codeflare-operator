@@ -71,12 +71,6 @@ rules:
 - apiGroups:
   - ray.io
   resources:
-  - rayclusters/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - ray.io
-  resources:
   - rayclusters/status
   verbs:
   - get
@@ -85,7 +79,7 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
-  - clusterrolebindings
+  - rolebindings
   verbs:
   - create
   - delete
