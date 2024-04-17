@@ -189,7 +189,12 @@ func desiredOAuthRoleBinding(cluster *rayv1.RayCluster) *rbacapply.RoleBindingAp
 				WithAPIGroup("rbac.authorization.k8s.io").
 				WithKind("ClusterRole").
 				WithName("system:auth-delegator"),
-		)
+		).
+		WithOwnerReferences(v1.OwnerReference().
+			WithUID(cluster.UID).
+			WithName(cluster.Name).
+			WithKind(cluster.Kind).
+			WithAPIVersion(cluster.APIVersion))
 }
 
 func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
