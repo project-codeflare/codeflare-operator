@@ -232,9 +232,6 @@ func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacapply.Cluste
 				WithAPIGroup("rbac.authorization.k8s.io").
 				WithKind("ClusterRole").
 				WithName("system:auth-delegator"),
-		).
-		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 
