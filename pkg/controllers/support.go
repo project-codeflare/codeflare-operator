@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
@@ -12,10 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	networkingv1ac "k8s.io/client-go/applyconfigurations/networking/v1"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 )
@@ -101,41 +97,6 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 				),
 			),
 		)
-}
-
-// getDiscoveryClient returns a discovery client for the current reconciler
-func getDiscoveryClient(config *rest.Config) (*discovery.DiscoveryClient, error) {
-	return discovery.NewDiscoveryClientForConfig(config)
-}
-
-// Check where we are running. We are trying to distinguish here whether
-// this is vanilla kubernetes cluster or Openshift
-func isOpenShift(ctx context.Context, clientset *kubernetes.Clientset, cluster *rayv1.RayCluster) bool {
-	// The discovery package is used to discover APIs supported by a Kubernetes API server.
-	logger := ctrl.LoggerFrom(ctx)
-	config, err := ctrl.GetConfig()
-	if err != nil && config == nil {
-		logger.Info("Cannot retrieve config, assuming we're on Vanilla Kubernetes")
-		return false
-	}
-	dclient, err := getDiscoveryClient(config)
-	if err != nil && dclient == nil {
-		logger.Info("Cannot retrieve a DiscoveryClient, assuming we're on Vanilla Kubernetes")
-		return false
-	}
-	apiGroupList, err := dclient.ServerGroups()
-	if err != nil {
-		logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
-		return false
-	}
-	for i := 0; i < len(apiGroupList.Groups); i++ {
-		if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
-			logger.Info("We detected being on OpenShift!")
-			return true
-		}
-	}
-	logger.Info("We detected being on Vanilla Kubernetes!")
-	return false
 }
 
 // getIngressHost generates the cluster URL string based on the cluster type, RayCluster, and ingress domain.

@@ -48,13 +48,12 @@ import (
 // RayClusterReconciler reconciles a RayCluster object
 type RayClusterReconciler struct {
 	client.Client
-	kubeClient             *kubernetes.Clientset
-	routeClient            *routev1client.RouteV1Client
-	Scheme                 *runtime.Scheme
-	CookieSalt             string
-	Config                 *config.KubeRayConfiguration
-	IsOpenShift            bool
-	IsOpenShiftInitialized bool
+	kubeClient  *kubernetes.Clientset
+	routeClient *routev1client.RouteV1Client
+	Scheme      *runtime.Scheme
+	CookieSalt  string
+	Config      *config.KubeRayConfiguration
+	IsOpenShift bool
 }
 
 const (
@@ -104,11 +103,6 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Error getting RayCluster resource")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	if !r.IsOpenShiftInitialized {
-		r.IsOpenShift = isOpenShift(ctx, r.kubeClient, &cluster)
-		r.IsOpenShiftInitialized = true
 	}
 
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {

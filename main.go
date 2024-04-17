@@ -147,11 +147,21 @@ func main() {
 	})
 	exitOnError(err, "unable to start manager")
 
-	exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
+	OpenShift := isOpenShift(ctx, kubeClient.DiscoveryClient)
 
-	ok, err := HasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
+	if OpenShift {
+		// TODO: setup the RayCluster webhook on vanilla Kubernetes
+		exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
+	}
+
+	ok, err := hasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
 	if ok {
-		rayClusterController := controllers.RayClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Config: cfg.KubeRay}
+		rayClusterController := controllers.RayClusterReconciler{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			Config:      cfg.KubeRay,
+			IsOpenShift: OpenShift,
+		}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {
 		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
@@ -207,7 +217,7 @@ func createConfigMap(ctx context.Context, client kubernetes.Interface, ns, name 
 	return err
 }
 
-func HasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
+func hasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
 	gv, kind := gvk.ToAPIVersionAndKind()
 	if resources, err := dc.ServerResourcesForGroupVersion(gv); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -246,4 +256,21 @@ func exitOnError(err error, msg string) {
 		setupLog.Error(err, msg)
 		os.Exit(1)
 	}
+}
+
+func isOpenShift(ctx context.Context, dc discovery.DiscoveryInterface) bool {
+	logger := ctrl.LoggerFrom(ctx)
+	apiGroupList, err := dc.ServerGroups()
+	if err != nil {
+		logger.Info("Error while querying ServerGroups, assuming we're on Vanilla Kubernetes")
+		return false
+	}
+	for i := 0; i < len(apiGroupList.Groups); i++ {
+		if strings.HasSuffix(apiGroupList.Groups[i].Name, ".openshift.io") {
+			logger.Info("We detected being on OpenShift!")
+			return true
+		}
+	}
+	logger.Info("We detected being on Vanilla Kubernetes!")
+	return false
 }
