@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strconv"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
@@ -36,6 +37,7 @@ import (
 const (
 	oauthProxyContainerName = "oauth-proxy"
 	oauthProxyVolumeName    = "proxy-tls-secret"
+	initContainerName       = "create-cert"
 )
 
 // log is for logging in this package.
@@ -66,17 +68,44 @@ var _ webhook.CustomValidator = &rayClusterWebhook{}
 func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	rayCluster := obj.(*rayv1.RayCluster)
 
-	if !ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
-		return nil
+	if ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
+		rayclusterlog.V(2).Info("Adding OAuth sidecar container")
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, oauthProxyContainer(rayCluster), withContainerName(oauthProxyContainerName))
+
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), withVolumeName(oauthProxyVolumeName))
+
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
 	}
 
-	rayclusterlog.V(2).Info("Adding OAuth sidecar container")
+	if ptr.Deref(w.Config.MTLSEnabled, true) {
+		rayclusterlog.V(2).Info("Adding create-cert Init Containers")
+		// HeadGroupSpec //
+		// Append the list of environment variables for the ray-head container
+		for _, envVar := range envVarList() {
+			rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+		}
 
-	rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, oauthProxyContainer(rayCluster), withContainerName(oauthProxyContainerName))
+		// Append the create-cert Init Container
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, w.Config.IngressDomain), withContainerName(initContainerName))
 
-	rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), withVolumeName(oauthProxyVolumeName))
+		// Append the CA volumes
+		for _, caVol := range caVolumes(rayCluster) {
+			rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, caVol, withVolumeName(caVol.Name))
+		}
+		// WorkerGroupSpec //
+		// Append the list of environment variables for the worker container
+		for _, envVar := range envVarList() {
+			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+		}
 
-	rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
+		// Append the CA volumes
+		for _, caVol := range caVolumes(rayCluster) {
+			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes, caVol, withVolumeName(caVol.Name))
+		}
+		// Append the create-cert Init Container
+		rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(), withContainerName(initContainerName))
+
+	}
 
 	return nil
 }
@@ -117,6 +146,14 @@ func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj r
 		allErrors = append(allErrors, validateHeadGroupServiceAccountName(rayCluster)...)
 	}
 
+	// Init Container related errors
+	if ptr.Deref(w.Config.MTLSEnabled, true) {
+		allErrors = append(allErrors, validateHeadInitContainer(rayCluster, w)...)
+		allErrors = append(allErrors, validateWorkerInitContainer(rayCluster)...)
+		allErrors = append(allErrors, validateHeadEnvVars(rayCluster)...)
+		allErrors = append(allErrors, validateWorkerEnvVars(rayCluster)...)
+		allErrors = append(allErrors, validateCaVolumes(rayCluster)...)
+	}
 	return warnings, allErrors.ToAggregate()
 }
 
@@ -224,4 +261,170 @@ func oauthProxyTLSSecretVolume(rayCluster *rayv1.RayCluster) corev1.Volume {
 			},
 		},
 	}
+}
+
+func initCaVolumeMounts() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      "ca-vol",
+			MountPath: "/home/ray/workspace/ca",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "server-cert",
+			MountPath: "/home/ray/workspace/tls",
+			ReadOnly:  false,
+		},
+	}
+}
+
+func envVarList() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name: "MY_POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{
+			Name:  "RAY_USE_TLS",
+			Value: "1",
+		},
+		{
+			Name:  "RAY_TLS_SERVER_CERT",
+			Value: "/home/ray/workspace/tls/server.crt",
+		},
+		{
+			Name:  "RAY_TLS_SERVER_KEY",
+			Value: "/home/ray/workspace/tls/server.key",
+		},
+		{
+			Name:  "RAY_TLS_CA_CERT",
+			Value: "/home/ray/workspace/tls/ca.crt",
+		},
+	}
+}
+
+func caVolumes(rayCluster *rayv1.RayCluster) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: "ca-vol",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: `ca-secret-` + rayCluster.Name,
+				},
+			},
+		},
+		{
+			Name: "server-cert",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+}
+
+func rayHeadInitContainer(rayCluster *rayv1.RayCluster, domain string) corev1.Container {
+	rayClientRoute := "rayclient-" + rayCluster.Name + "-" + rayCluster.Namespace + "." + domain
+	// Service name for basic interactive
+	svcDomain := rayCluster.Name + "-head-svc." + rayCluster.Namespace + ".svc"
+
+	initContainerHead := corev1.Container{
+		Name:  "create-cert",
+		Image: "quay.io/project-codeflare/ray:latest-py39-cu118",
+		Command: []string{
+			"sh",
+			"-c",
+			`cd /home/ray/workspace/tls && openssl req -nodes -newkey rsa:2048 -keyout server.key -out server.csr -subj '/CN=ray-head' && printf "authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1 = 127.0.0.1\nDNS.2 = localhost\nDNS.3 = ${FQ_RAY_IP}\nDNS.4 = $(awk 'END{print $1}' /etc/hosts)\nDNS.5 = ` + rayClientRoute + `\nDNS.6 = ` + svcDomain + `">./domain.ext && cp /home/ray/workspace/ca/* . && openssl x509 -req -CA ca.crt -CAkey ca.key -in server.csr -out server.crt -days 365 -CAcreateserial -extfile domain.ext`,
+		},
+		VolumeMounts: initCaVolumeMounts(),
+	}
+	return initContainerHead
+}
+
+func rayWorkerInitContainer() corev1.Container {
+	initContainerWorker := corev1.Container{
+		Name:  "create-cert",
+		Image: "quay.io/project-codeflare/ray:latest-py39-cu118",
+		Command: []string{
+			"sh",
+			"-c",
+			`cd /home/ray/workspace/tls && openssl req -nodes -newkey rsa:2048 -keyout server.key -out server.csr -subj '/CN=ray-head' && printf "authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1 = 127.0.0.1\nDNS.2 = localhost\nDNS.3 = ${FQ_RAY_IP}\nDNS.4 = $(awk 'END{print $1}' /etc/hosts)">./domain.ext && cp /home/ray/workspace/ca/* . && openssl x509 -req -CA ca.crt -CAkey ca.key -in server.csr -out server.crt -days 365 -CAcreateserial -extfile domain.ext`,
+		},
+		VolumeMounts: initCaVolumeMounts(),
+	}
+	return initContainerWorker
+}
+
+func validateHeadInitContainer(rayCluster *rayv1.RayCluster, w *rayClusterWebhook) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, w.Config.IngressDomain), byContainerName,
+		field.NewPath("spec", "headGroupSpec", "template", "spec", "initContainers"),
+		"create-cert Init Container is immutable"); err != nil {
+		allErrors = append(allErrors, err)
+	}
+
+	return allErrors
+}
+
+func validateWorkerInitContainer(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(), byContainerName,
+		field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "initContainers"),
+		"create-cert Init Container is immutable"); err != nil {
+		allErrors = append(allErrors, err)
+	}
+
+	return allErrors
+}
+
+func validateCaVolumes(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	for _, caVol := range caVolumes(rayCluster) {
+		if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, caVol, byVolumeName,
+			field.NewPath("spec", "headGroupSpec", "template", "spec", "volumes"),
+			"ca-vol and server-cert Secret volumes are immutable"); err != nil {
+			allErrors = append(allErrors, err)
+		}
+		if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes, caVol, byVolumeName,
+			field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "volumes"),
+			"ca-vol and server-cert Secret volumes are immutable"); err != nil {
+			allErrors = append(allErrors, err)
+		}
+	}
+
+	return allErrors
+}
+
+func validateHeadEnvVars(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	for _, envVar := range envVarList() {
+		if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env, envVar, byEnvVarName,
+			field.NewPath("spec", "headGroupSpec", "template", "spec", "containers", strconv.Itoa(0), "env"),
+			"RAY_TLS related environment variables are immutable"); err != nil {
+			allErrors = append(allErrors, err)
+		}
+	}
+
+	return allErrors
+}
+
+func validateWorkerEnvVars(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	for _, envVar := range envVarList() {
+		if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, byEnvVarName,
+			field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "containers", strconv.Itoa(0), "env"),
+			"RAY_TLS related environment variables are immutable"); err != nil {
+			allErrors = append(allErrors, err)
+		}
+	}
+
+	return allErrors
 }
