@@ -155,3 +155,10 @@ func (r *RayClusterReconciler) isRayDashboardOAuthEnabled() bool {
 	}
 	return true
 }
+
+func (r *RayClusterDefaulter) isRayDashboardOAuthEnabledWebhook() bool {
+	if r.Config != nil && r.Config.RayDashboardOAuthEnabled != nil {
+		return *r.Config.RayDashboardOAuthEnabled
+	}
+	return true
+}
