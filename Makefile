@@ -155,6 +155,15 @@ build: fmt vet ## Build manager binary.
 		" \
 		-o bin/manager main.go
 
+.PHONY: go-build-for-image
+go-build-for-image: fmt vet ## Build manager binary.
+	go build \
+		-ldflags " \
+			-X 'main.OperatorVersion=$(BUILD_VERSION)' \
+			-X 'main.BuildDate=$(BUILD_DATE)' \
+		" \
+		-tags strictfipsruntime -a -o manager main.go
+
 .PHONY: run
 run: manifests fmt vet ## Run a controller from your host.
 	go run ./main.go

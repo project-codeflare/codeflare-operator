@@ -56,12 +56,10 @@ import (
 )
 
 var (
-	scheme            = runtime.NewScheme()
-	setupLog          = ctrl.Log.WithName("setup")
-	OperatorVersion   = "UNKNOWN"
-	McadVersion       = "UNKNOWN"
-	InstaScaleVersion = "UNKNOWN"
-	BuildDate         = "UNKNOWN"
+	scheme          = runtime.NewScheme()
+	setupLog        = ctrl.Log.WithName("setup")
+	OperatorVersion = "UNKNOWN"
+	BuildDate       = "UNKNOWN"
 )
 
 func init() {
@@ -90,8 +88,6 @@ func main() {
 
 	setupLog.Info("Build info",
 		"operatorVersion", OperatorVersion,
-		"mcadVersion", McadVersion,
-		"instaScaleVersion", InstaScaleVersion,
 		"date", BuildDate,
 	)
 
