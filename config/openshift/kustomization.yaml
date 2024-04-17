@@ -14,10 +14,9 @@ commonLabels:
   app.kubernetes.io/part-of: codeflare
 
 bases:
-  - ../rbac
-  - ../manager
-# [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
-# - ../prometheus
+  - ../default
+  - ../webhook
 
-resources:
-  - metrics_service.yaml
+patches:
+- path: manager_webhook_patch.yaml
+- path: webhookcainjection_patch.yaml

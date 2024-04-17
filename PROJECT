@@ -12,7 +12,7 @@ projectName: codeflare-operator
 repo: github.com/project-codeflare/codeflare-operator
 resources:
 - controller: true
-  domain: codeflare.dev
+  domain: ray.io
   group: ray
   kind: RayCluster
   path: github.com/project-codeflare/codeflare-operator/pkg/controllers
