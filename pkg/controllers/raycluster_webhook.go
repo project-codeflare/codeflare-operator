@@ -87,19 +87,6 @@ func (r *RayClusterDefaulter) Default(ctx context.Context, obj runtime.Object) e
 					"--cookie-secret=$(COOKIE_SECRET)",
 					"--openshift-delegate-urls={\"/\":{\"resource\":\"pods\",\"namespace\":\"default\",\"verb\":\"get\"}}",
 				},
-				Env: []corev1.EnvVar{
-					{
-						Name: "COOKIE_SECRET",
-						ValueFrom: &corev1.EnvVarSource{
-							SecretKeyRef: &corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: raycluster.Name + "-oauth-config",
-								},
-								Key: "cookie_secret",
-							},
-						},
-					},
-				},
 				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      "proxy-tls-secret",
@@ -111,6 +98,23 @@ func (r *RayClusterDefaulter) Default(ctx context.Context, obj runtime.Object) e
 
 			// Adding the new OAuth sidecar container
 			raycluster.Spec.HeadGroupSpec.Template.Spec.Containers = append(raycluster.Spec.HeadGroupSpec.Template.Spec.Containers, newOAuthSidecar)
+
+			cookieSecret := corev1.EnvVar{
+				Name: "COOKIE_SECRET",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: raycluster.Name + "-oauth-config",
+						},
+						Key: "cookie_secret",
+					},
+				},
+			}
+
+			raycluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env = append(
+				raycluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env,
+				cookieSecret,
+			)
 
 			tlsSecretVolume := corev1.Volume{
 				Name: "proxy-tls-secret",
