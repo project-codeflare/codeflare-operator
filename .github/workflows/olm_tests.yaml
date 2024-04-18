@@ -72,6 +72,13 @@ jobs:
           kubectl create namespace openshift-operators
           kubectl create -f .github/resources-olm-upgrade/operatorgroup.yaml
 
+      - name: Install Required KubeRay CRDs for Pod Initialisation
+        run: |
+          kubectl create -f https://raw.githubusercontent.com/ray-project/kuberay/v1.1.0/ray-operator/config/crd/bases/ray.io_rayclusters.yaml
+          # wait for a while to be sure CRDs are installed
+          sleep 1
+          kubectl wait --for=condition=Established crd/rayclusters.ray.io --timeout=60s
+
       - name: Deploy latest released CodeFlare operator from OLM
         id: deploy
         run: |
