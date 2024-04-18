@@ -3,9 +3,11 @@ package controllers
 import (
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	networkingv1ac "k8s.io/client-go/applyconfigurations/networking/v1"
 
@@ -29,7 +31,6 @@ func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConf
 		)
 }
 
-// Create an Ingress object for the RayCluster
 func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(rayClientNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
@@ -42,7 +43,7 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 			WithAPIVersion(cluster.APIVersion).
 			WithKind(cluster.Kind).
 			WithName(cluster.Name).
-			WithUID(types.UID(cluster.UID))).
+			WithUID(cluster.UID)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithIngressClassName("nginx").
 			WithRules(networkingv1ac.IngressRule().
@@ -65,7 +66,6 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 		)
 }
 
-// Create an Ingress object for the RayCluster
 func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(dashboardNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
@@ -73,7 +73,7 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 			WithAPIVersion(cluster.APIVersion).
 			WithKind(cluster.Kind).
 			WithName(cluster.Name).
-			WithUID(types.UID(cluster.UID))).
+			WithUID(cluster.UID)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
 				WithHost(ingressHost). // Full Hostname
@@ -93,4 +93,50 @@ func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *netwo
 				),
 			),
 		)
+}
+
+type compare[T any] func(T, T) bool
+
+func upsert[T any](items []T, item T, predicate compare[T]) []T {
+	for i, t := range items {
+		if predicate(t, item) {
+			items[i] = item
+			return items
+		}
+	}
+	return append(items, item)
+}
+
+func contains[T any](items []T, item T, predicate compare[T], path *field.Path, msg string) *field.Error {
+	for _, t := range items {
+		if predicate(t, item) {
+			if equality.Semantic.DeepDerivative(item, t) {
+				return nil
+			}
+			return field.Invalid(path, t, msg)
+		}
+	}
+	return field.Required(path, msg)
+}
+
+var byContainerName = compare[corev1.Container](
+	func(c1, c2 corev1.Container) bool {
+		return c1.Name == c2.Name
+	})
+
+func withContainerName(name string) compare[corev1.Container] {
+	return func(c1, c2 corev1.Container) bool {
+		return c1.Name == name
+	}
+}
+
+var byVolumeName = compare[corev1.Volume](
+	func(v1, v2 corev1.Volume) bool {
+		return v1.Name == v2.Name
+	})
+
+func withVolumeName(name string) compare[corev1.Volume] {
+	return func(v1, v2 corev1.Volume) bool {
+		return v1.Name == name
+	}
 }

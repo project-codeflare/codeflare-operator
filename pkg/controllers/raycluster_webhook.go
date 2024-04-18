@@ -33,6 +33,11 @@ import (
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 )
 
+const (
+	oauthProxyContainerName = "oauth-proxy"
+	oauthProxyVolumeName    = "proxy-tls-secret"
+)
+
 // log is for logging in this package.
 var rayclusterlog = logf.Log.WithName("raycluster-resource")
 
@@ -47,7 +52,7 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate-ray-io-v1-raycluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=mraycluster.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-ray-io-v1-raycluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create,versions=v1,name=mraycluster.kb.io,admissionReviewVersions=v1
 // +kubebuilder:webhook:path=/validate-ray-io-v1-raycluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=vraycluster.kb.io,admissionReviewVersions=v1
 
 type rayClusterWebhook struct {
@@ -65,18 +70,105 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		return nil
 	}
 
-	// Check and add OAuth proxy if it does not exist
-	for _, container := range rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
-		if container.Name == "oauth-proxy" {
-			rayclusterlog.V(2).Info("OAuth sidecar already exists, no patch needed")
-			return nil
-		}
-	}
-
 	rayclusterlog.V(2).Info("Adding OAuth sidecar container")
 
-	newOAuthSidecar := corev1.Container{
-		Name:  "oauth-proxy",
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, oauthProxyContainer(rayCluster), withContainerName(oauthProxyContainerName))
+
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), withVolumeName(oauthProxyVolumeName))
+
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
+
+	return nil
+}
+
+func (w *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	rayCluster := obj.(*rayv1.RayCluster)
+
+	var warnings admission.Warnings
+	var allErrors field.ErrorList
+
+	allErrors = append(allErrors, validateIngress(rayCluster)...)
+
+	return warnings, allErrors.ToAggregate()
+}
+
+func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	rayCluster := newObj.(*rayv1.RayCluster)
+
+	var warnings admission.Warnings
+	var allErrors field.ErrorList
+
+	if !rayCluster.DeletionTimestamp.IsZero() {
+		// Object is being deleted, skip validations
+		return nil, nil
+	}
+
+	allErrors = append(allErrors, validateIngress(rayCluster)...)
+	allErrors = append(allErrors, validateOAuthProxyContainer(rayCluster)...)
+	allErrors = append(allErrors, validateOAuthProxyVolume(rayCluster)...)
+	allErrors = append(allErrors, validateHeadGroupServiceAccountName(rayCluster)...)
+
+	return warnings, allErrors.ToAggregate()
+}
+
+func (w *rayClusterWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	// Optional: Add delete validation logic here
+	return nil, nil
+}
+
+func validateOAuthProxyContainer(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, oauthProxyContainer(rayCluster), byContainerName,
+		field.NewPath("spec", "headGroupSpec", "template", "spec", "containers"),
+		"OAuth Proxy container is immutable"); err != nil {
+		allErrors = append(allErrors, err)
+	}
+
+	return allErrors
+}
+
+func validateOAuthProxyVolume(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), byVolumeName,
+		field.NewPath("spec", "headGroupSpec", "template", "spec", "volumes"),
+		"OAuth Proxy TLS Secret volume is immutable"); err != nil {
+		allErrors = append(allErrors, err)
+	}
+
+	return allErrors
+}
+
+func validateIngress(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if pointer.BoolDeref(rayCluster.Spec.HeadGroupSpec.EnableIngress, false) {
+		allErrors = append(allErrors, field.Invalid(
+			field.NewPath("spec", "headGroupSpec", "enableIngress"),
+			rayCluster.Spec.HeadGroupSpec.EnableIngress,
+			"RayCluster resources with EnableIngress set to true or unspecified is not allowed"))
+	}
+
+	return allErrors
+}
+
+func validateHeadGroupServiceAccountName(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	if rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName != rayCluster.Name+"-oauth-proxy" {
+		allErrors = append(allErrors, field.Invalid(
+			field.NewPath("spec", "headGroupSpec", "template", "spec", "serviceAccountName"),
+			rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName,
+			"RayCluster head group service account is immutable"))
+	}
+
+	return allErrors
+}
+
+func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
+	return corev1.Container{
+		Name:  oauthProxyContainerName,
 		Image: "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366",
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: 8443, Name: "oauth-proxy"},
@@ -106,59 +198,21 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      "proxy-tls-secret",
+				Name:      oauthProxyVolumeName,
 				MountPath: "/etc/tls/private",
 				ReadOnly:  true,
 			},
 		},
 	}
+}
 
-	rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = append(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, newOAuthSidecar)
-
-	tlsSecretVolume := corev1.Volume{
-		Name: "proxy-tls-secret",
+func oauthProxyTLSSecretVolume(rayCluster *rayv1.RayCluster) corev1.Volume {
+	return corev1.Volume{
+		Name: oauthProxyVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName: rayCluster.Name + "-proxy-tls-secret",
 			},
 		},
 	}
-
-	rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = append(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, tlsSecretVolume)
-
-	// Ensure the service account is set
-	if rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName == "" {
-		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
-	}
-
-	return nil
-}
-
-func (w *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	raycluster := obj.(*rayv1.RayCluster)
-	var warnings admission.Warnings
-	var allErrors field.ErrorList
-	specPath := field.NewPath("spec")
-
-	if pointer.BoolDeref(raycluster.Spec.HeadGroupSpec.EnableIngress, false) {
-		rayclusterlog.Info("Creating RayCluster resources with EnableIngress set to true or unspecified is not allowed")
-		allErrors = append(allErrors, field.Invalid(specPath.Child("headGroupSpec").Child("enableIngress"), raycluster.Spec.HeadGroupSpec.EnableIngress, "creating RayCluster resources with EnableIngress set to true or unspecified is not allowed"))
-	}
-
-	return warnings, allErrors.ToAggregate()
-}
-
-func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	newRayCluster := newObj.(*rayv1.RayCluster)
-	if !newRayCluster.DeletionTimestamp.IsZero() {
-		// Object is being deleted, skip validations
-		return nil, nil
-	}
-	warnings, err := w.ValidateCreate(ctx, newRayCluster)
-	return warnings, err
-}
-
-func (w *rayClusterWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	// Optional: Add delete validation logic here
-	return nil, nil
 }
