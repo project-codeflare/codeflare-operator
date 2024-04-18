@@ -128,8 +128,16 @@ func main() {
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	exitOnError(err, "unable to create Kubernetes client")
 
-	namespace := namespaceOrDie()
+	// Checking for RayCluster CRD availability to ensure the RayCluster Controller can initialise.
+	ok, err := hasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
+	if err != nil {
+		exitOnError(err, "Could not determine if RayCluster CR is present on cluster.")
+	}
+	if !ok {
+		exitOnError(fmt.Errorf("RayCluster CRD is not available on the cluster"), "Required CRD not available.")
+	}
 
+	namespace := namespaceOrDie()
 	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespace, configMapName, cfg), "unable to initialise configuration")
 
 	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
@@ -171,18 +179,13 @@ func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *co
 
 	exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
 
-	ok, err := hasAPIResourceForGVK(dc, rayv1.GroupVersion.WithKind("RayCluster"))
-	if ok {
-		rayClusterController := controllers.RayClusterReconciler{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			Config:      cfg.KubeRay,
-			IsOpenShift: isOpenShift,
-		}
-		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
-	} else if err != nil {
-		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
+	rayClusterController := controllers.RayClusterReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Config:      cfg.KubeRay,
+		IsOpenShift: isOpenShift,
 	}
+	exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
