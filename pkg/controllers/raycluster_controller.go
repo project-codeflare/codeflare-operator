@@ -391,6 +391,17 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string)
 					),
 				networkingapply.NetworkPolicyIngressRule().
 					WithPorts(
+						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
+					).
+					WithFrom(
+						networkingapply.NetworkPolicyPeer().WithNamespaceSelector(metav1apply.LabelSelector().
+							WithMatchExpressions(metav1apply.LabelSelectorRequirement().
+								WithKey(corev1.LabelMetadataName).
+								WithOperator(metav1.LabelSelectorOpIn).
+								WithValues("openshift-monitoring"))),
+					),
+				networkingapply.NetworkPolicyIngressRule().
+					WithPorts(
 						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
 					),
 			),
