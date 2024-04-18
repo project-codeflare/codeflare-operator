@@ -72,9 +72,7 @@ spec:
   keywords:
   - Pipelines
   - Scaling
-  - MCAD
   - App
-  - InstaScale
   - Jobs
   links:
   - name: Codeflare Operator
