@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
@@ -36,14 +37,13 @@ import (
 var rayclusterlog = logf.Log.WithName("raycluster-resource")
 
 func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConfiguration) error {
+	rayClusterWebhookInstance := &rayClusterWebhook{
+		Config: cfg,
+	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&rayv1.RayCluster{}).
-		WithDefaulter(&rayClusterWebhook{
-			Config: cfg,
-		}).
-		WithValidator(&rayClusterWebhook{
-			Config: cfg,
-		}).
+		WithDefaulter(rayClusterWebhookInstance).
+		WithValidator(rayClusterWebhookInstance).
 		Complete()
 }
 
@@ -53,6 +53,9 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 type rayClusterWebhook struct {
 	Config *config.KubeRayConfiguration
 }
+
+var _ webhook.CustomDefaulter = &rayClusterWebhook{}
+var _ webhook.CustomValidator = &rayClusterWebhook{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
