@@ -1,6 +1,6 @@
 # codeflare-operator
 
-Operator for installation and lifecycle management of CodeFlare distributed workload stack, starting with MCAD and InstaScale
+Operator for installation and lifecycle management of CodeFlare distributed workload stack.
 
 <!-- Don't delete these comments, they are used to generate Compatibility Matrix table for release automation -->
 <!-- Compatibility Matrix start -->
@@ -9,9 +9,7 @@ CodeFlare Stack Compatibility Matrix
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
 | CodeFlare Operator           | [v1.3.1](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.3.1)             |
-| Multi-Cluster App Dispatcher | [v1.40.0](https://github.com/project-codeflare/multi-cluster-app-dispatcher/releases/tag/v1.40.0) |
 | CodeFlare-SDK                | [v0.15.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.15.1)                  |
-| InstaScale                   | [v0.4.0](https://github.com/project-codeflare/instascale/releases/tag/v0.4.0)                     |
 | KubeRay                      | [v1.0.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.0.0)                              |
 <!-- Compatibility Matrix end -->
 
@@ -90,7 +88,7 @@ The e2e tests can be executed locally by running the following commands:
 
 To properly run e2e tests on disconnected cluster user has to provide additional environment variables to properly configure testing environment:
 
-- `CODEFLARE_TEST_PYTORCH_IMAGE` - image tag for image used to run training job using MCAD
+- `CODEFLARE_TEST_PYTORCH_IMAGE` - image tag for image used to run training job
 - `CODEFLARE_TEST_RAY_IMAGE` - image tag for Ray cluster image
 - `MNIST_DATASET_URL` - URL where MNIST dataset is available
 - `PIP_INDEX_URL` - URL where PyPI server with needed dependencies is running
@@ -118,8 +116,6 @@ For ODH tests additional environment variables are needed:
 There may be instances in which a new CodeFlare stack release requires releases of only a subset of the stack components. Examples could be hotfixes for a specific component. In these instances:
 
 1. Build updated components as needed:
-    - Build and release [MCAD](https://github.com/project-codeflare/multi-cluster-app-dispatcher)
-    - Build and release [InstaScale](https://github.com/project-codeflare/instascale)
     - Build and release [CodeFlare-SDK](https://github.com/project-codeflare/codeflare-sdk)
 
 2. Invoke [tag-and-build.yml](https://github.com/project-codeflare/codeflare-operator/actions/workflows/tag-and-build.yml) GitHub action, this action will create a repository tag, build and push operator image.
