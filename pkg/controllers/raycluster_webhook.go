@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -66,7 +66,7 @@ var _ webhook.CustomValidator = &rayClusterWebhook{}
 func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	rayCluster := obj.(*rayv1.RayCluster)
 
-	if !pointer.BoolDeref(w.Config.RayDashboardOAuthEnabled, true) {
+	if !ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func validateOAuthProxyVolume(rayCluster *rayv1.RayCluster) field.ErrorList {
 func validateIngress(rayCluster *rayv1.RayCluster) field.ErrorList {
 	var allErrors field.ErrorList
 
-	if pointer.BoolDeref(rayCluster.Spec.HeadGroupSpec.EnableIngress, false) {
+	if ptr.Deref(rayCluster.Spec.HeadGroupSpec.EnableIngress, false) {
 		allErrors = append(allErrors, field.Invalid(
 			field.NewPath("spec", "headGroupSpec", "enableIngress"),
 			rayCluster.Spec.HeadGroupSpec.EnableIngress,
