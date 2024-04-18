@@ -13,7 +13,7 @@ webhooks:
       namespace: system
       path: /mutate-ray-io-v1-raycluster
   failurePolicy: Fail
-  name: mraycluster.kb.io
+  name: mraycluster.ray.openshift.ai
   rules:
   - apiGroups:
     - ray.io
@@ -39,7 +39,7 @@ webhooks:
       namespace: system
       path: /validate-ray-io-v1-raycluster
   failurePolicy: Fail
-  name: vraycluster.kb.io
+  name: vraycluster.ray.openshift.ai
   rules:
   - apiGroups:
     - ray.io
