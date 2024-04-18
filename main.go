@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	cert "github.com/open-policy-agent/cert-controller/pkg/rotator"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
@@ -32,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
@@ -40,10 +42,11 @@ import (
 	"k8s.io/client-go/rest"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/yaml"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -99,8 +102,8 @@ func main() {
 
 	cfg := &config.CodeFlareOperatorConfiguration{
 		ClientConnection: &config.ClientConnection{
-			QPS:   pointer.Float32(50),
-			Burst: pointer.Int32(100),
+			QPS:   ptr.To(float32(50)),
+			Burst: ptr.To(int32(100)),
 		},
 		ControllerManager: config.ControllerManager{
 			Metrics: config.MetricsConfiguration{
@@ -114,7 +117,7 @@ func main() {
 			LeaderElection: &configv1alpha1.LeaderElectionConfiguration{},
 		},
 		KubeRay: &config.KubeRayConfiguration{
-			RayDashboardOAuthEnabled: pointer.Bool(true),
+			RayDashboardOAuthEnabled: ptr.To(true),
 			IngressDomain:            "",
 		},
 	}
@@ -127,17 +130,21 @@ func main() {
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	exitOnError(err, "unable to create Kubernetes client")
 
-	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespaceOrDie(), configMapName, cfg), "unable to initialise configuration")
+	namespace := namespaceOrDie()
 
-	kubeConfig.Burst = int(pointer.Int32Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
-	kubeConfig.QPS = pointer.Float32Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
+	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespace, configMapName, cfg), "unable to initialise configuration")
+
+	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
+	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
 	setupLog.V(2).Info("REST client", "qps", kubeConfig.QPS, "burst", kubeConfig.Burst)
 
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
-		Scheme:                     scheme,
-		MetricsBindAddress:         cfg.Metrics.BindAddress,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: cfg.Metrics.BindAddress,
+		},
 		HealthProbeBindAddress:     cfg.Health.BindAddress,
-		LeaderElection:             pointer.BoolDeref(cfg.LeaderElection.LeaderElect, false),
+		LeaderElection:             ptr.Deref(cfg.LeaderElection.LeaderElect, false),
 		LeaderElectionID:           cfg.LeaderElection.ResourceName,
 		LeaderElectionNamespace:    cfg.LeaderElection.ResourceNamespace,
 		LeaderElectionResourceLock: cfg.LeaderElection.ResourceLock,
@@ -145,16 +152,30 @@ func main() {
 		RetryPeriod:                &cfg.LeaderElection.RetryPeriod.Duration,
 		RenewDeadline:              &cfg.LeaderElection.RenewDeadline.Duration,
 	})
-	exitOnError(err, "unable to start manager")
+	exitOnError(err, "unable to create manager")
+
+	certsReady := make(chan struct{})
+	exitOnError(setupCertManagement(mgr, namespace, certsReady), "unable to setup cert-controller")
 
 	OpenShift := isOpenShift(ctx, kubeClient.DiscoveryClient)
 
-	if OpenShift {
-		// TODO: setup the RayCluster webhook on vanilla Kubernetes
-		exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
-	}
+	go setupControllers(mgr, kubeClient, cfg, OpenShift, certsReady)
 
-	ok, err := hasAPIResourceForGVK(kubeClient.DiscoveryClient, rayv1.GroupVersion.WithKind("RayCluster"))
+	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
+	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
+
+	setupLog.Info("starting manager")
+	exitOnError(mgr.Start(ctx), "error running manager")
+}
+
+func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration, OpenShift bool, certsReady chan struct{}) {
+	setupLog.Info("Waiting for certificate generation to complete")
+	<-certsReady
+	setupLog.Info("Certs ready")
+
+	exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
+
+	ok, err := hasAPIResourceForGVK(dc, rayv1.GroupVersion.WithKind("RayCluster"))
 	if ok {
 		rayClusterController := controllers.RayClusterReconciler{
 			Client:      mgr.GetClient(),
@@ -166,12 +187,37 @@ func main() {
 	} else if err != nil {
 		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
 	}
+}
 
-	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
-	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;update
 
-	setupLog.Info("starting manager")
-	exitOnError(mgr.Start(ctx), "error running manager")
+func setupCertManagement(mgr ctrl.Manager, namespace string, certsReady chan struct{}) error {
+	return cert.AddRotator(mgr, &cert.CertRotator{
+		SecretKey: types.NamespacedName{
+			Namespace: namespace,
+			Name:      "codeflare-operator-webhook-server-cert",
+		},
+		CertDir:        "/tmp/k8s-webhook-server/serving-certs",
+		CAName:         "codeflare",
+		CAOrganization: "openshift.ai",
+		DNSName:        fmt.Sprintf("%s.%s.svc", "codeflare-operator-webhook-service", namespace),
+		IsReady:        certsReady,
+		Webhooks: []cert.WebhookInfo{
+			{
+				Type: cert.Validating,
+				Name: "codeflare-operator-validating-webhook-configuration",
+			},
+			{
+				Type: cert.Mutating,
+				Name: "codeflare-operator-mutating-webhook-configuration",
+			},
+		},
+		// When the controller is running in the leader election mode,
+		// we expect webhook server will run in primary and secondary instance
+		RequireLeaderElection: false,
+	})
 }
 
 func loadIntoOrCreate(ctx context.Context, client kubernetes.Interface, ns, name string, cfg *config.CodeFlareOperatorConfiguration) error {
