@@ -147,7 +147,7 @@ func validateIngress(rayCluster *rayv1.RayCluster) field.ErrorList {
 		allErrors = append(allErrors, field.Invalid(
 			field.NewPath("spec", "headGroupSpec", "enableIngress"),
 			rayCluster.Spec.HeadGroupSpec.EnableIngress,
-			"RayCluster resources with EnableIngress set to true or unspecified is not allowed"))
+			"RayCluster with enableIngress set to true is not allowed"))
 	}
 
 	return allErrors
