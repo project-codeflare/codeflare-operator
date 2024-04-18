@@ -27,7 +27,6 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
@@ -39,7 +38,7 @@ var rayclusterlog = logf.Log.WithName("raycluster-resource")
 func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConfiguration) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&rayv1.RayCluster{}).
-		WithDefaulter(&rayClusterDefaulter{
+		WithDefaulter(&rayClusterWebhook{
 			Config: cfg,
 		}).
 		WithValidator(&rayClusterWebhook{
@@ -51,21 +50,15 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 // +kubebuilder:webhook:path=/mutate-ray-io-v1-raycluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=mraycluster.kb.io,admissionReviewVersions=v1
 // +kubebuilder:webhook:path=/validate-ray-io-v1-raycluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=vraycluster.kb.io,admissionReviewVersions=v1
 
-type rayClusterDefaulter struct {
-	Config *config.KubeRayConfiguration
-}
 type rayClusterWebhook struct {
 	Config *config.KubeRayConfiguration
 }
 
-var _ webhook.CustomDefaulter = &rayClusterDefaulter{}
-var _ webhook.CustomValidator = &rayClusterWebhook{}
-
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *rayClusterDefaulter) Default(ctx context.Context, obj runtime.Object) error {
+func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	raycluster := obj.(*rayv1.RayCluster)
 
-	if !pointer.BoolDeref(r.Config.RayDashboardOAuthEnabled, true) {
+	if !pointer.BoolDeref(w.Config.RayDashboardOAuthEnabled, true) {
 		return nil
 	}
 
@@ -143,7 +136,7 @@ func (r *rayClusterDefaulter) Default(ctx context.Context, obj runtime.Object) e
 	return nil
 }
 
-func (v *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (w *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	raycluster := obj.(*rayv1.RayCluster)
 	var warnings admission.Warnings
 	var allErrors field.ErrorList
@@ -157,17 +150,17 @@ func (v *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 	return warnings, allErrors.ToAggregate()
 }
 
-func (v *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	newRayCluster := newObj.(*rayv1.RayCluster)
 	if !newRayCluster.DeletionTimestamp.IsZero() {
 		// Object is being deleted, skip validations
 		return nil, nil
 	}
-	warnings, err := v.ValidateCreate(ctx, newRayCluster)
+	warnings, err := w.ValidateCreate(ctx, newRayCluster)
 	return warnings, err
 }
 
-func (v *rayClusterWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (w *rayClusterWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	// Optional: Add delete validation logic here
 	return nil, nil
 }
