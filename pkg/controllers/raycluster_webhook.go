@@ -59,14 +59,14 @@ var _ webhook.CustomValidator = &rayClusterWebhook{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	raycluster := obj.(*rayv1.RayCluster)
+	rayCluster := obj.(*rayv1.RayCluster)
 
 	if !pointer.BoolDeref(w.Config.RayDashboardOAuthEnabled, true) {
 		return nil
 	}
 
 	// Check and add OAuth proxy if it does not exist
-	for _, container := range raycluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+	for _, container := range rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
 		if container.Name == "oauth-proxy" {
 			rayclusterlog.V(2).Info("OAuth sidecar already exists, no patch needed")
 			return nil
@@ -74,17 +74,30 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 	}
 
 	rayclusterlog.V(2).Info("Adding OAuth sidecar container")
-	// definition of the new container
+
 	newOAuthSidecar := corev1.Container{
 		Name:  "oauth-proxy",
 		Image: "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366",
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: 8443, Name: "oauth-proxy"},
 		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "COOKIE_SECRET",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: rayCluster.Name + "-oauth-config",
+						},
+						Key: "cookie_secret",
+					},
+				},
+			},
+		},
 		Args: []string{
 			"--https-address=:8443",
 			"--provider=openshift",
-			"--openshift-service-account=" + raycluster.Name + "-oauth-proxy",
+			"--openshift-service-account=" + rayCluster.Name + "-oauth-proxy",
 			"--upstream=http://localhost:8265",
 			"--tls-cert=/etc/tls/private/tls.crt",
 			"--tls-key=/etc/tls/private/tls.key",
@@ -100,40 +113,22 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		},
 	}
 
-	// Adding the new OAuth sidecar container
-	raycluster.Spec.HeadGroupSpec.Template.Spec.Containers = append(raycluster.Spec.HeadGroupSpec.Template.Spec.Containers, newOAuthSidecar)
-
-	cookieSecret := corev1.EnvVar{
-		Name: "COOKIE_SECRET",
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: raycluster.Name + "-oauth-config",
-				},
-				Key: "cookie_secret",
-			},
-		},
-	}
-
-	raycluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env = append(
-		raycluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env,
-		cookieSecret,
-	)
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = append(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, newOAuthSidecar)
 
 	tlsSecretVolume := corev1.Volume{
 		Name: "proxy-tls-secret",
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: raycluster.Name + "-proxy-tls-secret",
+				SecretName: rayCluster.Name + "-proxy-tls-secret",
 			},
 		},
 	}
 
-	raycluster.Spec.HeadGroupSpec.Template.Spec.Volumes = append(raycluster.Spec.HeadGroupSpec.Template.Spec.Volumes, tlsSecretVolume)
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = append(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, tlsSecretVolume)
 
 	// Ensure the service account is set
-	if raycluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName == "" {
-		raycluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = raycluster.Name + "-oauth-proxy"
+	if rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName == "" {
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
 	}
 
 	return nil
