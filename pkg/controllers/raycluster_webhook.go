@@ -79,7 +79,8 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 
 	if ptr.Deref(w.Config.MTLSEnabled, true) {
 		rayclusterlog.V(2).Info("Adding create-cert Init Containers")
-		// HeadGroupSpec //
+		// HeadGroupSpec
+
 		// Append the list of environment variables for the ray-head container
 		for _, envVar := range envVarList() {
 			rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
@@ -92,7 +93,14 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		for _, caVol := range caVolumes(rayCluster) {
 			rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, caVol, withVolumeName(caVol.Name))
 		}
-		// WorkerGroupSpec //
+
+		// Append the certificate volume mounts
+		for _, mount := range certVolumeMounts() {
+			rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].VolumeMounts = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].VolumeMounts, mount, byVolumeMountName)
+		}
+
+		// WorkerGroupSpec
+
 		// Append the list of environment variables for the worker container
 		for _, envVar := range envVarList() {
 			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
@@ -102,9 +110,14 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		for _, caVol := range caVolumes(rayCluster) {
 			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes, caVol, withVolumeName(caVol.Name))
 		}
+
+		// Append the certificate volume mounts
+		for _, mount := range certVolumeMounts() {
+			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].VolumeMounts = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].VolumeMounts, mount, byVolumeMountName)
+		}
+
 		// Append the create-cert Init Container
 		rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(), withContainerName(initContainerName))
-
 	}
 
 	return nil
@@ -263,7 +276,7 @@ func oauthProxyTLSSecretVolume(rayCluster *rayv1.RayCluster) corev1.Volume {
 	}
 }
 
-func initCaVolumeMounts() []corev1.VolumeMount {
+func certVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "ca-vol",
@@ -339,7 +352,7 @@ func rayHeadInitContainer(rayCluster *rayv1.RayCluster, domain string) corev1.Co
 			"-c",
 			`cd /home/ray/workspace/tls && openssl req -nodes -newkey rsa:2048 -keyout server.key -out server.csr -subj '/CN=ray-head' && printf "authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1 = 127.0.0.1\nDNS.2 = localhost\nDNS.3 = ${FQ_RAY_IP}\nDNS.4 = $(awk 'END{print $1}' /etc/hosts)\nDNS.5 = ` + rayClientRoute + `\nDNS.6 = ` + svcDomain + `">./domain.ext && cp /home/ray/workspace/ca/* . && openssl x509 -req -CA ca.crt -CAkey ca.key -in server.csr -out server.crt -days 365 -CAcreateserial -extfile domain.ext`,
 		},
-		VolumeMounts: initCaVolumeMounts(),
+		VolumeMounts: certVolumeMounts(),
 	}
 	return initContainerHead
 }
@@ -353,7 +366,7 @@ func rayWorkerInitContainer() corev1.Container {
 			"-c",
 			`cd /home/ray/workspace/tls && openssl req -nodes -newkey rsa:2048 -keyout server.key -out server.csr -subj '/CN=ray-head' && printf "authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1 = 127.0.0.1\nDNS.2 = localhost\nDNS.3 = ${FQ_RAY_IP}\nDNS.4 = $(awk 'END{print $1}' /etc/hosts)">./domain.ext && cp /home/ray/workspace/ca/* . && openssl x509 -req -CA ca.crt -CAkey ca.key -in server.csr -out server.crt -days 365 -CAcreateserial -extfile domain.ext`,
 		},
-		VolumeMounts: initCaVolumeMounts(),
+		VolumeMounts: certVolumeMounts(),
 	}
 	return initContainerWorker
 }
