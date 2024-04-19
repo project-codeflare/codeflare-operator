@@ -262,7 +262,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(cluster, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
@@ -460,7 +460,13 @@ func generateCACertificate() ([]byte, []byte, error) {
 	return privateKeyPem, certPem, nil
 }
 
-func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
+func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
+	allSecuredPorts := []*networkingv1ac.NetworkPolicyPortApplyConfiguration{
+		networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
+	}
+	if ptr.Deref(cfg.MTLSEnabled, true) {
+		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
+	}
 	return networkingv1ac.NetworkPolicy(cluster.Name, cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
@@ -501,8 +507,7 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string)
 					),
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+						allSecuredPorts...,
 					),
 			),
 		).
