@@ -148,7 +148,7 @@ func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj r
 
 	// Init Container related errors
 	if ptr.Deref(w.Config.MTLSEnabled, true) {
-		allErrors = append(allErrors, validateHeadInitContainer(rayCluster, w)...)
+		allErrors = append(allErrors, validateHeadInitContainer(rayCluster, w.Config.IngressDomain)...)
 		allErrors = append(allErrors, validateWorkerInitContainer(rayCluster)...)
 		allErrors = append(allErrors, validateHeadEnvVars(rayCluster)...)
 		allErrors = append(allErrors, validateWorkerEnvVars(rayCluster)...)
@@ -358,10 +358,10 @@ func rayWorkerInitContainer() corev1.Container {
 	return initContainerWorker
 }
 
-func validateHeadInitContainer(rayCluster *rayv1.RayCluster, w *rayClusterWebhook) field.ErrorList {
+func validateHeadInitContainer(rayCluster *rayv1.RayCluster, domain string) field.ErrorList {
 	var allErrors field.ErrorList
 
-	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, w.Config.IngressDomain), byContainerName,
+	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, domain), byContainerName,
 		field.NewPath("spec", "headGroupSpec", "template", "spec", "initContainers"),
 		"create-cert Init Container is immutable"); err != nil {
 		allErrors = append(allErrors, err)
