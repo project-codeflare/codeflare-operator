@@ -8,9 +8,9 @@ CodeFlare Stack Compatibility Matrix
 
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
-| CodeFlare Operator           | [v1.3.1](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.3.1)             |
-| CodeFlare-SDK                | [v0.15.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.15.1)                  |
-| KubeRay                      | [v1.0.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.0.0)                              |
+| CodeFlare Operator           | [v1.4.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.4.0)             |
+| CodeFlare-SDK                | [v0.16.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.16.0)                  |
+| KubeRay                      | [v1.1.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.1.0)                              |
 <!-- Compatibility Matrix end -->
 
 ## Development
