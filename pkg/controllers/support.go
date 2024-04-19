@@ -141,6 +141,11 @@ func withVolumeName(name string) compare[corev1.Volume] {
 	}
 }
 
+var byVolumeMountName = compare[corev1.VolumeMount](
+	func(v1, v2 corev1.VolumeMount) bool {
+		return v1.Name == v2.Name
+	})
+
 var byEnvVarName = compare[corev1.EnvVar](
 	func(e1, e2 corev1.EnvVar) bool {
 		return e1.Name == e2.Name
