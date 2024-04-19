@@ -19,9 +19,16 @@ package controllers
 import (
 	"context"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	rand2 "math/rand"
+	"time"
 
 	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
@@ -32,18 +39,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	coreapply "k8s.io/client-go/applyconfigurations/core/v1"
-	metav1apply "k8s.io/client-go/applyconfigurations/meta/v1"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
-	networkingapply "k8s.io/client-go/applyconfigurations/networking/v1"
-	rbacapply "k8s.io/client-go/applyconfigurations/rbac/v1"
+	corev1ac "k8s.io/client-go/applyconfigurations/core/v1"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
+	networkingv1ac "k8s.io/client-go/applyconfigurations/networking/v1"
+	rbacv1ac "k8s.io/client-go/applyconfigurations/rbac/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	routev1 "github.com/openshift/api/route/v1"
-	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
+	routev1ac "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
@@ -144,6 +151,26 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
+	if isMTLSEnabled(r.Config) {
+		caSecretName := caSecretNameFromCluster(cluster)
+		_, err := r.kubeClient.CoreV1().Secrets(cluster.Namespace).Get(ctx, caSecretName, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			key, cert, err := generateCACertificate()
+			if err != nil {
+				logger.Error(err, "Failed to generate CA certificate")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
+			_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredCASecret(cluster, key, cert), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			if err != nil {
+				logger.Error(err, "Failed to create CA Secret")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
+		} else if err != nil {
+			logger.Error(err, "Failed to get CA Secret")
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+	}
+
 	if cluster.Status.State != "suspended" && isRayDashboardOAuthEnabled(r.Config) && r.IsOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
@@ -152,7 +179,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-		_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredOAuthSecret(cluster, r), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+		_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredOAuthSecret(cluster, r.CookieSalt), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to create OAuth Secret")
 			return ctrl.Result{RequeueAfter: requeueTime}, err
@@ -244,28 +271,29 @@ func getIngressHost(cfg *config.KubeRayConfiguration, cluster *rayv1.RayCluster,
 }
 
 func isRayDashboardOAuthEnabled(cfg *config.KubeRayConfiguration) bool {
-	if cfg != nil && cfg.RayDashboardOAuthEnabled != nil {
-		return *cfg.RayDashboardOAuthEnabled
-	}
-	return true
+	return cfg == nil || ptr.Deref(cfg.RayDashboardOAuthEnabled, true)
+}
+
+func isMTLSEnabled(cfg *config.KubeRayConfiguration) bool {
+	return cfg == nil || ptr.Deref(cfg.MTLSEnabled, true)
 }
 
 func crbNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-" + cluster.Namespace + "-auth" // NOTE: potential naming conflicts ie {name: foo, ns: bar-baz} and {name: foo-bar, ns: baz}
 }
 
-func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacapply.ClusterRoleBindingApplyConfiguration {
-	return rbacapply.ClusterRoleBinding(
+func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.ClusterRoleBindingApplyConfiguration {
+	return rbacv1ac.ClusterRoleBinding(
 		crbNameFromCluster(cluster)).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSubjects(
-			rbacapply.Subject().
+			rbacv1ac.Subject().
 				WithKind("ServiceAccount").
 				WithName(oauthServiceAccountNameFromCluster(cluster)).
 				WithNamespace(cluster.Namespace),
 		).
 		WithRoleRef(
-			rbacapply.RoleRef().
+			rbacv1ac.RoleRef().
 				WithAPIGroup("rbac.authorization.k8s.io").
 				WithKind("ClusterRole").
 				WithName("system:auth-delegator"),
@@ -276,8 +304,8 @@ func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-oauth-proxy"
 }
 
-func desiredServiceAccount(cluster *rayv1.RayCluster) *coreapply.ServiceAccountApplyConfiguration {
-	return coreapply.ServiceAccount(oauthServiceAccountNameFromCluster(cluster), cluster.Namespace).
+func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountApplyConfiguration {
+	return corev1ac.ServiceAccount(oauthServiceAccountNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithAnnotations(map[string]string{
 			"serviceaccounts.openshift.io/oauth-redirectreference.first": "" +
@@ -285,7 +313,7 @@ func desiredServiceAccount(cluster *rayv1.RayCluster) *coreapply.ServiceAccountA
 				`"reference":{"kind":"Route","name":"` + dashboardNameFromCluster(cluster) + `"}}`,
 		}).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 
@@ -297,19 +325,19 @@ func rayClientNameFromCluster(cluster *rayv1.RayCluster) string {
 	return "rayclient-" + cluster.Name
 }
 
-func desiredClusterRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConfiguration {
-	return routeapply.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
+func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfiguration {
+	return routev1ac.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
-		WithSpec(routeapply.RouteSpec().
-			WithTo(routeapply.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
-			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString((oAuthServicePortName)))).
-			WithTLS(routeapply.TLSConfig().
+		WithSpec(routev1ac.RouteSpec().
+			WithTo(routev1ac.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
+			WithPort(routev1ac.RoutePort().WithTargetPort(intstr.FromString((oAuthServicePortName)))).
+			WithTLS(routev1ac.TLSConfig().
 				WithInsecureEdgeTerminationPolicy(routev1.InsecureEdgeTerminationPolicyRedirect).
 				WithTermination(routev1.TLSTerminationReencrypt),
 			),
 		).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 
@@ -321,14 +349,14 @@ func oauthServiceTLSSecretName(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-proxy-tls-secret"
 }
 
-func desiredOAuthService(cluster *rayv1.RayCluster) *coreapply.ServiceApplyConfiguration {
-	return coreapply.Service(oauthServiceNameFromCluster(cluster), cluster.Namespace).
+func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfiguration {
+	return corev1ac.Service(oauthServiceNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithAnnotations(map[string]string{"service.beta.openshift.io/serving-cert-secret-name": oauthServiceTLSSecretName(cluster)}).
 		WithSpec(
-			coreapply.ServiceSpec().
+			corev1ac.ServiceSpec().
 				WithPorts(
-					coreapply.ServicePort().
+					corev1ac.ServicePort().
 						WithName(oAuthServicePortName).
 						WithPort(oAuthServicePort).
 						WithTargetPort(intstr.FromString(oAuthServicePortName)).
@@ -337,7 +365,7 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *coreapply.ServiceApplyConfi
 				WithSelector(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"}),
 		).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 
@@ -346,68 +374,121 @@ func oauthSecretNameFromCluster(cluster *rayv1.RayCluster) string {
 }
 
 // desiredOAuthSecret defines the desired OAuth secret object
-func desiredOAuthSecret(cluster *rayv1.RayCluster, r *RayClusterReconciler) *coreapply.SecretApplyConfiguration {
+func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.SecretApplyConfiguration {
 	// Generate the cookie secret for the OAuth proxy
 	hasher := sha1.New() // REVIEW is SHA1 okay here?
-	hasher.Write([]byte(cluster.Name + r.CookieSalt))
+	hasher.Write([]byte(cluster.Name + cookieSalt))
 	cookieSecret := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
-	return coreapply.Secret(oauthSecretNameFromCluster(cluster), cluster.Namespace).
+	return corev1ac.Secret(oauthSecretNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithStringData(map[string]string{"cookie_secret": cookieSecret}).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
-	// Create a Kubernetes secret to store the cookie secret
 }
 
-func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string) *networkingapply.NetworkPolicyApplyConfiguration {
-	return networkingapply.NetworkPolicy(cluster.Name, cluster.Namespace).
+func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
+	return "ca-secret-" + cluster.Name
+}
+
+func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.SecretApplyConfiguration {
+	return corev1ac.Secret(caSecretNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
-		WithSpec(networkingapply.NetworkPolicySpec().
-			WithPodSelector(metav1apply.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
+		WithData(map[string][]byte{
+			corev1.TLSPrivateKeyKey: key,
+			corev1.TLSCertKey:       cert,
+		}).
+		WithOwnerReferences(metav1ac.OwnerReference().
+			WithUID(cluster.UID).
+			WithName(cluster.Name).
+			WithKind(cluster.Kind).
+			WithAPIVersion(cluster.APIVersion))
+}
+
+func generateCACertificate() ([]byte, []byte, error) {
+	serialNumber := big.NewInt(rand2.Int63())
+	cert := &x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"OpenShift AI"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(1, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	certPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(certPrivateKey)
+	privateKeyPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privateKeyBytes,
+		},
+	)
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &certPrivateKey.PublicKey, certPrivateKey)
+	certPem := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	return privateKeyPem, certPem, nil
+}
+
+func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
+	return networkingv1ac.NetworkPolicy(cluster.Name, cluster.Namespace).
+		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+		WithSpec(networkingv1ac.NetworkPolicySpec().
+			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
-				networkingapply.NetworkPolicyIngressRule().
+				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(6379)),
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(6379)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
 					).WithFrom(
-					networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector()),
+					networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector()),
 				),
-				networkingapply.NetworkPolicyIngressRule().
+				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
-						networkingapply.NetworkPolicyPeer().WithPodSelector(metav1apply.LabelSelector().
+						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().
 							WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
-							WithNamespaceSelector(metav1apply.LabelSelector().
-								WithMatchExpressions(metav1apply.LabelSelectorRequirement().
+							WithNamespaceSelector(metav1ac.LabelSelector().
+								WithMatchExpressions(metav1ac.LabelSelectorRequirement().
 									WithKey(corev1.LabelMetadataName).
 									WithOperator(metav1.LabelSelectorOpIn).
 									WithValues(kubeRayNamespaces...)))).
 					WithPorts(
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
 					),
-				networkingapply.NetworkPolicyIngressRule().
+				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
 					).
 					WithFrom(
-						networkingapply.NetworkPolicyPeer().WithNamespaceSelector(metav1apply.LabelSelector().
-							WithMatchExpressions(metav1apply.LabelSelectorRequirement().
+						networkingv1ac.NetworkPolicyPeer().WithNamespaceSelector(metav1ac.LabelSelector().
+							WithMatchExpressions(metav1ac.LabelSelectorRequirement().
 								WithKey(corev1.LabelMetadataName).
 								WithOperator(metav1.LabelSelectorOpIn).
 								WithValues("openshift-monitoring"))),
 					),
-				networkingapply.NetworkPolicyIngressRule().
+				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
-						networkingapply.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
 					),
 			),
 		).
 		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
 

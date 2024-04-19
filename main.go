@@ -79,7 +79,7 @@ func init() {
 	utilruntime.Must(dsciv1.AddToScheme(scheme))
 }
 
-// +kubebuilder:rbac:groups=config.openshift.io,resources=ingresses,verbs=get;
+// +kubebuilder:rbac:groups=config.openshift.io,resources=ingresses,verbs=get
 
 func main() {
 	var configMapName string
