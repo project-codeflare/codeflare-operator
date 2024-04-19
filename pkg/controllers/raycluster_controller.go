@@ -75,6 +75,9 @@ const (
 	oAuthServicePortName   = "oauth-proxy"
 	ingressServicePortName = "dashboard"
 	logRequeueing          = "requeueing"
+
+	CAPrivateKeyKey = "ca.key"
+	CACertKey       = "ca.crt"
 )
 
 var (
@@ -169,8 +172,8 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to get CA Secret")
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		} else {
-			key := caSecret.Data[corev1.TLSPrivateKeyKey]
-			cert := caSecret.Data[corev1.TLSCertKey]
+			key := caSecret.Data[CAPrivateKeyKey]
+			cert := caSecret.Data[CACertKey]
 			_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredCASecret(cluster, key, cert), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 			if err != nil {
 				logger.Error(err, "Failed to apply CA Secret")
@@ -404,8 +407,8 @@ func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.Secr
 	return corev1ac.Secret(caSecretNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithData(map[string][]byte{
-			corev1.TLSPrivateKeyKey: key,
-			corev1.TLSCertKey:       cert,
+			CAPrivateKeyKey: key,
+			CACertKey:       cert,
 		}).
 		WithOwnerReferences(metav1ac.OwnerReference().
 			WithUID(cluster.UID).
