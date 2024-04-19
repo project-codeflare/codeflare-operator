@@ -18,8 +18,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -153,18 +155,16 @@ func main() {
 	certsReady := make(chan struct{})
 	exitOnError(setupCertManagement(mgr, namespace, certsReady), "unable to setup cert-controller")
 
-	OpenShift := isOpenShift(ctx, kubeClient.DiscoveryClient)
+	go setupControllers(mgr, kubeClient, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
 
-	go setupControllers(mgr, kubeClient, cfg, OpenShift, certsReady)
-
-	exitOnError(mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping), "unable to set up health check")
-	exitOnError(mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, healthz.Ping), "unable to set up ready check")
+	setupLog.Info("setting up health endpoints")
+	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
 }
 
-func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration, OpenShift bool, certsReady chan struct{}) {
+func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) {
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
 	setupLog.Info("Certs ready")
@@ -177,7 +177,7 @@ func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *co
 			Client:      mgr.GetClient(),
 			Scheme:      mgr.GetScheme(),
 			Config:      cfg.KubeRay,
-			IsOpenShift: OpenShift,
+			IsOpenShift: isOpenShift,
 		}
 		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
 	} else if err != nil {
@@ -213,6 +213,22 @@ func setupCertManagement(mgr ctrl.Manager, namespace string, certsReady chan str
 		// When the controller is running in the leader election mode,
 		// we expect webhook server will run in primary and secondary instance
 		RequireLeaderElection: false,
+	})
+}
+
+func setupProbeEndpoints(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
+	err := mgr.AddHealthzCheck(cfg.Health.LivenessEndpointName, healthz.Ping)
+	if err != nil {
+		return err
+	}
+
+	return mgr.AddReadyzCheck(cfg.Health.ReadinessEndpointName, func(req *http.Request) error {
+		select {
+		case <-certsReady:
+			return mgr.GetWebhookServer().StartedChecker()(req)
+		default:
+			return errors.New("certificates are not ready")
+		}
 	})
 }
 
