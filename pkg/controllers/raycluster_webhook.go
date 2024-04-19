@@ -104,9 +104,12 @@ func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj r
 	}
 
 	allErrors = append(allErrors, validateIngress(rayCluster)...)
-	allErrors = append(allErrors, validateOAuthProxyContainer(rayCluster)...)
-	allErrors = append(allErrors, validateOAuthProxyVolume(rayCluster)...)
-	allErrors = append(allErrors, validateHeadGroupServiceAccountName(rayCluster)...)
+
+	if ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
+		allErrors = append(allErrors, validateOAuthProxyContainer(rayCluster)...)
+		allErrors = append(allErrors, validateOAuthProxyVolume(rayCluster)...)
+		allErrors = append(allErrors, validateHeadGroupServiceAccountName(rayCluster)...)
+	}
 
 	return warnings, allErrors.ToAggregate()
 }
