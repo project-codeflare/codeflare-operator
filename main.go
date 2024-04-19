@@ -27,6 +27,7 @@ import (
 	"time"
 
 	cert "github.com/open-policy-agent/cert-controller/pkg/rotator"
+	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 
