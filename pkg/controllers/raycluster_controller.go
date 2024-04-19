@@ -422,7 +422,10 @@ func generateCACertificate() ([]byte, []byte, error) {
 	cert := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"OpenShift AI"},
+			CommonName: "root-ca",
+		},
+		Issuer: pkix.Name{
+			CommonName: "root-ca",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
