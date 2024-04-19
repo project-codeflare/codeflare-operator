@@ -153,7 +153,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if isMTLSEnabled(r.Config) {
 		caSecretName := caSecretNameFromCluster(cluster)
-		_, err := r.kubeClient.CoreV1().Secrets(cluster.Namespace).Get(ctx, caSecretName, metav1.GetOptions{})
+		caSecret, err := r.kubeClient.CoreV1().Secrets(cluster.Namespace).Get(ctx, caSecretName, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			key, cert, err := generateCACertificate()
 			if err != nil {
@@ -162,12 +162,20 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}
 			_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredCASecret(cluster, key, cert), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 			if err != nil {
-				logger.Error(err, "Failed to create CA Secret")
+				logger.Error(err, "Failed to apply CA Secret")
 				return ctrl.Result{RequeueAfter: requeueTime}, err
 			}
 		} else if err != nil {
 			logger.Error(err, "Failed to get CA Secret")
 			return ctrl.Result{RequeueAfter: requeueTime}, err
+		} else {
+			key := caSecret.Data[corev1.TLSPrivateKeyKey]
+			cert := caSecret.Data[corev1.TLSCertKey]
+			_, err = r.kubeClient.CoreV1().Secrets(cluster.Namespace).Apply(ctx, desiredCASecret(cluster, key, cert), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+			if err != nil {
+				logger.Error(err, "Failed to apply CA Secret")
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
 		}
 	}
 
@@ -434,6 +442,10 @@ func generateCACertificate() ([]byte, []byte, error) {
 		},
 	)
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &certPrivateKey.PublicKey, certPrivateKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	certPem := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
