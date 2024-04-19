@@ -502,6 +502,7 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, kubeRayNamespaces []string)
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
 						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
 					),
 			),
 		).
