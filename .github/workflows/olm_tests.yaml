@@ -75,6 +75,9 @@ jobs:
       - name: Deploy latest released CodeFlare operator from OLM
         id: deploy
         run: |
+          echo Create the CodeFlare operator ConfigMap
+          kubectl apply -n '${{ env.SUBSCRIPTION_NAMESPACE }}' -f config/e2e/config.yaml
+
           echo Deploying CodeFlare operator using Subscription
           envsubst < .github/resources-olm-upgrade/catalogsource.yaml > ${{ env.TEMP_DIR }}/catalogsource.yaml
           envsubst < .github/resources-olm-upgrade/subscription.yaml > ${{ env.TEMP_DIR }}/subscription.yaml
