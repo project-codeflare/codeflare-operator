@@ -9,8 +9,9 @@ CodeFlare Stack Compatibility Matrix
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
 | CodeFlare Operator           | [v1.4.1](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.4.1)             |
-| CodeFlare-SDK                | [v0.16.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.16.1)                  |
-| KubeRay                      | [v1.1.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.1.0)                              |
+| CodeFlare-SDK                | [v0.16.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.16.1)                |
+| KubeRay                      | [v1.1.0](https://github.com/opendatahub-io/kuberay/releases/tag/v1.1.0)                           |
+| AppWrapper                   | [v0.8.1](https://github.com/project-codeflare/appwrapper/releases/tag/v0.8.1)                     |
 <!-- Compatibility Matrix end -->
 
 ## Development
@@ -32,6 +33,8 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
+    # Deploy Kueue
+    make kueue-e2e
     # Install the CRDs
     make install
     ```

@@ -11,6 +11,15 @@ PREVIOUS_VERSION ?= v0.0.0-dev
 VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
+# APPWRAPPER_VERSION defines the default version of the AppWrapper controller
+ APPWRAPPER_VERSION ?= v0.8.1
+ APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
+ # Upstream AppWrapper is currently only creating release tags of the form `vX.Y.Z` (i.e the version)
+ APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
+
+ # KUEUE_VERSION defines the default version of Kueue (used for testing)
+ KUEUE_VERSION ?= v0.6.2
+
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
 KUBERAY_VERSION ?= v1.1.0
 
@@ -127,8 +136,11 @@ help: ## Display this help.
 
 # this encounters sed issues on MacOS, quick fix is to use gsed or to escape the parentheses i.e. \( \)
 .PHONY: manifests
-manifests: controller-gen kustomize install-yq ## Generate RBAC objects.
+manifests: controller-gen kustomize install-yq ## Generate RBAC objects and import upstream CRDs.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..."
+	$(SED) -i -E "s|(- )\${APPWRAPPER_REPO}.*|\1\${APPWRAPPER_CRD}|" config/crd/appwrapper/kustomization.yaml
+	$(KUSTOMIZE) build config/crd/appwrapper | $(YQ) -s '"crd-" + .spec.names.singular' --no-doc
+	mv crd-*.yml config/crd
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -380,6 +392,10 @@ test-e2e: manifests fmt vet ## Run e2e tests.
 .PHONY: kind-e2e
 kind-e2e: ## Set up e2e KinD cluster
 	test/e2e/kind.sh
+
+.PHONY: kueue-e2e
+kueue-e2e: ## Deploy Kueue for e2e tests
+	KUEUE_VERSION=$(KUEUE_VERSION) test/e2e/kueue.sh
 
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.

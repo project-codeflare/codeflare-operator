@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	awconfig "github.com/project-codeflare/appwrapper/pkg/config"
+
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
@@ -29,6 +31,15 @@ type CodeFlareOperatorConfiguration struct {
 	ControllerManager `json:",inline"`
 
 	KubeRay *KubeRayConfiguration `json:"kuberay,omitempty"`
+
+	AppWrapper *AppWrapperConfiguration `json:"appwrapper,omitempty"`
+}
+
+type AppWrapperConfiguration struct {
+	// Enabled controls whether or not the AppWrapper Controller is enabled
+	Enabled *bool `json:"enabled,omitempty"`
+	// AppWrapper contains the AppWrapper controller configuration
+	Config *awconfig.AppWrapperConfig `json:"config,omitempty"`
 }
 
 type KubeRayConfiguration struct {
