@@ -16,6 +16,10 @@ on:
         description: 'Published version of CodeFlare-SDK'
         required: true
         default: 'v0.0.0-dev'
+      appwrapper-version:
+        description: 'Tested version of AppWrapper'
+        required: true
+        default: 'v0.0.0-dev'
       kuberay-version:
         description: 'Tested version of KubeRay'
         required: true
@@ -83,7 +87,12 @@ jobs:
       run: |
         sed -i -E "s|(.*CodeFlare Operator.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.version }}\2${{ github.event.inputs.version }}\3|" README.md
         sed -i -E "s|(.*CodeFlare-SDK.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.codeflare-sdk-version }}\2${{ github.event.inputs.codeflare-sdk-version }}\3|" README.md
+        sed -i -E "s|(.*AppWrapper.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.appwrapper-version }}\2${{ github.event.inputs.appwrapper-version }}\3|" README.md
         sed -i -E "s|(.*KubeRay.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.kuberay-version }}\2${{ github.event.inputs.kuberay-version }}\3|" README.md
+
+    - name: Adjust AppWrapper dependency in the code
+      run: |
+        sed -i -E "s/(.*APPWRAPPER_VERSION \?= ).*/\1${{ github.event.inputs.appwrapper-version }}/" Makefile
 
     - name: Adjust Kuberay dependency in the code
       run: |
