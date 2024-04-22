@@ -28,6 +28,9 @@ import (
 
 	cert "github.com/open-policy-agent/cert-controller/pkg/rotator"
 	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
+	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
+	awconfig "github.com/project-codeflare/appwrapper/pkg/config"
+	awctrl "github.com/project-codeflare/appwrapper/pkg/controller"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/exp/slices"
@@ -55,6 +58,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	"sigs.k8s.io/yaml"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -62,16 +66,15 @@ import (
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 	"github.com/project-codeflare/codeflare-operator/pkg/controllers"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme          = runtime.NewScheme()
-	setupLog        = ctrl.Log.WithName("setup")
-	OperatorVersion = "UNKNOWN"
-	BuildDate       = "UNKNOWN"
+	scheme            = runtime.NewScheme()
+	setupLog          = ctrl.Log.WithName("setup")
+	OperatorVersion   = "UNKNOWN"
+	BuildDate         = "UNKNOWN"
+	AppWrapperVersion = "UNKNOWN"
 )
 
 func init() {
@@ -82,6 +85,10 @@ func init() {
 	utilruntime.Must(routev1.Install(scheme))
 	// ODH
 	utilruntime.Must(dsciv1.AddToScheme(scheme))
+	// AppWrapper
+	utilruntime.Must(awv1beta2.AddToScheme(scheme))
+	// Kueue
+	utilruntime.Must(kueue.AddToScheme(scheme))
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=ingresses,verbs=get
@@ -104,6 +111,7 @@ func main() {
 
 	setupLog.Info("Build info",
 		"operatorVersion", OperatorVersion,
+		"appwrapperVersion", AppWrapperVersion,
 		"date", BuildDate,
 	)
 
@@ -130,6 +138,10 @@ func main() {
 			IngressDomain:            "",
 			MTLSEnabled:              ptr.To(true),
 			CertGeneratorImage:       "registry.access.redhat.com/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
+		},
+		AppWrapper: &config.AppWrapperConfiguration{
+			Enabled: ptr.To(false),
+			Config:  awconfig.NewAppWrapperConfig(),
 		},
 	}
 
@@ -175,7 +187,10 @@ func main() {
 		exitOnError(err, cfg.KubeRay.IngressDomain)
 	}
 
-	setupLog.Info("setting up health endpoints")
+	setupLog.Info("setting up indexers")
+	exitOnError(setupIndexers(ctx, mgr, kubeClient, cfg), "unable to setup indexers")
+
+        setupLog.Info("setting up health endpoints")
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
 
 	setupLog.Info("setting up RayCluster controller")
@@ -251,6 +266,34 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 			}
 		}
 	}
+
+	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
+		hasAW, errAW := hasAPIResourceForGVK(dc, awv1beta2.GroupVersion.WithKind("AppWrapper"))
+		hasWL, errWL := hasAPIResourceForGVK(dc, kueue.GroupVersion.WithKind("Workload"))
+		if hasAW && hasWL {
+			exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper webhook")
+			exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper controller")
+		} else if errAW != nil || errWL != nil {
+			exitOnError(err, "Could not determine if Workload and AppWrapper CRDs present on cluster.")
+		} else {
+			setupLog.Info("AppWrapper controller disabled", "Workload CRD present", hasWL,
+				"AppWrapper CRD present", hasAW, "Config flag value", *cfg.AppWrapper.Enabled)
+		}
+	}
+}
+
+func setupIndexers(ctx context.Context, mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration) error {
+	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
+		hasWL, errWL := hasAPIResourceForGVK(dc, kueue.GroupVersion.WithKind("Workload"))
+		if hasWL {
+			if err := awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config); err != nil {
+				return fmt.Errorf("workload indexer: %w", err)
+			}
+		} else if errWL != nil {
+			return fmt.Errorf("checking Workload CR: %w", errWL)
+		}
+	}
+	return nil
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update

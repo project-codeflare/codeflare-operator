@@ -89,7 +89,7 @@ func TestMCADRay(t *testing.T) {
 		Should(
 			And(
 				HaveLen(1),
-				ContainElement(WithTransform(AppWrapperState, Equal(rayv1.Ready))),
+				ContainElement(WithTransform(RayClusterState, Equal(rayv1.Ready))),
 			),
 		)
 

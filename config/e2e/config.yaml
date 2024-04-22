@@ -8,3 +8,5 @@ data:
       rayDashboardOAuthEnabled: false
       ingressDomain: "kind"
       mTLSEnabled: false
+    appwrapper:
+      enabled: true

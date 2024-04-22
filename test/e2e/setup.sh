@@ -56,3 +56,29 @@ roleRef:
   kind: ClusterRole
   name: mcad-controller-rayclusters
 EOF
+
+echo Creating Kueue ResourceFlavor and ClusterQueue
+cat <<EOF | kubectl apply -f -
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: "default-flavor"
+EOF
+
+cat <<EOF | kubectl apply -f -
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: "e2e-cluster-queue"
+spec:
+  namespaceSelector: {} # match all.
+  resourceGroups:
+  - coveredResources: ["cpu","memory"]
+    flavors:
+    - name: "default-flavor"
+      resources:
+      - name: "cpu"
+        nominalQuota: 4
+      - name: "memory"
+        nominalQuota: "4G"
+EOF
