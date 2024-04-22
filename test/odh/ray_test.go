@@ -20,16 +20,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	gomega "github.com/onsi/gomega"
 	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMCADRay(t *testing.T) {
+func TestRay(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
@@ -85,7 +82,7 @@ func TestMCADRay(t *testing.T) {
 	createNotebook(test, namespace, token, config.Name, jupyterNotebookConfigMapFileName)
 
 	// Make sure the RayCluster is created and running
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(
 			And(
 				HaveLen(1),
@@ -94,7 +91,7 @@ func TestMCADRay(t *testing.T) {
 		)
 
 	// Make sure the RayCluster finishes and is deleted
-	test.Eventually(rayClusters(test, namespace), TestTimeoutLong).
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutLong).
 		Should(HaveLen(0))
 }
 
@@ -129,19 +126,4 @@ func readMnistPy(test Test) []byte {
 	test.Expect(err).NotTo(HaveOccurred())
 
 	return ParseTemplate(test, template, props)
-}
-
-// TODO: This belongs on codeflare-common/support/ray.go
-func rayClusters(t Test, namespace *corev1.Namespace) func(g gomega.Gomega) []*rayv1.RayCluster {
-	return func(g gomega.Gomega) []*rayv1.RayCluster {
-		rcs, err := t.Client().Ray().RayV1().RayClusters(namespace.Name).List(t.Ctx(), metav1.ListOptions{})
-		g.Expect(err).NotTo(gomega.HaveOccurred())
-
-		rcsp := []*rayv1.RayCluster{}
-		for _, v := range rcs.Items {
-			rcsp = append(rcsp, &v)
-		}
-
-		return rcsp
-	}
 }
