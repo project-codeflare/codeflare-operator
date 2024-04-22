@@ -24,7 +24,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: mcad-controller-rayclusters
+  name: e2e-controller-rayclusters
 rules:
   - apiGroups:
       - ray.io
@@ -46,7 +46,7 @@ cat <<EOF | kubectl apply -f -
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: mcad-controller-rayclusters
+  name: e2e-controller-rayclusters
 subjects:
   - kind: ServiceAccount
     name: codeflare-operator-controller-manager
@@ -54,7 +54,7 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: mcad-controller-rayclusters
+  name: e2e-controller-rayclusters
 EOF
 
 echo Creating Kueue ResourceFlavor and ClusterQueue
