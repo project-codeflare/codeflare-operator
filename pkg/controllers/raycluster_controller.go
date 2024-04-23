@@ -473,14 +473,10 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfigur
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
 				networkingv1ac.NetworkPolicyIngressRule().
-					WithPorts(
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(6379)),
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8080)),
-						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
-					).WithFrom(
-					networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector()),
-				),
+					WithFrom(
+						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster-name": cluster.Name, "ray.io/node-type": "head"})),
+						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})),
+					),
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
 						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().
