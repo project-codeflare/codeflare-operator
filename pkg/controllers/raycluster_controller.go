@@ -267,6 +267,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
 
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredWorkerNetworkPolicy(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	if err != nil {
+		logger.Error(err, "Failed to update NetworkPolicy")
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -459,7 +464,22 @@ func generateCACertificate() ([]byte, []byte, error) {
 
 	return privateKeyPem, certPem, nil
 }
-
+func desiredWorkerNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
+	return networkingv1ac.NetworkPolicy(cluster.Name+"-worker", cluster.Namespace).
+		WithLabels(map[string]string{"ray.io/cluster": cluster.Name}).
+		WithSpec(networkingv1ac.NetworkPolicySpec().
+			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
+			WithIngress(
+				networkingv1ac.NetworkPolicyIngressRule().
+					WithFrom(
+						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name})),
+					),
+			),
+		).
+		WithOwnerReferences(
+			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
+		)
+}
 func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	allSecuredPorts := []*networkingv1ac.NetworkPolicyPortApplyConfiguration{
 		networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
@@ -467,15 +487,14 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfigur
 	if ptr.Deref(cfg.MTLSEnabled, true) {
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
-	return networkingv1ac.NetworkPolicy(cluster.Name, cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
+	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
+		WithLabels(map[string]string{"ray.io/cluster": cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
-						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster-name": cluster.Name, "ray.io/node-type": "head"})),
-						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})),
+						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name})),
 					),
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
