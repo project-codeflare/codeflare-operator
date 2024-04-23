@@ -38,3 +38,16 @@ jobs:
         go-version-file: './go.mod'
     - name: Verify that the latest WebhookConfigurations, ClusterRoles, and CustomResourceDefinitions have been generated
       run: make manifests && git diff --exit-code
+
+  verify-images:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Verify that the latest images are valid to use in manifests
+      run: |
+        imageTag=$(cat config/manager/params.env | grep codeflare-operator-controller-image | cut -d ':' -f2)
+        size=$(curl -s https://quay.io/api/v1/repository/project-codeflare/codeflare-operator/tag/?specificTag=$imageTag | jq .tags[0].size)
+        if [[ "$size" -eq 0 ]]; then
+          echo "Cannot find operator image with tag $imageTag in Quay.io"
+        exit 1
+        fi
