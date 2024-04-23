@@ -262,7 +262,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
@@ -480,7 +480,7 @@ func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.Netw
 			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
 		)
 }
-func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
+func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	allSecuredPorts := []*networkingv1ac.NetworkPolicyPortApplyConfiguration{
 		networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
 	}
@@ -499,6 +499,7 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfigur
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithPorts(
 						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
 					),
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
