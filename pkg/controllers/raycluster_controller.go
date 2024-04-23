@@ -497,6 +497,10 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfigur
 						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name})),
 					),
 				networkingv1ac.NetworkPolicyIngressRule().
+					WithPorts(
+						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
+					),
+				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
 						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().
 							WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
