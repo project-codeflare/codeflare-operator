@@ -267,7 +267,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredWorkerNetworkPolicy(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredWorkersNetworkPolicy(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
@@ -464,9 +464,9 @@ func generateCACertificate() ([]byte, []byte, error) {
 
 	return privateKeyPem, certPem, nil
 }
-func desiredWorkerNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
+func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-worker", cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster": cluster.Name}).
+		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
 			WithIngress(
@@ -488,7 +488,7 @@ func desiredNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfigur
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
-		WithLabels(map[string]string{"ray.io/cluster": cluster.Name}).
+		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
