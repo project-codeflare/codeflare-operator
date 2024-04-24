@@ -500,7 +500,9 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 					WithPorts(
 						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)),
 						networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8265)),
-					),
+					).WithFrom(
+					networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector()),
+				),
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
 						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().
