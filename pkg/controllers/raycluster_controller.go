@@ -465,7 +465,7 @@ func generateCACertificate() ([]byte, []byte, error) {
 	return privateKeyPem, certPem, nil
 }
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
-	return networkingv1ac.NetworkPolicy(cluster.Name+"-worker", cluster.Namespace).
+	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
 		WithLabels(map[string]string{"ray.io/cluster-name": cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
