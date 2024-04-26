@@ -188,13 +188,16 @@ func main() {
 	}
 
 	setupLog.Info("setting up indexers")
-	exitOnError(setupIndexers(ctx, mgr, kubeClient, cfg), "unable to setup indexers")
+	exitOnError(setupIndexers(ctx, mgr, cfg), "unable to setup indexers")
 
-        setupLog.Info("setting up health endpoints")
+	setupLog.Info("setting up health endpoints")
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
 
 	setupLog.Info("setting up RayCluster controller")
 	go waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
+
+	setupLog.Info("setting up AppWrapper controller")
+	go setupAppWrapperController(mgr, cfg, certsReady)
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
@@ -266,31 +269,25 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 			}
 		}
 	}
+}
+
+func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+	setupLog.Info("Waiting for certificate generation to complete")
+	<-certsReady
+	setupLog.Info("Certs ready")
 
 	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		hasAW, errAW := hasAPIResourceForGVK(dc, awv1beta2.GroupVersion.WithKind("AppWrapper"))
-		hasWL, errWL := hasAPIResourceForGVK(dc, kueue.GroupVersion.WithKind("Workload"))
-		if hasAW && hasWL {
-			exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper webhook")
-			exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper controller")
-		} else if errAW != nil || errWL != nil {
-			exitOnError(err, "Could not determine if Workload and AppWrapper CRDs present on cluster.")
-		} else {
-			setupLog.Info("AppWrapper controller disabled", "Workload CRD present", hasWL,
-				"AppWrapper CRD present", hasAW, "Config flag value", *cfg.AppWrapper.Enabled)
-		}
+		exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper webhook")
+		exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper controller")
+	} else {
+		setupLog.Info("AppWrapper controller disabled", "Config flag value", *cfg.AppWrapper.Enabled)
 	}
 }
 
-func setupIndexers(ctx context.Context, mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration) error {
+func setupIndexers(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration) error {
 	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		hasWL, errWL := hasAPIResourceForGVK(dc, kueue.GroupVersion.WithKind("Workload"))
-		if hasWL {
-			if err := awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config); err != nil {
-				return fmt.Errorf("workload indexer: %w", err)
-			}
-		} else if errWL != nil {
-			return fmt.Errorf("checking Workload CR: %w", errWL)
+		if err := awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config); err != nil {
+			return fmt.Errorf("workload indexer: %w", err)
 		}
 	}
 	return nil
