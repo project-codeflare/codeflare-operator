@@ -203,6 +203,8 @@ func setupRayClusterController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorCo
 	return rayClusterController.SetupWithManager(mgr)
 }
 
+// +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch
+
 func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) error {
 	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
 	if err != nil {
