@@ -178,7 +178,7 @@ func main() {
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
 
 	setupLog.Info("setting up RayCluster controller")
-	exitOnError(waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady), "unable to setup RayCluster controller")
+	go waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
@@ -205,19 +205,17 @@ func setupRayClusterController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorCo
 
 // +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch
 
-func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) error {
+func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) {
 	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		return err
-	}
+	exitOnError(err, "unable to create CRD client")
+
 	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
+	exitOnError(err, "unable to list CRDs")
+
 	if slices.ContainsFunc(crdList.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
 		return crd.Name == "rayclusters.ray.io"
 	}) {
-		return setupRayClusterController(mgr, cfg, isOpenShift, certsReady)
+		exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
 	}
 
 	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &cache.ListWatch{
@@ -228,31 +226,25 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 			return crdClient.ApiextensionsV1().CustomResourceDefinitions().Watch(ctx, metav1.ListOptions{})
 		},
 	})
-	if err != nil {
-		return err
-	}
+	exitOnError(err, "unable to create retry watcher")
 
-	go func() {
-		defer retryWatcher.Stop()
-		for {
-			select {
-			case <-ctx.Done():
+	defer retryWatcher.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-retryWatcher.ResultChan():
+			switch event.Type {
+			case watch.Error:
+				exitOnError(apierrors.FromObject(event.Object), "error watching for RayCluster API")
+
+			case watch.Added:
+				setupLog.Info("RayCluster API installed, setting up controller")
+				exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
 				return
-			case event := <-retryWatcher.ResultChan():
-				switch event.Type {
-				case watch.Error:
-					exitOnError(apierrors.FromObject(event.Object), "error watching for RayCluster API")
-
-				case watch.Added:
-					setupLog.Info("RayCluster API installed, setting up controller")
-					exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
-					return
-				}
 			}
 		}
-	}()
-
-	return nil
+	}
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
