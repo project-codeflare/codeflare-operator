@@ -238,10 +238,15 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 			case watch.Error:
 				exitOnError(apierrors.FromObject(event.Object), "error watching for RayCluster API")
 
-			case watch.Added:
-				setupLog.Info("RayCluster API installed, setting up controller")
-				exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
-				return
+			case watch.Added, watch.Modified:
+				if crd := event.Object.(*apiextensionsv1.CustomResourceDefinition); crd.Name == "rayclusters.ray.io" &&
+					slices.ContainsFunc(crd.Status.Conditions, func(condition apiextensionsv1.CustomResourceDefinitionCondition) bool {
+						return condition.Type == apiextensionsv1.Established && condition.Status == apiextensionsv1.ConditionTrue
+					}) {
+					setupLog.Info("RayCluster API installed, setting up controller")
+					exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
+					return
+				}
 			}
 		}
 	}
