@@ -30,19 +30,24 @@ import (
 	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/exp/slices"
 
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	retrywatch "k8s.io/client-go/tools/watch"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -169,34 +174,83 @@ func main() {
 		exitOnError(err, cfg.KubeRay.IngressDomain)
 	}
 
-	go setupControllers(mgr, kubeClient, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
-
 	setupLog.Info("setting up health endpoints")
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
+
+	setupLog.Info("setting up RayCluster controller")
+	exitOnError(waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady), "unable to setup RayCluster controller")
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
 }
 
-func setupControllers(mgr ctrl.Manager, dc discovery.DiscoveryInterface, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) {
+func setupRayClusterController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) error {
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
 	setupLog.Info("Certs ready")
 
-	exitOnError(controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay), "error setting up RayCluster webhook")
-
-	ok, err := hasAPIResourceForGVK(dc, rayv1.GroupVersion.WithKind("RayCluster"))
-	if ok {
-		rayClusterController := controllers.RayClusterReconciler{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			Config:      cfg.KubeRay,
-			IsOpenShift: isOpenShift,
-		}
-		exitOnError(rayClusterController.SetupWithManager(mgr), "Error setting up RayCluster controller")
-	} else if err != nil {
-		exitOnError(err, "Could not determine if RayCluster CR present on cluster.")
+	err := controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay)
+	if err != nil {
+		return err
 	}
+
+	rayClusterController := controllers.RayClusterReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Config:      cfg.KubeRay,
+		IsOpenShift: isOpenShift,
+	}
+	return rayClusterController.SetupWithManager(mgr)
+}
+
+func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) error {
+	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return err
+	}
+	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	if slices.ContainsFunc(crdList.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
+		return crd.Name == "rayclusters.ray.io"
+	}) {
+		return setupRayClusterController(mgr, cfg, isOpenShift, certsReady)
+	}
+
+	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return crdClient.ApiextensionsV1().CustomResourceDefinitions().Watch(ctx, metav1.ListOptions{})
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		defer retryWatcher.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event := <-retryWatcher.ResultChan():
+				switch event.Type {
+				case watch.Error:
+					exitOnError(apierrors.FromObject(event.Object), "error watching for RayCluster API")
+
+				case watch.Added:
+					setupLog.Info("RayCluster API installed, setting up controller")
+					exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
+					return
+				}
+			}
+		}
+	}()
+
+	return nil
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -287,23 +341,6 @@ func createConfigMap(ctx context.Context, client kubernetes.Interface, ns, name 
 
 	_, err = client.CoreV1().ConfigMaps(ns).Create(ctx, configMap, metav1.CreateOptions{})
 	return err
-}
-
-func hasAPIResourceForGVK(dc discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
-	gv, kind := gvk.ToAPIVersionAndKind()
-	if resources, err := dc.ServerResourcesForGroupVersion(gv); err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
-		return false, err
-	} else {
-		for _, res := range resources.APIResources {
-			if res.Kind == kind {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
 }
 
 func namespaceOrDie() string {
