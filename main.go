@@ -77,6 +77,11 @@ var (
 	AppWrapperVersion = "UNKNOWN"
 )
 
+const (
+	workloadAPI   = "workloads.kueue.x-k8s.io"
+	rayclusterAPI = "rayclusters.ray.io"
+)
+
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	// Ray
@@ -115,7 +120,7 @@ func main() {
 		"date", BuildDate,
 	)
 
-	ctx := ctrl.SetupSignalHandler()
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
 
 	cfg := &config.CodeFlareOperatorConfiguration{
 		ClientConnection: &config.ClientConnection{
@@ -188,7 +193,7 @@ func main() {
 	}
 
 	setupLog.Info("setting up indexers")
-	exitOnError(setupIndexers(ctx, mgr, cfg), "unable to setup indexers")
+	exitOnError(setupWorkloadIndexer(ctx, cancel, mgr, cfg), "unable to setup indexers")
 
 	setupLog.Info("setting up health endpoints")
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
@@ -197,7 +202,7 @@ func main() {
 	go waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
 
 	setupLog.Info("setting up AppWrapper controller")
-	go setupAppWrapperController(mgr, cfg, certsReady)
+	go waitForWorkloadAPIAndSetupAppWrapperController(ctx, mgr, cfg, certsReady)
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
@@ -222,75 +227,60 @@ func setupRayClusterController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorCo
 	return rayClusterController.SetupWithManager(mgr)
 }
 
-// +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch
-
 func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, isOpenShift bool, certsReady chan struct{}) {
-	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
-	exitOnError(err, "unable to create CRD client")
-
-	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
-	exitOnError(err, "unable to list CRDs")
-
-	if slices.ContainsFunc(crdList.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
-		return crd.Name == "rayclusters.ray.io"
-	}) {
+	if isAPIAvailable(ctx, mgr, rayclusterAPI) {
 		exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
-	}
-
-	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &cache.ListWatch{
-		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
-		},
-		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return crdClient.ApiextensionsV1().CustomResourceDefinitions().Watch(ctx, metav1.ListOptions{})
-		},
-	})
-	exitOnError(err, "unable to create retry watcher")
-
-	defer retryWatcher.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case event := <-retryWatcher.ResultChan():
-			switch event.Type {
-			case watch.Error:
-				exitOnError(apierrors.FromObject(event.Object), "error watching for RayCluster API")
-
-			case watch.Added, watch.Modified:
-				if crd := event.Object.(*apiextensionsv1.CustomResourceDefinition); crd.Name == "rayclusters.ray.io" &&
-					slices.ContainsFunc(crd.Status.Conditions, func(condition apiextensionsv1.CustomResourceDefinitionCondition) bool {
-						return condition.Type == apiextensionsv1.Established && condition.Status == apiextensionsv1.ConditionTrue
-					}) {
-					setupLog.Info("RayCluster API installed, setting up controller")
-					exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
-					return
-				}
-			}
-		}
+	} else {
+		waitForAPI(ctx, mgr, rayclusterAPI, func() {
+			exitOnError(setupRayClusterController(mgr, cfg, isOpenShift, certsReady), "unable to setup RayCluster controller")
+		})
 	}
 }
 
-func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
 	setupLog.Info("Certs ready")
 
-	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper webhook")
-		exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "error setting up AppWrapper controller")
+	setupLog.Info("Setting up AppWrapper webhook and controller")
+	if err := awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config); err != nil {
+		return err
+	}
+	return awctrl.SetupControllers(mgr, cfg.AppWrapper.Config)
+}
+
+func waitForWorkloadAPIAndSetupAppWrapperController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
+		setupLog.Info("AppWrapper controller disabled by config")
+	}
+
+	if isAPIAvailable(ctx, mgr, workloadAPI) {
+		exitOnError(setupAppWrapperController(mgr, cfg, certsReady), "unable to setup AppWrapper controller")
 	} else {
-		setupLog.Info("AppWrapper controller disabled", "Config flag value", *cfg.AppWrapper.Enabled)
+		waitForAPI(ctx, mgr, workloadAPI, func() {
+			exitOnError(setupAppWrapperController(mgr, cfg, certsReady), "unable to setup AppWrapper controller")
+		})
 	}
 }
 
-func setupIndexers(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration) error {
-	if cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		if err := awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config); err != nil {
-			return fmt.Errorf("workload indexer: %w", err)
-		}
+func setupWorkloadIndexer(ctx context.Context, cancel context.CancelFunc, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration) error {
+	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
+		setupLog.Info("Workload indexer disabled by config")
+		return nil
 	}
-	return nil
+
+	if isAPIAvailable(ctx, mgr, workloadAPI) {
+		return awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config)
+	} else {
+		// If AppWrappers are enabled and the Workload API becomes available later, initiate an orderly
+		// restart of the codeflare operator to enable the workload indexer to be setup in the the new instance of the operator.
+		// It is not possible to add an indexer once the mgr has started so, a restart if the only avenue.
+		go waitForAPI(ctx, mgr, workloadAPI, func() {
+			setupLog.Info("Workload API now available; triggering controller restart")
+			cancel()
+		})
+		return nil
+	}
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -436,4 +426,69 @@ func getClusterDomain(ctx context.Context, configClient *clientset.Clientset) (s
 	}
 
 	return domain, nil
+}
+
+// +kubebuilder:rbac:groups="apiextensions.k8s.io",resources=customresourcedefinitions,verbs=get;list;watch
+
+func isAPIAvailable(ctx context.Context, mgr ctrl.Manager, apiName string) bool {
+	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
+	exitOnError(err, "unable to create CRD client")
+
+	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+	exitOnError(err, "unable to list CRDs")
+
+	return slices.ContainsFunc(crdList.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
+		return crd.Name == apiName
+	})
+}
+
+func waitForAPI(ctx context.Context, mgr ctrl.Manager, apiName string, action func()) {
+	crdClient, err := apiextensionsclientset.NewForConfig(mgr.GetConfig())
+	exitOnError(err, "unable to create CRD client")
+
+	crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+	exitOnError(err, "unable to list CRDs")
+
+	// If API is already available, just invoke action
+	if slices.ContainsFunc(crdList.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
+		return crd.Name == apiName
+	}) {
+		action()
+		return
+	}
+
+	// Wait for the API to become available then invoke action
+	setupLog.Info(fmt.Sprintf("API %v not available, setting up retry watcher", apiName))
+	retryWatcher, err := retrywatch.NewRetryWatcher(crdList.ResourceVersion, &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return crdClient.ApiextensionsV1().CustomResourceDefinitions().Watch(ctx, metav1.ListOptions{})
+		},
+	})
+	exitOnError(err, "unable to create retry watcher")
+
+	defer retryWatcher.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-retryWatcher.ResultChan():
+			switch event.Type {
+			case watch.Error:
+				exitOnError(apierrors.FromObject(event.Object), fmt.Sprintf("error watching for API %v", apiName))
+
+			case watch.Added, watch.Modified:
+				if crd := event.Object.(*apiextensionsv1.CustomResourceDefinition); crd.Name == apiName &&
+					slices.ContainsFunc(crd.Status.Conditions, func(condition apiextensionsv1.CustomResourceDefinitionCondition) bool {
+						return condition.Type == apiextensionsv1.Established && condition.Status == apiextensionsv1.ConditionTrue
+					}) {
+					setupLog.Info(fmt.Sprintf("API %v installed, invoking deferred action", apiName))
+					action()
+					return
+				}
+			}
+		}
+	}
 }
