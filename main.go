@@ -129,6 +129,7 @@ func main() {
 			RayDashboardOAuthEnabled: ptr.To(true),
 			IngressDomain:            "",
 			MTLSEnabled:              ptr.To(true),
+			CertGeneratorImage:       "quay.io/project-codeflare/ray:latest-py39-cu118",
 		},
 	}
 
