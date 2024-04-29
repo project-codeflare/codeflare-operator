@@ -7,3 +7,4 @@ data:
     kuberay:
       rayDashboardOAuthEnabled: false
       ingressDomain: "kind"
+      certGeneratorImage: "quay.io/project-codeflare/ray:latest-py39-cu118"
