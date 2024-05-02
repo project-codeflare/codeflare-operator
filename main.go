@@ -192,17 +192,14 @@ func main() {
 		exitOnError(err, cfg.KubeRay.IngressDomain)
 	}
 
-	setupLog.Info("setting up indexers")
-	exitOnError(setupWorkloadIndexer(ctx, cancel, mgr, cfg), "unable to setup indexers")
-
 	setupLog.Info("setting up health endpoints")
 	exitOnError(setupProbeEndpoints(mgr, cfg, certsReady), "unable to set up health check")
 
 	setupLog.Info("setting up RayCluster controller")
 	go waitForRayClusterAPIandSetupController(ctx, mgr, cfg, isOpenShift(ctx, kubeClient.DiscoveryClient), certsReady)
 
-	setupLog.Info("setting up AppWrapper controller")
-	go waitForWorkloadAPIAndSetupAppWrapperController(ctx, mgr, cfg, certsReady)
+	setupLog.Info("setting up AppWrapper components")
+	exitOnError(setupAppWrapperComponents(ctx, cancel, mgr, cfg, certsReady), "unable to setup AppWrapper")
 
 	setupLog.Info("starting manager")
 	exitOnError(mgr.Start(ctx), "error running manager")
@@ -237,50 +234,38 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 	}
 }
 
-func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
-	setupLog.Info("Waiting for certificate generation to complete")
-	<-certsReady
-	setupLog.Info("Certs ready")
-
-	setupLog.Info("Setting up AppWrapper webhook and controller")
-	if err := awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config); err != nil {
-		return err
-	}
-	return awctrl.SetupControllers(mgr, cfg.AppWrapper.Config)
-}
-
-func waitForWorkloadAPIAndSetupAppWrapperController(ctx context.Context, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, mgr ctrl.Manager,
+	cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
 	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
 		setupLog.Info("AppWrapper controller disabled by config")
-	}
-
-	if isAPIAvailable(ctx, mgr, workloadAPI) {
-		exitOnError(setupAppWrapperController(mgr, cfg, certsReady), "unable to setup AppWrapper controller")
-	} else {
-		waitForAPI(ctx, mgr, workloadAPI, func() {
-			exitOnError(setupAppWrapperController(mgr, cfg, certsReady), "unable to setup AppWrapper controller")
-		})
-	}
-}
-
-func setupWorkloadIndexer(ctx context.Context, cancel context.CancelFunc, mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration) error {
-	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		setupLog.Info("Workload indexer disabled by config")
 		return nil
 	}
 
 	if isAPIAvailable(ctx, mgr, workloadAPI) {
+		setupLog.Info("Workload API available; enabling AppWrappers")
+		go setupAppWrapperController(mgr, cfg, certsReady)
 		return awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config)
 	} else {
 		// If AppWrappers are enabled and the Workload API becomes available later, initiate an orderly
 		// restart of the codeflare operator to enable the workload indexer to be setup in the the new instance of the operator.
 		// It is not possible to add an indexer once the mgr has started so, a restart if the only avenue.
+		setupLog.Info("Workload API not available; setting up waiter for Workload API availability")
 		go waitForAPI(ctx, mgr, workloadAPI, func() {
 			setupLog.Info("Workload API now available; triggering controller restart")
 			cancel()
 		})
 		return nil
 	}
+}
+
+func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+	setupLog.Info("Waiting for certificate generation to complete")
+	<-certsReady
+	setupLog.Info("Certs ready")
+
+	setupLog.Info("Setting up AppWrapper webhook and controller")
+	exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
+	exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper controller")
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
