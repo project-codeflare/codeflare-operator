@@ -253,7 +253,7 @@ func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
 			"--tls-cert=/etc/tls/private/tls.crt",
 			"--tls-key=/etc/tls/private/tls.key",
 			"--cookie-secret=$(COOKIE_SECRET)",
-			"--openshift-delegate-urls={\"/\":{\"resource\":\"pods\",\"namespace\":\"default\",\"verb\":\"get\"}}",
+			"--openshift-delegate-urls={\"/\":{\"resource\":\"pods\",\"namespace\":\"" + rayCluster.Namespace + "\",\"verb\":\"get\"}}",
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
