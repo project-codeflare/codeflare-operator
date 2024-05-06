@@ -38,6 +38,8 @@ type CodeFlareOperatorConfiguration struct {
 type AppWrapperConfiguration struct {
 	// Enabled controls whether or not the AppWrapper Controller is enabled
 	Enabled *bool `json:"enabled,omitempty"`
+	// ExternalController indicates that an AppWrapper Controller external to the Codeflare Operator is deployed
+	ExternalController *bool `json:"externalController,omitempty"`
 	// AppWrapper contains the AppWrapper controller configuration
 	Config *awconfig.AppWrapperConfig `json:"config,omitempty"`
 }
