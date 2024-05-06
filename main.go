@@ -237,9 +237,16 @@ func waitForRayClusterAPIandSetupController(ctx context.Context, mgr ctrl.Manage
 func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, mgr ctrl.Manager,
 	cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
 	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
-		setupLog.Info("AppWrapper controller disabled by config")
+		setupLog.Info("AppWrappers are disabled by operator configuration")
 		return nil
 	}
+
+	// AppWrapper webhook doesn't depend on WorkloadAPI availablity but does need certsReady
+	go func() {
+		<-certsReady
+		setupLog.Info("Setting up AppWrapper webhook")
+		exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
+	}()
 
 	if isAPIAvailable(ctx, mgr, workloadAPI) {
 		setupLog.Info("Workload API available; enabling AppWrappers")
@@ -261,10 +268,7 @@ func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, m
 func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
-	setupLog.Info("Certs ready")
-
-	setupLog.Info("Setting up AppWrapper webhook and controller")
-	exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
+	setupLog.Info("Setting up AppWrapper controller")
 	exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper controller")
 }
 
