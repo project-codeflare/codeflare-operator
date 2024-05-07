@@ -23,18 +23,22 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	. "github.com/project-codeflare/codeflare-common/support"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Trains the MNIST dataset as a RayJob, executed by a Ray cluster
 // directly managed by Kueue, and asserts successful completion of the training job.
 func TestMNISTRayJobRayCluster(t *testing.T) {
 	test := With(t)
+	test.T().Parallel()
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
@@ -52,6 +56,85 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
+
+	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
+	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
+		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
+
+	// Create RayJob
+	rayJob := constructRayJob(test, namespace, rayCluster)
+	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
+
+	rayDashboardURL := getRayDashboardURL(test, rayCluster.Namespace, rayCluster.Name)
+
+	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
+	rayClient := NewRayClusterClient(rayDashboardURL)
+
+	// Wait for Ray job id to be available, this value is needed for writing logs in defer
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
+		Should(WithTransform(RayJobId, Not(BeEmpty())))
+
+	// Retrieving the job logs once it has completed or timed out
+	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
+
+	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
+		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
+
+	// Assert the Ray job has completed successfully
+	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
+		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
+}
+
+// Same as TestMNISTRayJobRayCluster, except the RayCluster is wrapped in an AppWrapper
+func TestMNISTRayJobRayClusterAppWrapper(t *testing.T) {
+	test := With(t)
+	test.T().Parallel()
+	test.T().Skip("Disabled due to Kueue 0.6.x overly eager reconcilliation bug")
+
+	// Create a namespace and localqueue in that namespace
+	namespace := test.NewTestNamespace()
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, "e2e-cluster-queue")
+
+	// Create MNIST training script
+	mnist := constructMNISTConfigMap(test, namespace)
+	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
+
+	// Create RayCluster, wrap in AppWrapper and assign to localqueue
+	rayCluster := constructRayCluster(test, namespace, mnist)
+	aw := &mcadv1beta2.AppWrapper{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: mcadv1beta2.GroupVersion.String(),
+			Kind:       "AppWrapper",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rayCluster.Name,
+			Namespace: namespace.Name,
+			Labels:    map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
+		},
+		Spec: mcadv1beta2.AppWrapperSpec{
+			Components: []mcadv1beta2.AppWrapperComponent{
+				{
+					Template: Raw(test, rayCluster),
+				},
+			},
+		},
+	}
+	appWrapperResource := mcadv1beta2.GroupVersion.WithResource("appwrappers")
+	awMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
+	test.Expect(err).NotTo(HaveOccurred())
+	unstruct := unstructured.Unstructured{Object: awMap}
+	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
+
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
+	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
+		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
 
 	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
 	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
