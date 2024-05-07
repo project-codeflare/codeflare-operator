@@ -35,13 +35,57 @@ import (
 // directly managed by Kueue, and asserts successful completion of the training job.
 func TestMNISTRayJobRayCluster(t *testing.T) {
 	test := With(t)
-	test.T().Parallel()
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, "e2e-cluster-queue")
 
-	// MNIST training script
-	mnist := &corev1.ConfigMap{
+	// Create MNIST training script
+	mnist := constructMNISTConfigMap(test, namespace)
+	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
+
+	// Create RayCluster and assign it to the localqueue
+	rayCluster := constructRayCluster(test, namespace, mnist)
+	AssignToLocalQueue(rayCluster, localQueue)
+	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
+
+	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
+	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
+		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
+
+	// Create RayJob
+	rayJob := constructRayJob(test, namespace, rayCluster)
+	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
+
+	rayDashboardURL := getRayDashboardURL(test, rayCluster.Namespace, rayCluster.Name)
+
+	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
+	rayClient := NewRayClusterClient(rayDashboardURL)
+
+	// Wait for Ray job id to be available, this value is needed for writing logs in defer
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
+		Should(WithTransform(RayJobId, Not(BeEmpty())))
+
+	// Retrieving the job logs once it has completed or timed out
+	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
+
+	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
+	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
+		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
+
+	// Assert the Ray job has completed successfully
+	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
+		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
+}
+
+func constructMNISTConfigMap(test Test, namespace *corev1.Namespace) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "ConfigMap",
@@ -55,12 +99,10 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 		},
 		Immutable: Ptr(true),
 	}
-	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
+}
 
-	// RayCluster
-	rayCluster := &rayv1.RayCluster{
+func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.ConfigMap) *rayv1.RayCluster {
+	return &rayv1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayCluster",
@@ -173,16 +215,10 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 			},
 		},
 	}
+}
 
-	_, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
-
-	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
-	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
-		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
-
-	rayJob := &rayv1.RayJob{
+func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster) *rayv1.RayJob {
+	return &rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayJob",
@@ -220,29 +256,6 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 			},
 		},
 	}
-	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
-
-	rayDashboardURL := getRayDashboardURL(test, rayCluster.Namespace, rayCluster.Name)
-
-	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
-	rayClient := NewRayClusterClient(rayDashboardURL)
-
-	// Wait for Ray job id to be available, this value is needed for writing logs in defer
-	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
-		Should(WithTransform(RayJobId, Not(BeEmpty())))
-
-	// Retrieving the job logs once it has completed or timed out
-	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
-
-	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
-	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
-		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
-
-	// Assert the Ray job has completed successfully
-	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
-		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
 }
 
 func getRayDashboardURL(test Test, namespace, rayClusterName string) url.URL {

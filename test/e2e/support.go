@@ -21,6 +21,9 @@ import (
 
 	"github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
 //go:embed *.py *.txt *.sh
@@ -31,4 +34,13 @@ func ReadFile(t support.Test, fileName string) []byte {
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
+}
+
+func AssignToLocalQueue(object client.Object, localqueue *kueuev1beta1.LocalQueue) {
+	labels := object.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels["kueue.x-k8s.io/queue-name"] = localqueue.Name
+	object.SetLabels(labels)
 }

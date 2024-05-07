@@ -33,8 +33,6 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
-    # Deploy Kueue
-    make kueue-e2e
     # Install the CRDs
     make install
     ```
@@ -43,19 +41,14 @@ The e2e tests can be executed locally by running the following commands:
    Some e2e tests cover the access to services via Ingresses, as end-users would do, which requires access to the Ingress controller load balancer by its IP.
    For it to work on macOS, this requires installing [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect).
 
-2. Start the operator locally:
-
-    ```bash
-    NAMESPACE=default make run
-    ```
-
-   Alternatively, You can run the operator from your IDE / debugger.
-
-3. Set up the test CodeFlare stack:
+2. Setup the rest of the CodeFlare stack.
 
    ```bash
    make setup-e2e
    ```
+
+   [!NOTE]
+   Kueue will only activate its Ray integration if KubeRay is installed before Kueue (as done by this make target).
 
    [!NOTE]
    In OpenShift the KubeRay operator pod gets random user assigned. This user is then used to run Ray cluster.
@@ -75,6 +68,14 @@ The e2e tests can be executed locally by running the following commands:
     users:
       - 'system:serviceaccount:$(namespace):kuberay-operator'
     ```
+
+3. Start the operator locally:
+
+    ```bash
+    NAMESPACE=default make run
+    ```
+
+   Alternatively, You can run the operator from your IDE / debugger.
 
 4.  In a separate terminal, set your output directory for test files, and run the e2e suite:
     ```bash

@@ -57,6 +57,17 @@ roleRef:
   name: e2e-controller-rayclusters
 EOF
 
+echo "Deploying Kueue $KUEUE_VERSION"
+kubectl apply --server-side -f https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml
+
+# Sleep until the kueue manager is running
+echo "Waiting for pods in the kueue-system namespace to become ready"
+while [[ $(kubectl get pods -n kueue-system -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}' | tr ' ' '\n' | sort -u) != "True" ]]
+do
+    echo -n "." && sleep 1;
+done
+echo ""
+
 echo Creating Kueue ResourceFlavor and ClusterQueue
 cat <<EOF | kubectl apply -f -
 apiVersion: kueue.x-k8s.io/v1beta1
