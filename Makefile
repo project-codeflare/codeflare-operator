@@ -393,13 +393,9 @@ test-e2e: manifests fmt vet ## Run e2e tests.
 kind-e2e: ## Set up e2e KinD cluster
 	test/e2e/kind.sh
 
-.PHONY: kueue-e2e
-kueue-e2e: ## Deploy Kueue for e2e tests
-	KUEUE_VERSION=$(KUEUE_VERSION) test/e2e/kueue.sh
-
 .PHONY: setup-e2e
 setup-e2e: ## Set up e2e tests.
-	KUBERAY_VERSION=$(KUBERAY_VERSION) test/e2e/setup.sh
+	KUBERAY_VERSION=$(KUBERAY_VERSION) KUEUE_VERSION=$(KUEUE_VERSION) test/e2e/setup.sh
 
 .PHONY: imports
 imports: openshift-goimports ## Organize imports in go files using openshift-goimports. Example: make imports
