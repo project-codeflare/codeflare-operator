@@ -129,7 +129,7 @@ func main() {
 			RayDashboardOAuthEnabled: ptr.To(true),
 			IngressDomain:            "",
 			MTLSEnabled:              ptr.To(true),
-			CertGeneratorImage:       "quay.io/project-codeflare/ray:latest-py39-cu118",
+			CertGeneratorImage:       "registry.access.redhat.com/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
 		},
 	}
 

@@ -87,7 +87,7 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		}
 
 		// Append the create-cert Init Container
-		rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, w.Config.IngressDomain, w.Config.CertGeneratorImage), withContainerName(initContainerName))
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, w.Config), withContainerName(initContainerName))
 
 		// Append the CA volumes
 		for _, caVol := range caVolumes(rayCluster) {
@@ -117,7 +117,7 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		}
 
 		// Append the create-cert Init Container
-		rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(w.Config.CertGeneratorImage), withContainerName(initContainerName))
+		rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(w.Config), withContainerName(initContainerName))
 	}
 
 	return nil
@@ -161,8 +161,8 @@ func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj r
 
 	// Init Container related errors
 	if ptr.Deref(w.Config.MTLSEnabled, true) {
-		allErrors = append(allErrors, validateHeadInitContainer(rayCluster, w.Config.IngressDomain, w.Config.CertGeneratorImage)...)
-		allErrors = append(allErrors, validateWorkerInitContainer(rayCluster, w.Config.CertGeneratorImage)...)
+		allErrors = append(allErrors, validateHeadInitContainer(rayCluster, w.Config)...)
+		allErrors = append(allErrors, validateWorkerInitContainer(rayCluster, w.Config)...)
 		allErrors = append(allErrors, validateHeadEnvVars(rayCluster)...)
 		allErrors = append(allErrors, validateWorkerEnvVars(rayCluster)...)
 		allErrors = append(allErrors, validateCaVolumes(rayCluster)...)
@@ -339,14 +339,14 @@ func caVolumes(rayCluster *rayv1.RayCluster) []corev1.Volume {
 	}
 }
 
-func rayHeadInitContainer(rayCluster *rayv1.RayCluster, domain string, certGeneratorImage string) corev1.Container {
-	rayClientRoute := "rayclient-" + rayCluster.Name + "-" + rayCluster.Namespace + "." + domain
+func rayHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayConfiguration) corev1.Container {
+	rayClientRoute := "rayclient-" + rayCluster.Name + "-" + rayCluster.Namespace + "." + config.IngressDomain
 	// Service name for basic interactive
 	svcDomain := rayCluster.Name + "-head-svc." + rayCluster.Namespace + ".svc"
 
 	initContainerHead := corev1.Container{
 		Name:  "create-cert",
-		Image: certGeneratorImage,
+		Image: config.CertGeneratorImage,
 		Command: []string{
 			"sh",
 			"-c",
@@ -357,10 +357,10 @@ func rayHeadInitContainer(rayCluster *rayv1.RayCluster, domain string, certGener
 	return initContainerHead
 }
 
-func rayWorkerInitContainer(certGeneratorImage string) corev1.Container {
+func rayWorkerInitContainer(config *config.KubeRayConfiguration) corev1.Container {
 	initContainerWorker := corev1.Container{
 		Name:  "create-cert",
-		Image: certGeneratorImage,
+		Image: config.CertGeneratorImage,
 		Command: []string{
 			"sh",
 			"-c",
@@ -371,10 +371,10 @@ func rayWorkerInitContainer(certGeneratorImage string) corev1.Container {
 	return initContainerWorker
 }
 
-func validateHeadInitContainer(rayCluster *rayv1.RayCluster, domain string, certGeneratorImage string) field.ErrorList {
+func validateHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayConfiguration) field.ErrorList {
 	var allErrors field.ErrorList
 
-	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, domain, certGeneratorImage), byContainerName,
+	if err := contains(rayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers, rayHeadInitContainer(rayCluster, config), byContainerName,
 		field.NewPath("spec", "headGroupSpec", "template", "spec", "initContainers"),
 		"create-cert Init Container is immutable"); err != nil {
 		allErrors = append(allErrors, err)
@@ -383,10 +383,10 @@ func validateHeadInitContainer(rayCluster *rayv1.RayCluster, domain string, cert
 	return allErrors
 }
 
-func validateWorkerInitContainer(rayCluster *rayv1.RayCluster, certGeneratorImage string) field.ErrorList {
+func validateWorkerInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayConfiguration) field.ErrorList {
 	var allErrors field.ErrorList
 
-	if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(certGeneratorImage), byContainerName,
+	if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(config), byContainerName,
 		field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "initContainers"),
 		"create-cert Init Container is immutable"); err != nil {
 		allErrors = append(allErrors, err)
