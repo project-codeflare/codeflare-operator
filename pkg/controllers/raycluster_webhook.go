@@ -100,11 +100,11 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		}
 
 		// WorkerGroupSpec
-
-		// Append the list of environment variables for the worker container
-		for _, envVar := range envVarList() {
-			rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
-		}
+		if len(rayCluster.Spec.WorkerGroupSpecs) != 0 {
+			// Append the list of environment variables for the worker container
+			for _, envVar := range envVarList() {
+				rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, withEnvVarName(envVar.Name))
+			}
 
 		// Append the CA volumes
 		for _, caVol := range caVolumes(rayCluster) {
@@ -118,6 +118,7 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 
 		// Append the create-cert Init Container
 		rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers = upsert(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(w.Config), withContainerName(initContainerName))
+		}
 	}
 
 	return nil
@@ -386,6 +387,10 @@ func validateHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.Kube
 func validateWorkerInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayConfiguration) field.ErrorList {
 	var allErrors field.ErrorList
 
+	if len(rayCluster.Spec.WorkerGroupSpecs) == 0 {
+		return allErrors
+	}
+
 	if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.InitContainers, rayWorkerInitContainer(config), byContainerName,
 		field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "initContainers"),
 		"create-cert Init Container is immutable"); err != nil {
@@ -404,10 +409,12 @@ func validateCaVolumes(rayCluster *rayv1.RayCluster) field.ErrorList {
 			"ca-vol and server-cert Secret volumes are immutable"); err != nil {
 			allErrors = append(allErrors, err)
 		}
-		if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes, caVol, byVolumeName,
-			field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "volumes"),
-			"ca-vol and server-cert Secret volumes are immutable"); err != nil {
-			allErrors = append(allErrors, err)
+		if len(rayCluster.Spec.WorkerGroupSpecs) != 0 {
+			if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Volumes, caVol, byVolumeName,
+				field.NewPath("spec", "workerGroupSpecs", "0", "template", "spec", "volumes"),
+				"ca-vol and server-cert Secret volumes are immutable"); err != nil {
+				allErrors = append(allErrors, err)
+			}
 		}
 	}
 
@@ -430,6 +437,10 @@ func validateHeadEnvVars(rayCluster *rayv1.RayCluster) field.ErrorList {
 
 func validateWorkerEnvVars(rayCluster *rayv1.RayCluster) field.ErrorList {
 	var allErrors field.ErrorList
+
+	if len(rayCluster.Spec.WorkerGroupSpecs) == 0 {
+		return allErrors
+	}
 
 	for _, envVar := range envVarList() {
 		if err := contains(rayCluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Env, envVar, byEnvVarName,
