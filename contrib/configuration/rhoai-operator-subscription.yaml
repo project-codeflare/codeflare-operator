@@ -1,0 +1,13 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhods-operator
+  labels:
+    operators.coreos.com/rhods-operator.redhat-ods-operator: ''
+  namespace: redhat-ods-operator
+spec:
+  channel: fast
+  name: rhods-operator
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
