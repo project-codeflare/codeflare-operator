@@ -521,11 +521,12 @@ install-nvidia-operator: ## Install nvidia operator
 	@while [[ -z $$(oc get customresourcedefinition clusterpolicies.nvidia.com) ]]; do echo "."; sleep 10; done
 	@while [[ -z $$(oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
 	oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq .[] | oc apply -f -
-#ifeq ($(USE_RHOAI), true) ## Delete RHOAI Operator
-#	oc delete configmap migration-gpu-status -n redhat-ods-applications
-#	-export REPLICASET_NAME=`oc get replicaset -n redhat-ods-applications -l app=rhods-dashboard -o custom-columns=:metadata.name`
-#	oc delete replicaset $$REPLICASET_NAME -n redhat-ods-applications
-#endif
+ifeq ($(USE_RHOAI), true) ## Additional steps required for RHOAI
+	oc delete configmap migration-gpu-status -n redhat-ods-applications --ignore-not-found=true
+	-export REPLICASET_NAME=`oc get replicaset -n redhat-ods-applications -l app=rhods-dashboard -o custom-columns=:metadata.name`; \
+	oc delete replicaset $$REPLICASET_NAME -n redhat-ods-applications
+endif
+
 .PHONY: delete-nvidia-operator
 delete-nvidia-operator: ## Delete nvidia operator
 	@echo -e "\n==> Deleting ClusterPolicy CR \n"
