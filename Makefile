@@ -422,13 +422,16 @@ kueue-setup:
 	bash scripts/setup-kueue-resources.sh
 # RHOAI/ODH related resources installation
 
+# Basic Usage
+# all-in-one will create all resources necessary to create GPU enabled ML workloads via OpenShift AI
+# Users have the choice between installing RHOAI and ODH
+# For RHOAI use `make all-in-one` and to remove all of the operators run `make delete-all-in-one`
+# For ODH use `make all-in-one -e USE_RHOAI=false` and to remove all of the operators run `make delete-all-in-one -e USE_RHOAI=false`
+
 ##@ all-in-one
 .PHONY: all-in-one
 all-in-one:
 	@echo -e "\n ==> Installing Everything needed for distributed AI platform on OpenShift cluster \n"
-	-make delete-nfd-operator
-	-make delete-ai-platform-operator
-	-make delete-nvidia-operator
 	-make install-nfd-operator
 	-make install-ai-platform-operator
 	-make install-nvidia-operator
@@ -436,10 +439,9 @@ all-in-one:
 .PHONY: delete-all-in-one
 delete-all-in-one:
 	@echo -e "\n ==> Removing Everything needed for distributed AI platform on OpenShift cluster \n"
-	-make delete-rhoai
 	-make delete-nfd-operator
-	-make delete-nvidia-operator
 	-make delete-ai-platform-operator
+	-make delete-nvidia-operator
 
 ##@ general
 .PHONY: delete-ai-platform-operator
@@ -460,7 +462,7 @@ endif
 
 .PHONY: delete-rhoai-operator
 delete-rhoai-operator: ## Delete RHOAI Operator
-	@echo -e "\n==> Deleting OpenShift AI Operator \n"
+	@echo -e "\n ==> Deleting OpenShift AI Operator \n"
 	-kubectl delete subscription rhods-operator -n redhat-ods-operator
 	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n redhat-ods-operator -l operators.coreos.com/rhods-operator.redhat-ods-operator -o custom-columns=:metadata.name`; \
 	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n redhat-ods-operator
@@ -468,7 +470,7 @@ delete-rhoai-operator: ## Delete RHOAI Operator
 
 .PHONY: install-rhoai-operator
 install-rhoai-operator: ## Install RHOAI Operator
-	@echo -e "\n==> Installing OpenShift AI Operator \n"
+	@echo -e "\n ==> Installing OpenShift AI Operator \n"
 	-kubectl create ns redhat-ods-operator
 	kubectl create -f contrib/configuration/rhoai/rhoai-operator-subscription.yaml
 	@echo Waiting for rhoai-operator Subscription to be ready
