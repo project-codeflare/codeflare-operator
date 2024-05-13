@@ -429,8 +429,8 @@ all-in-one:
 	-make delete-nfd-operator
 	-make delete-ai-platform-operator
 	-make delete-nvidia-operator
-	-make install-ai-platform-operator
 	-make install-nfd-operator
+	-make install-ai-platform-operator
 	-make install-nvidia-operator
 
 .PHONY: delete-all-in-one
@@ -461,79 +461,86 @@ endif
 .PHONY: delete-rhoai-operator
 delete-rhoai-operator: ## Delete RHOAI Operator
 	@echo -e "\n==> Deleting OpenShift AI Operator \n"
-	-oc delete subscription rhods-operator -n redhat-ods-operator
-	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n redhat-ods-operator -l operators.coreos.com/rhods-operator.redhat-ods-operator -o custom-columns=:metadata.name`; \
-	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n redhat-ods-operator
+	-kubectl delete subscription rhods-operator -n redhat-ods-operator
+	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n redhat-ods-operator -l operators.coreos.com/rhods-operator.redhat-ods-operator -o custom-columns=:metadata.name`; \
+	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n redhat-ods-operator
+	kubectl delete namespace redhat-ods-operator
 
 .PHONY: install-rhoai-operator
 install-rhoai-operator: ## Install RHOAI Operator
 	@echo -e "\n==> Installing OpenShift AI Operator \n"
-	-oc create ns redhat-ods-operator
-	oc create -f contrib/configuration/rhoai-operator-subscription.yaml
+	-kubectl create ns redhat-ods-operator
+	kubectl create -f contrib/configuration/rhoai/rhoai-operator-subscription.yaml
 	@echo Waiting for rhoai-operator Subscription to be ready
-	oc wait -n redhat-ods-operator subscription/rhods-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	kubectl wait -n redhat-ods-operator subscription/rhods-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
 	@echo -e "\n==> Creating default Data Science Cluster \n"
-	oc apply -f contrib/configuration/default-dsc.yaml
+	kubectl apply -f contrib/configuration/rhoai/default-dsci.yaml --server-side
+	kubectl apply -f contrib/configuration/rhoai/default-dsc.yaml --server-side
 
 .PHONY: delete-opendatahub-operator
 delete-opendatahub-operator: ## Delete OpenDataHub operator
 	@echo -e "\n==> Deleting OpenDataHub Operator \n"
-	-oc delete subscription opendatahub-operator -n openshift-operators
-	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-operators -l operators.coreos.com/opendatahub-operator.openshift-operators -o custom-columns=:metadata.name`; \
-	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
+	-kubectl delete subscription opendatahub-operator -n openshift-operators
+	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n openshift-operators -l operators.coreos.com/opendatahub-operator.openshift-operators -o custom-columns=:metadata.name`; \
+	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
+	-kubectl delete namespace opendatahub
 
 .PHONY: install-opendatahub-operator
 install-opendatahub-operator: ## Install OpenDataHub operator
 	@echo -e "\n==> Installing OpenDataHub Operator \n"
-	-oc create ns opendatahub
-	oc create -f contrib/configuration/opendatahub-operator-subscription.yaml
+	-kubectl create ns opendatahub
+	kubectl create -f contrib/configuration/odh/opendatahub-operator-subscription.yaml
 	@echo Waiting for opendatahub-operator Subscription to be ready
-	oc wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	kubectl wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	sleep 2
+	kubectl wait --for=condition=available deployment/opendatahub-operator-controller-manager -n openshift-operators --timeout=180s
+	kubectl apply -f contrib/configuration/odh/default-dsci.yaml --server-side
+	kubectl apply -f contrib/configuration/odh/default-dsc.yaml --server-side
 
 ##@ GPU Support
 .PHONY: install-nfd-operator
 install-nfd-operator: ## Install NFD operator ( Node Feature Discovery )
 	@echo -e "\n==> Installing NFD Operator \n"
-	-oc create ns openshift-nfd
-	oc create -f contrib/configuration/nfd-operator-subscription.yaml
+	-kubectl create ns openshift-nfd
+	kubectl create -f contrib/configuration/nfd-operator-subscription.yaml
 	@echo -e "\n==> Creating default NodeFeatureDiscovery CR \n"
-	@while [[ -z $$(oc get customresourcedefinition nodefeaturediscoveries.nfd.openshift.io) ]]; do echo "."; sleep 10; done
-	@while [[ -z $$(oc get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd) ]]; do echo "."; sleep 10; done
-	oc get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq '.[] | select(.kind=="NodeFeatureDiscovery")' | oc apply -f -
+	@while [[ -z $$(kubectl get customresourcedefinition nodefeaturediscoveries.nfd.openshift.io) ]]; do echo "."; sleep 10; done
+	@while [[ -z $$(kubectl get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd) ]]; do echo "."; sleep 10; done
+	kubectl get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq '.[] | select(.kind=="NodeFeatureDiscovery")' | kubectl apply -f -
 
 .PHONY: delete-nfd-operator
 delete-nfd-operator: ## Delete NFD operator
 	@echo -e "\n==> Deleting NodeFeatureDiscovery CR \n"
-	oc delete NodeFeatureDiscovery --all -n openshift-nfd
-	@while [[ -n $$(oc get NodeFeatureDiscovery -n openshift-nfd) ]]; do echo "."; sleep 10; done
+	kubectl delete NodeFeatureDiscovery --all -n openshift-nfd
+	@while [[ -n $$(kubectl get NodeFeatureDiscovery -n openshift-nfd) ]]; do echo "."; sleep 10; done
 	@echo -e "\n==> Deleting NFD Operator \n"
-	-oc delete subscription nfd -n openshift-nfd
-	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n openshift-nfd -l operators.coreos.com/nfd.openshift-nfd -o custom-columns=:metadata.name`; \
-	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-nfd
-	-oc delete ns openshift-nfd
+	-kubectl delete subscription nfd -n openshift-nfd
+	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n openshift-nfd -l operators.coreos.com/nfd.openshift-nfd -o custom-columns=:metadata.name`; \
+	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-nfd
+	-kubectl delete ns openshift-nfd
 
 .PHONY: install-nvidia-operator
 install-nvidia-operator: ## Install nvidia operator
 	@echo -e "\n==> Installing nvidia Operator \n"
-	-oc create ns nvidia-gpu-operator
-	oc create -f contrib/configuration/nvidia-operator-subscription.yaml
+	-kubectl create ns nvidia-gpu-operator
+	kubectl create -f contrib/configuration/nvidia-operator-subscription.yaml
 	@echo -e "\n==> Creating default ClusterPolicy CR \n"
-	@while [[ -z $$(oc get customresourcedefinition clusterpolicies.nvidia.com) ]]; do echo "."; sleep 10; done
-	@while [[ -z $$(oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
-	oc get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq .[] | oc apply -f -
+	@while [[ -z $$(kubectl get customresourcedefinition clusterpolicies.nvidia.com) ]]; do echo "."; sleep 10; done
+	@while [[ -z $$(kubectl get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
+	kubectl get csv -n nvidia-gpu-operator --selector operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq .[] | kubectl apply -f -
 ifeq ($(USE_RHOAI), true) ## Additional steps required for RHOAI
-	oc delete configmap migration-gpu-status -n redhat-ods-applications --ignore-not-found=true
-	-export REPLICASET_NAME=`oc get replicaset -n redhat-ods-applications -l app=rhods-dashboard -o custom-columns=:metadata.name`; \
-	oc delete replicaset $$REPLICASET_NAME -n redhat-ods-applications
+	kubectl delete configmap migration-gpu-status -n redhat-ods-applications --ignore-not-found=true
+	-export REPLICASET_NAME=`kubectl get replicaset -n redhat-ods-applications -l app=rhods-dashboard -o custom-columns=:metadata.name`; \
+	kubectl delete replicaset $$REPLICASET_NAME -n redhat-ods-applications
 endif
 
 .PHONY: delete-nvidia-operator
 delete-nvidia-operator: ## Delete nvidia operator
 	@echo -e "\n==> Deleting ClusterPolicy CR \n"
-	oc delete ClusterPolicy --all -n nvidia-gpu-operator
-	@while [[ -n $$(oc get ClusterPolicy -n nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
+	kubectl delete ClusterPolicy --all -n nvidia-gpu-operator
+	@while [[ -n $$(kubectl get ClusterPolicy -n nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
 	@echo -e "\n==> Deleting nvidia Operator \n"
-	-oc delete subscription gpu-operator-certified -n nvidia-gpu-operator
-	-export CLUSTER_SERVICE_VERSION=`oc get clusterserviceversion -n nvidia-gpu-operator -l operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -o custom-columns=:metadata.name`; \
-	oc delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n nvidia-gpu-operator
-	-oc delete ns nvidia-gpu-operator
+	-kubectl delete subscription gpu-operator-certified -n nvidia-gpu-operator
+	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n nvidia-gpu-operator -l operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator -o custom-columns=:metadata.name`; \
+	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n nvidia-gpu-operator
+	-kubectl delete ns nvidia-gpu-operator
