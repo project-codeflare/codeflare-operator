@@ -508,7 +508,7 @@ install-nfd-operator: ## Install NFD operator ( Node Feature Discovery )
 	@echo -e "\n==> Creating default NodeFeatureDiscovery CR \n"
 	@while [[ -z $$(kubectl get customresourcedefinition nodefeaturediscoveries.nfd.openshift.io) ]]; do echo "."; sleep 10; done
 	@while [[ -z $$(kubectl get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd) ]]; do echo "."; sleep 10; done
-	kubectl get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq '.[] | select(.kind=="NodeFeatureDiscovery")' | kubectl apply -f -
+	kubectl get csv -n openshift-nfd --selector operators.coreos.com/nfd.openshift-nfd -ojsonpath={.items[0].metadata.annotations.alm-examples} | jq '.[] | select(.kind=="NodeFeatureDiscovery")' | kubectl apply -f - --validate=false
 
 .PHONY: delete-nfd-operator
 delete-nfd-operator: ## Delete NFD operator
