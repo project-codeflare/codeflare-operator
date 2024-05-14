@@ -400,3 +400,8 @@ image-mnist-job-test-build: ## Build container image with the MNIST job.
 .PHONY: image-mnist-job-test-push
 image-mnist-job-test-push: image-mnist-job-test-build ## Push container image with the MNIST job.
 	podman push ${MNIST_JOB_TEST_IMG}
+
+# Make target for generating kueue related resources
+.PHONY: kueue-setup
+kueue-setup:
+	bash scripts/setup-kueue-resources.sh
