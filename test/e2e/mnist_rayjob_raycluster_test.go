@@ -92,7 +92,6 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 func TestMNISTRayJobRayClusterAppWrapper(t *testing.T) {
 	test := With(t)
 	test.T().Parallel()
-	test.T().Skip("Disabled due to Kueue 0.6.x overly eager reconcilliation bug")
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
