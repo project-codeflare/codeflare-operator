@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 
@@ -36,36 +35,31 @@ import (
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=list
 
-type appwrapperWebhook struct {
-	externalController bool
+type mockAppWrapperWebhook struct {
 }
 
-var _ webhook.CustomDefaulter = &appwrapperWebhook{}
+var _ webhook.CustomDefaulter = &mockAppWrapperWebhook{}
 
-func (w *appwrapperWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *mockAppWrapperWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
-var _ webhook.CustomValidator = &appwrapperWebhook{}
+var _ webhook.CustomValidator = &mockAppWrapperWebhook{}
 
-func (w *appwrapperWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	if w.externalController {
-		return nil, nil
-	} else {
-		return nil, fmt.Errorf("AppWrappers disabled by CodeFlare operator configuration")
-	}
-}
-
-func (w *appwrapperWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (w *mockAppWrapperWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (w *appwrapperWebhook) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
+func (w *mockAppWrapperWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func SetupMockAppWrapperWebhooks(mgr ctrl.Manager, externalController bool) error {
-	wh := &appwrapperWebhook{externalController: externalController}
+func (w *mockAppWrapperWebhook) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
+	return nil, nil
+}
+
+func SetupMockAppWrapperWebhooks(mgr ctrl.Manager) error {
+	wh := &mockAppWrapperWebhook{}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&awv1beta2.AppWrapper{}).
 		WithDefaulter(wh).
