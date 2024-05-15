@@ -38,8 +38,10 @@ type CodeFlareOperatorConfiguration struct {
 type AppWrapperConfiguration struct {
 	// Enabled controls whether or not the AppWrapper Controller is enabled
 	Enabled *bool `json:"enabled,omitempty"`
+
 	// AppWrapper contains the AppWrapper controller configuration
-	Config *awconfig.AppWrapperConfig `json:"config,omitempty"`
+	// +optional
+	Config awconfig.AppWrapperConfig `json:"config,omitempty"`
 }
 
 type KubeRayConfiguration struct {

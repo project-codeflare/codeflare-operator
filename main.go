@@ -146,7 +146,7 @@ func main() {
 		},
 		AppWrapper: &config.AppWrapperConfiguration{
 			Enabled: ptr.To(false),
-			Config:  awconfig.NewAppWrapperConfig(),
+			Config:  *awconfig.NewAppWrapperConfig(),
 		},
 	}
 
@@ -252,7 +252,7 @@ func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, m
 	if isAPIAvailable(ctx, mgr, workloadAPI) {
 		setupLog.Info("Workload API available, enabling AppWrappers")
 		go setupAppWrapperController(mgr, cfg, certsReady)
-		return awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config)
+		return awctrl.SetupIndexers(ctx, mgr, &cfg.AppWrapper.Config)
 	} else {
 		// If AppWrappers are enabled and the Workload API becomes available later, initiate an orderly
 		// restart of the codeflare operator to enable the workload indexer to be setup in the the new instance of the operator.
@@ -270,14 +270,14 @@ func setupAppWrapperWebhooks(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConf
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
 	setupLog.Info("Setting up AppWrapper webhooks")
-	exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
+	exitOnError(awctrl.SetupWebhooks(mgr, &cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
 }
 
 func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
 	setupLog.Info("Waiting for certificate generation to complete")
 	<-certsReady
 	setupLog.Info("Setting up AppWrapper controller")
-	exitOnError(awctrl.SetupControllers(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper controller")
+	exitOnError(awctrl.SetupControllers(mgr, &cfg.AppWrapper.Config), "unable to setup AppWrapper controller")
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
