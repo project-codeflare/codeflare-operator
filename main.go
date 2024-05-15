@@ -249,27 +249,30 @@ func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, m
 	}
 
 	// AppWrapper webhook doesn't depend on WorkloadAPI availablity but does need certsReady
-	go func() {
-		<-certsReady
-		setupLog.Info("Setting up AppWrapper webhooks")
-		exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
-	}()
+	go setupAppWrapperWebhooks(mgr, cfg, certsReady)
 
 	if isAPIAvailable(ctx, mgr, workloadAPI) {
-		setupLog.Info("Workload API available; enabling AppWrappers")
+		setupLog.Info("Workload API available, enabling AppWrappers")
 		go setupAppWrapperController(mgr, cfg, certsReady)
 		return awctrl.SetupIndexers(ctx, mgr, cfg.AppWrapper.Config)
 	} else {
 		// If AppWrappers are enabled and the Workload API becomes available later, initiate an orderly
 		// restart of the codeflare operator to enable the workload indexer to be setup in the the new instance of the operator.
 		// It is not possible to add an indexer once the mgr has started so, a restart if the only avenue.
-		setupLog.Info("Workload API not available; setting up waiter for Workload API availability")
+		setupLog.Info("Workload API not available, setting up waiter for Workload API availability")
 		go waitForAPI(ctx, mgr, workloadAPI, func() {
-			setupLog.Info("Workload API now available; triggering controller restart")
+			setupLog.Info("Workload API now available, triggering controller restart")
 			cancel()
 		})
 		return nil
 	}
+}
+
+func setupAppWrapperWebhooks(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {
+	setupLog.Info("Waiting for certificate generation to complete")
+	<-certsReady
+	setupLog.Info("Setting up AppWrapper webhooks")
+	exitOnError(awctrl.SetupWebhooks(mgr, cfg.AppWrapper.Config), "unable to setup AppWrapper webhooks")
 }
 
 func setupAppWrapperController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) {

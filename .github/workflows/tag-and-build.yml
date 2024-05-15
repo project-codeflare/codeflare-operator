@@ -24,6 +24,10 @@ on:
         description: 'Tested version of KubeRay'
         required: true
         default: 'v0.0.0-dev'
+      kueue-version:
+        description: 'Tested version of Kueue'
+        required: true
+        default: 'v0.0.0-dev'
       is-stable:
         description: 'Select if the built image should be tagged as stable'
         required: true
@@ -89,6 +93,7 @@ jobs:
         sed -i -E "s|(.*CodeFlare-SDK.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.codeflare-sdk-version }}\2${{ github.event.inputs.codeflare-sdk-version }}\3|" README.md
         sed -i -E "s|(.*AppWrapper.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.appwrapper-version }}\2${{ github.event.inputs.appwrapper-version }}\3|" README.md
         sed -i -E "s|(.*KubeRay.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.kuberay-version }}\2${{ github.event.inputs.kuberay-version }}\3|" README.md
+        sed -i -E "s|(.*Kueue.*\[).*(\].*releases/tag/).*(\).*)|\1${{ github.event.inputs.kueue-version }}\2${{ github.event.inputs.kueue-version }}\3|" README.md
 
     - name: Adjust AppWrapper dependency in the code
       run: |
