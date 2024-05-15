@@ -19,6 +19,9 @@ on:
       kuberay-version:
         description: 'Tested version of KubeRay (for example: v0.0.0)'
         required: true
+      kueue-version:
+        description: 'Tested version of Kueue (for example: v0.0.0)'
+        required: true
       is-stable:
         description: 'Select if the built images should be tagged as stable'
         required: true
@@ -48,13 +51,14 @@ jobs:
         echo "CodeFlare SDK Version: ${{ github.event.inputs.codeflare-sdk-version }}"
         echo "Tested AppWrapper Version: ${{ github.event.inputs.appwrapper-version }}"
         echo "Tested KubeRay Version: ${{ github.event.inputs.kuberay-version }}"
+        echo "Tested Kueue Version: ${{ github.event.inputs.kueue-version }}"
         echo "Is Stable: ${{ github.event.inputs.is-stable }}"
         echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
         echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
         echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
 
   release-codeflare-sdk:
-    needs: [check-appwrapper-version, check-kuberay-version]
+    needs: [check-appwrapper-version, check-kuberay-version, check-kueue-version]
     runs-on: ubuntu-latest
 
     steps:
@@ -94,7 +98,7 @@ jobs:
     steps:
     - name: Release CodeFlare operator
       run: |
-        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field appwrapper-version=${{ github.event.inputs.appwrapper-version }} --field kuberay-version=${{ github.event.inputs.kuberay-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
+        gh workflow run tag-and-build.yml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-operator --ref ${{ github.ref }} --field is-stable=${{ github.event.inputs.is-stable }} --field version=${{ github.event.inputs.operator-version }} --field replaces=${{ github.event.inputs.replaces }} --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} --field appwrapper-version=${{ github.event.inputs.appwrapper-version }} --field kuberay-version=${{ github.event.inputs.kuberay-version }} --field kueue-version=${{ github.event.inputs.kueue-version }} --field quay-organization=${{ github.event.inputs.quay-organization }} --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
@@ -134,5 +138,19 @@ jobs:
           echo "KubeRay release with version ${{ github.event.inputs.kuberay-version }} exists and available to use."
         else
           echo "KubeRay release with version ${{ github.event.inputs.kuberay-version }} does not exist. Please select an existing version."
+          exit 1
+        fi
+
+  check-kueue-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check if Kueue release exists
+      run: |
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/kubernetes-sigs/kueue/releases/tag/${{ github.event.inputs.kueue-version }})
+        if [[ "$status_code" == "200" ]]; then
+          echo "Kueue release with version ${{ github.event.inputs.kueue-version }} exists and available to use."
+        else
+          echo "Kueue release with version ${{ github.event.inputs.kueue-version }} does not exist. Please select an existing version."
           exit 1
         fi
