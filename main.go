@@ -145,9 +145,8 @@ func main() {
 			CertGeneratorImage:       "registry.access.redhat.com/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
 		},
 		AppWrapper: &config.AppWrapperConfiguration{
-			Enabled:            ptr.To(false),
-			ExternalController: ptr.To(false),
-			Config:             awconfig.NewAppWrapperConfig(),
+			Enabled: ptr.To(false),
+			Config:  awconfig.NewAppWrapperConfig(),
 		},
 	}
 
@@ -239,11 +238,10 @@ func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, m
 	cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
 	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
 		setupLog.Info("Embedded AppWrapper controller is disabled by config")
-		externalController := cfg.AppWrapper != nil && ptr.Deref(cfg.AppWrapper.ExternalController, false)
 		go func() {
 			<-certsReady
-			setupLog.Info("Setting up mock AppWrapper webhooks", "externalController", externalController)
-			exitOnError(controllers.SetupMockAppWrapperWebhooks(mgr, externalController), "unable to setup AppWrapper webhooks")
+			setupLog.Info("Setting up mock AppWrapper webhooks")
+			exitOnError(controllers.SetupMockAppWrapperWebhooks(mgr), "unable to setup AppWrapper webhooks")
 		}()
 		return nil
 	}
