@@ -16,17 +16,6 @@ limitations under the License.
 
 package controllers
 
-import (
-	"context"
-
-	awv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-)
-
 // webhook configuration
 //+kubebuilder:webhook:path=/mutate-workload-codeflare-dev-v1beta2-appwrapper,mutating=true,failurePolicy=fail,sideEffects=None,groups=workload.codeflare.dev,resources=appwrappers,verbs=create,versions=v1beta2,name=mappwrapper.kb.io,admissionReviewVersions=v1
 //+kubebuilder:webhook:path=/validate-workload-codeflare-dev-v1beta2-appwrapper,mutating=false,failurePolicy=fail,sideEffects=None,groups=workload.codeflare.dev,resources=appwrappers,verbs=create;update,versions=v1beta2,name=vappwrapper.kb.io,admissionReviewVersions=v1
@@ -34,35 +23,3 @@ import (
 // permissions needed by the "real" Webhook in the appwrapper project to enable SubjectAccessReview
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=list
-
-type mockAppWrapperWebhook struct {
-}
-
-var _ webhook.CustomDefaulter = &mockAppWrapperWebhook{}
-
-func (w *mockAppWrapperWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	return nil
-}
-
-var _ webhook.CustomValidator = &mockAppWrapperWebhook{}
-
-func (w *mockAppWrapperWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return nil, nil
-}
-
-func (w *mockAppWrapperWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	return nil, nil
-}
-
-func (w *mockAppWrapperWebhook) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
-	return nil, nil
-}
-
-func SetupMockAppWrapperWebhooks(mgr ctrl.Manager) error {
-	wh := &mockAppWrapperWebhook{}
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&awv1beta2.AppWrapper{}).
-		WithDefaulter(wh).
-		WithValidator(wh).
-		Complete()
-}
