@@ -41,7 +41,7 @@ type AppWrapperConfiguration struct {
 
 	// AppWrapper contains the AppWrapper controller configuration
 	// +optional
-	Config awconfig.AppWrapperConfig `json:"config,omitempty"`
+	Config *awconfig.AppWrapperConfig `json:",inline"`
 }
 
 type KubeRayConfiguration struct {
