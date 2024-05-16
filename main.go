@@ -238,11 +238,6 @@ func setupAppWrapperComponents(ctx context.Context, cancel context.CancelFunc, m
 	cfg *config.CodeFlareOperatorConfiguration, certsReady chan struct{}) error {
 	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
 		setupLog.Info("Embedded AppWrapper controller is disabled by config")
-		go func() {
-			<-certsReady
-			setupLog.Info("Setting up mock AppWrapper webhooks")
-			exitOnError(controllers.SetupMockAppWrapperWebhooks(mgr), "unable to setup AppWrapper webhooks")
-		}()
 		return nil
 	}
 
