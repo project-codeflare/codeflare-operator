@@ -156,6 +156,8 @@ vet: ## Run go vet against code.
 .PHONY: modules
 modules: ## Update Go dependencies.
 	go get github.com/ray-project/kuberay/ray-operator@$(KUBERAY_VERSION)
+	go get sigs.k8s.io/kueue@$(KUEUE_VERSION)
+	go get github.com/project-codeflare/appwrapper@$(APPWRAPPER_VERSION)
 	go mod tidy
 
 .PHONY: build
