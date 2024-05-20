@@ -28,6 +28,9 @@ nodes:
     - containerPort: 80
       hostPort: 80
       protocol: TCP
+    - containerPort: 443
+      hostPort: 443
+      protocol: TCP
     kubeadmConfigPatches:
       - |
         kind: InitConfiguration
@@ -39,4 +42,5 @@ EOF
 echo "Deploying Ingress controller into KinD cluster"
 curl https://raw.githubusercontent.com/kubernetes/ingress-nginx/"${INGRESS_NGINX_VERSION}"/deploy/static/provider/kind/deploy.yaml | sed "s/--publish-status-address=localhost/--report-node-internal-ip-address\\n        - --status-update-interval=10/g" | kubectl apply -f -
 kubectl annotate ingressclass nginx "ingressclass.kubernetes.io/is-default-class=true"
+kubectl patch deploy --type json --patch '[{"op":"add","path": "/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]' ingress-nginx-controller -n ingress-nginx
 kubectl -n ingress-nginx wait --timeout=300s --for=condition=Available deployments --all
