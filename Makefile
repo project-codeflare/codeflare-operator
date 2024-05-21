@@ -381,7 +381,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: test-unit
 test-unit: manifests fmt vet envtest ## Run unit tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(go list ./... | grep -v /test/) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -v ./pkg/controllers/ -coverprofile cover.out
 
 .PHONY: test-component
 test-component: envtest ginkgo ## Run component tests.

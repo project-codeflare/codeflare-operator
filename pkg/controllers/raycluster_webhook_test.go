@@ -310,11 +310,10 @@ func TestValidateCreate(t *testing.T) {
 	})
 
 	// Negative Test: Invalid RayCluster with EnableIngress set to true
-	trueBool := true
 	invalidRayCluster := validRayCluster.DeepCopy()
 
 	t.Run("Negative: Expected errors on call to ValidateCreate function due to EnableIngress set to True", func(t *testing.T) {
-		invalidRayCluster.Spec.HeadGroupSpec.EnableIngress = &trueBool
+		invalidRayCluster.Spec.HeadGroupSpec.EnableIngress = support.Ptr(true)
 		_, err := rcWebhook.ValidateCreate(test.Ctx(), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateCreate function due to EnableIngress set to True")
 	})
