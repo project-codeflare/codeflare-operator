@@ -31,11 +31,10 @@ import (
 	"time"
 
 	dsciv1 "github.com/opendatahub-io/opendatahub-operator/v2/apis/dscinitialization/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +81,8 @@ const (
 
 	CAPrivateKeyKey = "ca.key"
 	CACertKey       = "ca.crt"
+
+	RayClusterNameLabel = "ray.openshift.ai/cluster-name"
 )
 
 var (
@@ -305,7 +306,7 @@ func crbNameFromCluster(cluster *rayv1.RayCluster) string {
 func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.ClusterRoleBindingApplyConfiguration {
 	return rbacv1ac.ClusterRoleBinding(
 		crbNameFromCluster(cluster)).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name, "ray.openshift.ai/cluster-namespace": cluster.Namespace}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name, "ray.openshift.ai/cluster-namespace": cluster.Namespace}).
 		WithSubjects(
 			rbacv1ac.Subject().
 				WithKind("ServiceAccount").
@@ -326,7 +327,7 @@ func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountApplyConfiguration {
 	return corev1ac.ServiceAccount(oauthServiceAccountNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithAnnotations(map[string]string{
 			"serviceaccounts.openshift.io/oauth-redirectreference.first": "" +
 				`{"kind":"OAuthRedirectReference","apiVersion":"v1",` +
@@ -347,7 +348,7 @@ func rayClientNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfiguration {
 	return routev1ac.Route(dashboardNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(routev1ac.RouteSpec().
 			WithTo(routev1ac.RouteTargetReference().WithKind("Service").WithName(oauthServiceNameFromCluster(cluster))).
 			WithPort(routev1ac.RoutePort().WithTargetPort(intstr.FromString((oAuthServicePortName)))).
@@ -371,7 +372,7 @@ func oauthServiceTLSSecretName(cluster *rayv1.RayCluster) string {
 
 func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfiguration {
 	return corev1ac.Service(oauthServiceNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithAnnotations(map[string]string{"service.beta.openshift.io/serving-cert-secret-name": oauthServiceTLSSecretName(cluster)}).
 		WithSpec(
 			corev1ac.ServiceSpec().
@@ -401,7 +402,7 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.
 	cookieSecret := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 
 	return corev1ac.Secret(oauthSecretNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithStringData(map[string]string{"cookie_secret": cookieSecret}).
 		WithOwnerReferences(
 			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion),
@@ -414,7 +415,7 @@ func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
 
 func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.SecretApplyConfiguration {
 	return corev1ac.Secret(caSecretNameFromCluster(cluster), cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithData(map[string][]byte{
 			CAPrivateKeyKey: key,
 			CACertKey:       cert,
@@ -470,7 +471,7 @@ func generateCACertificate() ([]byte, []byte, error) {
 }
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
 			WithIngress(
@@ -492,7 +493,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
-		WithLabels(map[string]string{"ray.openshift.ai/cluster-name": cluster.Name}).
+		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
 			WithIngress(
@@ -562,7 +563,7 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1.Ingress{}).
 		Watches(&rbacv1.ClusterRoleBinding{}, handler.EnqueueRequestsFromMapFunc(
 			func(c context.Context, o client.Object) []reconcile.Request {
-				name, ok := o.GetLabels()["ray.openshift.ai/cluster-name"]
+				name, ok := o.GetLabels()[RayClusterNameLabel]
 				if !ok {
 					return []reconcile.Request{}
 				}
