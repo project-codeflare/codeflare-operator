@@ -9,7 +9,7 @@ require (
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/appwrapper v0.11.1
+	github.com/project-codeflare/appwrapper v0.12.0
 	github.com/project-codeflare/codeflare-common v0.0.0-20240422163521-380101642c8f
 	github.com/ray-project/kuberay/ray-operator v1.1.0
 	go.uber.org/zap v1.26.0
@@ -101,7 +101,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.29.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
-	k8s.io/kubernetes v1.29.2 // indirect
 	sigs.k8s.io/jobset v0.3.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
