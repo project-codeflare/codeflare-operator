@@ -433,6 +433,7 @@ kueue-setup:
 all-in-one:
 	@echo -e "\n ==> Installing Everything needed for distributed AI platform on OpenShift cluster \n"
 	-make install-nfd-operator
+	-make install-service-mesh-operator
 	-make install-ai-platform-operator
 	-make install-nvidia-operator
 
@@ -441,6 +442,7 @@ delete-all-in-one:
 	@echo -e "\n ==> Removing Everything needed for distributed AI platform on OpenShift cluster \n"
 	-make delete-nfd-operator
 	-make delete-ai-platform-operator
+	-make delete-service-mesh-operator
 	-make delete-nvidia-operator
 
 ##@ general
@@ -463,6 +465,10 @@ endif
 .PHONY: delete-rhoai-operator
 delete-rhoai-operator: ## Delete RHOAI Operator
 	@echo -e "\n ==> Deleting OpenShift AI Operator \n"
+	kubectl delete datasciencecluster/default-dsc
+	kubectl wait --for=delete datasciencecluster/default-dsc --timeout=180s
+	kubectl delete dsci/default-dsci
+	kubectl wait --for=delete dsci/default-dsci --timeout=180s
 	-kubectl delete subscription rhods-operator -n redhat-ods-operator
 	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n redhat-ods-operator -l operators.coreos.com/rhods-operator.redhat-ods-operator -o custom-columns=:metadata.name`; \
 	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n redhat-ods-operator
@@ -475,6 +481,8 @@ install-rhoai-operator: ## Install RHOAI Operator
 	kubectl create -f contrib/configuration/rhoai/rhoai-operator-subscription.yaml
 	@echo Waiting for rhoai-operator Subscription to be ready
 	kubectl wait -n redhat-ods-operator subscription/rhods-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	-export RHOAI_POD_NAME=`kubectl get -n redhat-ods-operator pod -o custom-columns=:metadata.name | grep rhods-operator`; \
+	kubectl wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' pod/$$RHOAI_POD_NAME -n redhat-ods-operator
 	@echo -e "\n==> Creating default Data Science Cluster \n"
 	kubectl apply -f contrib/configuration/rhoai/default-dsci.yaml --server-side
 	kubectl apply -f contrib/configuration/rhoai/default-dsc.yaml --server-side
@@ -482,6 +490,10 @@ install-rhoai-operator: ## Install RHOAI Operator
 .PHONY: delete-opendatahub-operator
 delete-opendatahub-operator: ## Delete OpenDataHub operator
 	@echo -e "\n==> Deleting OpenDataHub Operator \n"
+	kubectl delete datasciencecluster/default-dsc
+	kubectl wait --for=delete datasciencecluster/default-dsc --timeout=180s
+	kubectl delete dsci/default-dsci
+	kubectl wait --for=delete dsci/default-dsci --timeout=180s
 	-kubectl delete subscription opendatahub-operator -n openshift-operators
 	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n openshift-operators -l operators.coreos.com/opendatahub-operator.openshift-operators -o custom-columns=:metadata.name`; \
 	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
@@ -494,10 +506,25 @@ install-opendatahub-operator: ## Install OpenDataHub operator
 	kubectl create -f contrib/configuration/odh/opendatahub-operator-subscription.yaml
 	@echo Waiting for opendatahub-operator Subscription to be ready
 	kubectl wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
-	sleep 2
 	kubectl wait --for=condition=available deployment/opendatahub-operator-controller-manager -n openshift-operators --timeout=180s
+	-export ODH_POD_NAME=`kubectl get -n openshift-operators pod -o custom-columns=:metadata.name | grep opendatahub-operator-controller-manager`; \
+	kubectl wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' pod/$$ODH_POD_NAME -n openshift-operators
 	kubectl apply -f contrib/configuration/odh/default-dsci.yaml --server-side
 	kubectl apply -f contrib/configuration/odh/default-dsc.yaml --server-side
+
+.PHONY: delete-service-mesh-operator
+delete-service-mesh-operator: ## Delete Service Mesh Operator
+	@echo -e "\n==> Deleting Service Mesh Operator \n"
+	kubectl delete subscription servicemeshoperator -n openshift-operators
+	-export CLUSTER_SERVICE_VERSION=`kubectl get clusterserviceversion -n openshift-operators -l operators.coreos.com/servicemeshoperator.openshift-operators -o custom-columns=:metadata.name`; \
+	kubectl delete clusterserviceversion $$CLUSTER_SERVICE_VERSION -n openshift-operators
+
+.PHONY: install-service-mesh-operator
+install-service-mesh-operator: ## Install Service Mesh Operator
+	@echo -e "\n==> Installing OpenShift Service Mesh Operator"
+	kubectl create -f contrib/configuration/service-mesh-operator-subscription.yaml
+	kubectl wait -n openshift-operators subscription/servicemeshoperator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	kubectl wait --for=condition=available deployment/istio-operator -n openshift-operators --timeout=180s
 
 ##@ GPU Support
 .PHONY: install-nfd-operator
