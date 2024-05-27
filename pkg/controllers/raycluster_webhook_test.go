@@ -103,7 +103,7 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 			To(
 				And(
 					HaveLen(1),
-					ContainElement(WithTransform(ContainerName, Equal(oauthProxyContainerName))),
+					ContainElement(WithTransform(support.ResourceName, Equal(oauthProxyContainerName))),
 				),
 				"Expected the OAuth proxy container to be present in the head group",
 			)
@@ -114,9 +114,9 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 			To(
 				And(
 					HaveLen(3),
-					ContainElement(WithTransform(VolumeName, Equal(oauthProxyVolumeName))),
-					ContainElement(WithTransform(VolumeName, Equal("ca-vol"))),
-					ContainElement(WithTransform(VolumeName, Equal("server-cert"))),
+					ContainElement(WithTransform(support.ResourceName, Equal(oauthProxyVolumeName))),
+					ContainElement(WithTransform(support.ResourceName, Equal("ca-vol"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("server-cert"))),
 				),
 				"Expected the OAuth proxy TLS secret and CA volumes to be present in the head group",
 			)
@@ -133,12 +133,12 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 			To(
 				And(
 					HaveLen(6),
-					ContainElement(WithTransform(EnvVarName, Equal("COOKIE_SECRET"))),
-					ContainElement(WithTransform(EnvVarName, Equal("MY_POD_IP"))),
-					ContainElement(WithTransform(EnvVarName, Equal("RAY_USE_TLS"))),
-					ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_SERVER_CERT"))),
-					ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_SERVER_KEY"))),
-					ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_CA_CERT"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("COOKIE_SECRET"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("MY_POD_IP"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("RAY_USE_TLS"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_SERVER_CERT"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_SERVER_KEY"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_CA_CERT"))),
 				),
 				"Expected the required environment variables to be present in the head group",
 			)
@@ -149,7 +149,7 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 			To(
 				And(
 					HaveLen(1),
-					ContainElement(WithTransform(ContainerName, Equal(initContainerName))),
+					ContainElement(WithTransform(support.ResourceName, Equal(initContainerName))),
 				),
 				"Expected the create-cert init container to be present in the head group",
 			)
@@ -160,9 +160,9 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 			To(
 				And(
 					HaveLen(3),
-					ContainElement(WithTransform(VolumeMountName, Equal(oauthProxyVolumeName))),
-					ContainElement(WithTransform(VolumeMountName, Equal("ca-vol"))),
-					ContainElement(WithTransform(VolumeMountName, Equal("server-cert"))),
+					ContainElement(WithTransform(support.ResourceName, Equal(oauthProxyVolumeName))),
+					ContainElement(WithTransform(support.ResourceName, Equal("ca-vol"))),
+					ContainElement(WithTransform(support.ResourceName, Equal("server-cert"))),
 				),
 				"Expected the OAuth proxy TLS secret and CA volume mounts to be present in the head group",
 			)
@@ -174,11 +174,11 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 				To(
 					And(
 						HaveLen(5),
-						ContainElement(WithTransform(EnvVarName, Equal("MY_POD_IP"))),
-						ContainElement(WithTransform(EnvVarName, Equal("RAY_USE_TLS"))),
-						ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_SERVER_CERT"))),
-						ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_SERVER_KEY"))),
-						ContainElement(WithTransform(EnvVarName, Equal("RAY_TLS_CA_CERT"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("MY_POD_IP"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("RAY_USE_TLS"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_SERVER_CERT"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_SERVER_KEY"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("RAY_TLS_CA_CERT"))),
 					),
 					"Expected the required environment variables to be present in each worker group",
 				)
@@ -191,8 +191,8 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 				To(
 					And(
 						HaveLen(2),
-						ContainElement(WithTransform(VolumeName, Equal("ca-vol"))),
-						ContainElement(WithTransform(VolumeName, Equal("server-cert"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("ca-vol"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("server-cert"))),
 					),
 					"Expected the required CA volumes to be present in each worker group",
 				)
@@ -205,8 +205,8 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 				To(
 					And(
 						HaveLen(2),
-						ContainElement(WithTransform(VolumeMountName, Equal("ca-vol"))),
-						ContainElement(WithTransform(VolumeMountName, Equal("server-cert"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("ca-vol"))),
+						ContainElement(WithTransform(support.ResourceName, Equal("server-cert"))),
 					),
 					"Expected the required certificate volume mounts to be present in each worker group",
 				)
@@ -219,7 +219,7 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 				To(
 					And(
 						HaveLen(1),
-						ContainElement(WithTransform(ContainerName, Equal(initContainerName))),
+						ContainElement(WithTransform(support.ResourceName, Equal(initContainerName))),
 					),
 					"Expected the required init container to be present in each worker group",
 				)
@@ -644,24 +644,4 @@ func TestValidateUpdate(t *testing.T) {
 		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to manipulated env vars in the worker group")
 	})
-}
-
-func ContainerName(container corev1.Container) string {
-	return container.Name
-}
-
-func VolumeName(volume corev1.Volume) string {
-	return volume.Name
-}
-
-func ServiceAccountName(serviceAccount corev1.ServiceAccount) string {
-	return serviceAccount.Name
-}
-
-func VolumeMountName(volumeMount corev1.VolumeMount) string {
-	return volumeMount.Name
-}
-
-func EnvVarName(envVar corev1.EnvVar) string {
-	return envVar.Name
 }
