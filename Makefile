@@ -481,8 +481,9 @@ install-rhoai-operator: ## Install RHOAI Operator
 	kubectl create -f contrib/configuration/rhoai/rhoai-operator-subscription.yaml
 	@echo Waiting for rhoai-operator Subscription to be ready
 	kubectl wait -n redhat-ods-operator subscription/rhods-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	@while [[ -z $$(kubectl get deployment/rhods-operator -n redhat-ods-operator) ]]; do echo "."; sleep 10; done
 	-export RHOAI_POD_NAME=`kubectl get -n redhat-ods-operator pod -o custom-columns=:metadata.name | grep rhods-operator`; \
-	kubectl wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' pod/$$RHOAI_POD_NAME -n redhat-ods-operator
+	kubectl wait --for=condition=Ready pod/$$RHOAI_POD_NAME -n redhat-ods-operator
 	@echo -e "\n==> Creating default Data Science Cluster \n"
 	kubectl apply -f contrib/configuration/rhoai/default-dsci.yaml --server-side
 	kubectl apply -f contrib/configuration/rhoai/default-dsc.yaml --server-side
@@ -506,9 +507,10 @@ install-opendatahub-operator: ## Install OpenDataHub operator
 	kubectl create -f contrib/configuration/odh/opendatahub-operator-subscription.yaml
 	@echo Waiting for opendatahub-operator Subscription to be ready
 	kubectl wait -n openshift-operators subscription/opendatahub-operator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	@while [[ -z $$(kubectl get deployment/opendatahub-operator-controller-manager -n openshift-operators) ]]; do echo "."; sleep 10; done
 	kubectl wait --for=condition=available deployment/opendatahub-operator-controller-manager -n openshift-operators --timeout=180s
 	-export ODH_POD_NAME=`kubectl get -n openshift-operators pod -o custom-columns=:metadata.name | grep opendatahub-operator-controller-manager`; \
-	kubectl wait --for='jsonpath={.status.conditions[?(@.type=="Ready")].status}=True' pod/$$ODH_POD_NAME -n openshift-operators
+	kubectl wait --for=condition=Ready pod/$$ODH_POD_NAME -n openshift-operators
 	kubectl apply -f contrib/configuration/odh/default-dsci.yaml --server-side
 	kubectl apply -f contrib/configuration/odh/default-dsc.yaml --server-side
 
@@ -524,6 +526,7 @@ install-service-mesh-operator: ## Install Service Mesh Operator
 	@echo -e "\n==> Installing OpenShift Service Mesh Operator"
 	kubectl create -f contrib/configuration/service-mesh-operator-subscription.yaml
 	kubectl wait -n openshift-operators subscription/servicemeshoperator --for=jsonpath='{.status.state}'=AtLatestKnown --timeout=180s
+	@while [[ -z $$(kubectl get deployment/istio-operator -n openshift-operators) ]]; do echo "."; sleep 10; done
 	kubectl wait --for=condition=available deployment/istio-operator -n openshift-operators --timeout=180s
 
 ##@ GPU Support
