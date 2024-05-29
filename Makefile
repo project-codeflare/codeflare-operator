@@ -450,16 +450,20 @@ delete-all-in-one:
 delete-ai-platform-operator:
 ifeq ($(USE_RHOAI), true) ## Delete RHOAI Operator
 	-make delete-rhoai-operator
+	-kubectl delete -f contrib/configuration/accelerator-profile.yaml -n redhat-ods-applications
 else ## Delete Open Data Hub Operator
 	-make delete-opendatahub-operator
+	-kubectl delete -f contrib/configuration/accelerator-profile.yaml -n opendatahub
 endif
 
 .PHONY: install-ai-platform-operator
 install-ai-platform-operator:
 ifeq ($(USE_RHOAI), true) ## Delete RHOAI Operator
 	-make install-rhoai-operator
+	-kubectl apply -f contrib/configuration/accelerator-profile.yaml -n redhat-ods-applications
 else ## Delete Open Data Hub Operator
 	-make install-opendatahub-operator
+	-kubectl apply -f contrib/configuration/accelerator-profile.yaml -n opendatahub
 endif
 
 .PHONY: delete-rhoai-operator
@@ -569,6 +573,7 @@ endif
 .PHONY: delete-nvidia-operator
 delete-nvidia-operator: ## Delete nvidia operator
 	@echo -e "\n==> Deleting ClusterPolicy CR \n"
+	kubectl delete --ignore-not-found=true NVIDIADriver gpu-driver
 	kubectl delete ClusterPolicy --all -n nvidia-gpu-operator
 	@while [[ -n $$(kubectl get ClusterPolicy -n nvidia-gpu-operator) ]]; do echo "."; sleep 10; done
 	@echo -e "\n==> Deleting nvidia Operator \n"
