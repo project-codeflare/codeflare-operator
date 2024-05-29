@@ -1,0 +1,9 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: AcceleratorProfile
+metadata:
+  name: gpu-accelerator-profile
+spec: {
+  displayName: nvidia-gpu,
+  enabled: true,
+  identifier: nvidia.com/gpu
+}
