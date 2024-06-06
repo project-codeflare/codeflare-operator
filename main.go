@@ -142,7 +142,7 @@ func main() {
 			RayDashboardOAuthEnabled: ptr.To(true),
 			IngressDomain:            "",
 			MTLSEnabled:              ptr.To(true),
-			CertGeneratorImage:       "registry.access.redhat.com/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
+			CertGeneratorImage:       "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
 		},
 		AppWrapper: &config.AppWrapperConfiguration{
 			Enabled: ptr.To(false),
