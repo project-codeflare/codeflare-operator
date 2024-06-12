@@ -292,7 +292,7 @@ $(OPENSHIFT-GOIMPORTS): $(LOCALBIN)
 
 OPERATOR_SDK_DL_URL := https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)
 .PHONY: install-operator-sdk
-install-operator-sdk: $(OPERATOR_SDK) ## Download fixed version operator-sdk binary for consist outcome
+install-operator-sdk: $(OPERATOR_SDK) ## Download fixed version operator-sdk binary for consist outcome.
 $(OPERATOR_SDK): $(LOCALBIN)
 	curl -L $(OPERATOR_SDK_DL_URL)/operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH) --output $(LOCALBIN)/operator-sdk
 	chmod +x $(OPERATOR_SDK)
