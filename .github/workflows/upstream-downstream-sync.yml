@@ -1,0 +1,20 @@
+name: Upstream to Downstream - Release Auto-Merge
+on:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - release-workflow-automerge
+
+jobs:
+  upstream-odh-auto-merge:
+    uses: red-hat-data-services/rhods-devops-infra/.github/workflows/upstream-auto-merge.yaml@main
+    with:
+      repositories: codeflare-upstream
+
+  odh-rhds-auto-merge:
+    needs: upstream-odh-auto-merge
+    uses: red-hat-data-services/rhods-devops-infra/.github/workflows/upstream-auto-merge.yaml@main
+    with:
+      repositories: codeflare-downstream
