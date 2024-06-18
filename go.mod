@@ -9,7 +9,7 @@ require (
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/appwrapper v0.13.0
+	github.com/project-codeflare/appwrapper v0.13.1
 	github.com/project-codeflare/codeflare-common v0.0.0-20240617130731-0c3f3b3c0e5f
 	github.com/ray-project/kuberay/ray-operator v1.1.0
 	go.uber.org/zap v1.26.0
