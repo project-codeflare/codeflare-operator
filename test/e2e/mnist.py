@@ -20,7 +20,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split, RandomSampler
+from torch.utils.data import DataLoader, random_split
 from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import MNIST
@@ -158,7 +158,7 @@ class LitMNIST(LightningModule):
             )
 
     def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=BATCH_SIZE, sampler=RandomSampler(self.mnist_train, num_samples=1000))
+        return DataLoader(self.mnist_train, batch_size=BATCH_SIZE)
 
     def val_dataloader(self):
         return DataLoader(self.mnist_val, batch_size=BATCH_SIZE)
@@ -176,13 +176,12 @@ print("LOCAL: ", int(os.environ.get("LOCAL_WORLD_SIZE", 1)))
 
 # Initialize a trainer
 trainer = Trainer(
-    accelerator="auto",
+    accelerator="cpu",
     # devices=1 if torch.cuda.is_available() else None,  # limiting got iPython runs
     max_epochs=3,
     callbacks=[TQDMProgressBar(refresh_rate=20)],
     num_nodes=int(os.environ.get("GROUP_WORLD_SIZE", 1)),
     devices=int(os.environ.get("LOCAL_WORLD_SIZE", 1)),
-    replace_sampler_ddp=False,
     strategy="ddp",
 )
 
