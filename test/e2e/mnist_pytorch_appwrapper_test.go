@@ -30,10 +30,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func TestMnistPyTorchAppWrapperCpu(t *testing.T) {
+	runMnistPyTorchAppWrapper(t, "cpu")
+}
+
+func TestMnistPyTorchAppWrapperGpu(t *testing.T) {
+	runMnistPyTorchAppWrapper(t, "gpu")
+}
+
 // Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
-func TestMNISTPyTorchAppWrapper(t *testing.T) {
+func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 	test := With(t)
-	test.T().Parallel()
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
@@ -85,6 +92,7 @@ func TestMNISTPyTorchAppWrapper(t *testing.T) {
 								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
 								{Name: "PIP_INDEX_URL", Value: GetPipIndexURL()},
 								{Name: "PIP_TRUSTED_HOST", Value: GetPipTrustedHost()},
+								{Name: "ACCELERATOR", Value: accelerator},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{
