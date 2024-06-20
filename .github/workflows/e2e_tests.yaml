@@ -27,7 +27,7 @@ concurrency:
 jobs:
   kubernetes-e2e:
 
-    runs-on: ubuntu-20.04-4core
+    runs-on: ubuntu-20.04-4core-gpu
 
     steps:
       - name: Checkout code
@@ -52,8 +52,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup NVidia GPU environment for KinD
+        uses: ./common/github-actions/nvidia-gpu-setup
+
       - name: Setup and start KinD cluster
         uses: ./common/github-actions/kind
+
+      - name: Install NVidia GPU operator for KinD
+        uses: ./common/github-actions/nvidia-gpu-operator
 
       - name: Deploy CodeFlare stack
         id: deploy
@@ -62,23 +68,25 @@ jobs:
           make setup-e2e
 
           echo Deploying CodeFlare operator
-          IMG="${REGISTRY_ADDRESS}"/codeflare-operator
-          make image-push -e IMG="${IMG}"
+          IMG=localhost/codeflare-operator:test
+          make image-build -e IMG="${IMG}"
+          podman save -o cfo.tar ${IMG}
+          kind load image-archive cfo.tar --name cluster --verbosity 1000
           make deploy -e IMG="${IMG}" -e ENV="e2e"
           kubectl wait --timeout=120s --for=condition=Available=true deployment -n openshift-operators codeflare-operator-manager
 
       - name: Run e2e tests
         run: |
-          export CODEFLARE_TEST_TIMEOUT_SHORT=1m
-          export CODEFLARE_TEST_TIMEOUT_MEDIUM=5m
-          export CODEFLARE_TEST_TIMEOUT_LONG=10m
+          export CODEFLARE_TEST_TIMEOUT_SHORT=3m
+          export CODEFLARE_TEST_TIMEOUT_MEDIUM=10m
+          export CODEFLARE_TEST_TIMEOUT_LONG=20m
           export CODEFLARE_TEST_TIMEOUT_GPU_PROVISIONING=30m
 
           export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
           echo "CODEFLARE_TEST_OUTPUT_DIR=${CODEFLARE_TEST_OUTPUT_DIR}" >> $GITHUB_ENV
 
           set -euo pipefail
-          go test -timeout 30m -v ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+          go test -timeout 60m -v ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
       - name: Print CodeFlare operator logs
         if: always() && steps.deploy.outcome == 'success'

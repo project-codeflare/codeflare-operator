@@ -2,7 +2,7 @@
 
 # BEGIN -- workaround lack of go-toolset for golang 1.22
 
-ARG GOLANG_IMAGE=golang:1.22
+ARG GOLANG_IMAGE=docker.io/library/golang:1.22
 
 ARG GOARCH=amd64
 
