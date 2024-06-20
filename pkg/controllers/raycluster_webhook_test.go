@@ -227,6 +227,22 @@ func TestRayClusterWebhookDefault(t *testing.T) {
 		}
 	})
 
+	t.Run("Expected required SecurityContext for each head group container", func(t *testing.T) {
+		for _, container := range validRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+			test.Expect(container.SecurityContext).To(Equal(securityContext()),
+				"Expected the required SecurityContext to be present in each head group container")
+		}
+	})
+
+	t.Run("Expected required SecurityContext for each worker group container", func(t *testing.T) {
+		for _, workerGroup := range validRayCluster.Spec.WorkerGroupSpecs {
+			for _, container := range workerGroup.Template.Spec.Containers {
+				test.Expect(container.SecurityContext).To(Equal(securityContext()),
+					"Expected the required SecurityContext to be present in each worker group container")
+			}
+		}
+	})
+
 }
 
 func TestValidateCreate(t *testing.T) {

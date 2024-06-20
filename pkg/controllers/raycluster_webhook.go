@@ -124,6 +124,16 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		}
 	}
 
+	// Set the security context for the head container and worker containers
+	for i := range rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].SecurityContext = securityContext()
+	}
+	for i := range rayCluster.Spec.WorkerGroupSpecs {
+		for j := range rayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers {
+			rayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers[j].SecurityContext = securityContext()
+		}
+	}
+
 	return nil
 }
 
