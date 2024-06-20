@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 
 	"github.com/project-codeflare/codeflare-operator/pkg/config"
 )
@@ -277,6 +278,15 @@ func TestValidateCreate(t *testing.T) {
 										ReadOnly:  true,
 									},
 								},
+								SecurityContext: &corev1.SecurityContext{
+									AllowPrivilegeEscalation: ptr.To(false),
+									Capabilities: &corev1.Capabilities{
+										Drop: []corev1.Capability{"ALL"},
+									},
+									SeccompProfile: &corev1.SeccompProfile{
+										Type: "RuntimeDefault",
+									},
+								},
 							},
 						},
 						Volumes: []corev1.Volume{
@@ -346,6 +356,14 @@ func TestValidateCreate(t *testing.T) {
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateCreate function due to manipulated head group service account name")
 	})
 
+	t.Run("Negative: Expected errors on call to ValidateCreate function due to manipulated head group container SecurityContext", func(t *testing.T) {
+		for i := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+			invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(true)
+		}
+		_, err = rcWebhook.ValidateCreate(test.Ctx(), runtime.Object(invalidRayCluster))
+		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateCreate function due to manipulated head group container SecurityContext")
+	})
+
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -407,6 +425,15 @@ func TestValidateUpdate(t *testing.T) {
 										Name:      oauthProxyVolumeName,
 										MountPath: "/etc/tls/private",
 										ReadOnly:  true,
+									},
+								},
+								SecurityContext: &corev1.SecurityContext{
+									AllowPrivilegeEscalation: ptr.To(false),
+									Capabilities: &corev1.Capabilities{
+										Drop: []corev1.Capability{"ALL"},
+									},
+									SeccompProfile: &corev1.SeccompProfile{
+										Type: "RuntimeDefault",
 									},
 								},
 							},
@@ -484,6 +511,15 @@ func TestValidateUpdate(t *testing.T) {
 										{Name: "RAY_TLS_SERVER_CERT", Value: "/home/ray/workspace/tls/server.crt"},
 										{Name: "RAY_TLS_SERVER_KEY", Value: "/home/ray/workspace/tls/server.key"},
 										{Name: "RAY_TLS_CA_CERT", Value: "/home/ray/workspace/tls/ca.crt"},
+									},
+									SecurityContext: &corev1.SecurityContext{
+										AllowPrivilegeEscalation: ptr.To(false),
+										Capabilities: &corev1.Capabilities{
+											Drop: []corev1.Capability{"ALL"},
+										},
+										SeccompProfile: &corev1.SeccompProfile{
+											Type: "RuntimeDefault",
+										},
 									},
 								},
 							},
@@ -643,5 +679,23 @@ func TestValidateUpdate(t *testing.T) {
 		}
 		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to manipulated env vars in the worker group")
+	})
+
+	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated SecurityContext in the head group container", func(t *testing.T) {
+		for i := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+			invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].SecurityContext.AllowPrivilegeEscalation = ptr.To(true)
+		}
+		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
+		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to manipulated SecurityContext in the head group container")
+	})
+
+	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated SecurityContext in the worker group container", func(t *testing.T) {
+		for i := range invalidRayCluster.Spec.WorkerGroupSpecs {
+			for j := range invalidRayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers {
+				invalidRayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers[j].SecurityContext.AllowPrivilegeEscalation = ptr.To(true)
+			}
+		}
+		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
+		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to manipulated SecurityContext in the worker group container")
 	})
 }

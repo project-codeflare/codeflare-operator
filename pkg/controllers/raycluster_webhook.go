@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 	"strconv"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
@@ -133,6 +134,7 @@ func (w *rayClusterWebhook) ValidateCreate(ctx context.Context, obj runtime.Obje
 	var allErrors field.ErrorList
 
 	allErrors = append(allErrors, validateIngress(rayCluster)...)
+	allErrors = append(allErrors, validateSecurityContext(rayCluster)...)
 
 	if ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
 		allErrors = append(allErrors, validateOAuthProxyContainer(rayCluster)...)
@@ -155,6 +157,7 @@ func (w *rayClusterWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj r
 	}
 
 	allErrors = append(allErrors, validateIngress(rayCluster)...)
+	allErrors = append(allErrors, validateSecurityContext(rayCluster)...)
 
 	if ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
 		allErrors = append(allErrors, validateOAuthProxyContainer(rayCluster)...)
@@ -197,6 +200,32 @@ func validateOAuthProxyVolume(rayCluster *rayv1.RayCluster) field.ErrorList {
 		field.NewPath("spec", "headGroupSpec", "template", "spec", "volumes"),
 		"OAuth Proxy TLS Secret volume is immutable"); err != nil {
 		allErrors = append(allErrors, err)
+	}
+
+	return allErrors
+}
+
+func validateSecurityContext(rayCluster *rayv1.RayCluster) field.ErrorList {
+	var allErrors field.ErrorList
+
+	for i := range rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
+		if !reflect.DeepEqual(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].SecurityContext, securityContext()) {
+			allErrors = append(allErrors, field.Invalid(
+				field.NewPath("spec", "headGroupSpec", "template", "spec", "containers", strconv.Itoa(i), "securityContext"),
+				rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].SecurityContext,
+				"SecurityContext is immutable"))
+		}
+	}
+
+	for i := range rayCluster.Spec.WorkerGroupSpecs {
+		for j := range rayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers {
+			if !reflect.DeepEqual(rayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers[j].SecurityContext, securityContext()) {
+				allErrors = append(allErrors, field.Invalid(
+					field.NewPath("spec", "workerGroupSpecs", strconv.Itoa(i), "template", "spec", "containers", strconv.Itoa(j), "securityContext"),
+					rayCluster.Spec.WorkerGroupSpecs[i].Template.Spec.Containers[j].SecurityContext,
+					"SecurityContext is immutable"))
+			}
+		}
 	}
 
 	return allErrors
@@ -264,6 +293,18 @@ func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
 				MountPath: "/etc/tls/private",
 				ReadOnly:  true,
 			},
+		},
+	}
+}
+
+func securityContext() *corev1.SecurityContext {
+	return &corev1.SecurityContext{
+		AllowPrivilegeEscalation: ptr.To(false),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		},
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: "RuntimeDefault",
 		},
 	}
 }
