@@ -100,18 +100,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.ray.io
-  resources:
-  - rayclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - config.openshift.io
   resources:
   - ingresses
