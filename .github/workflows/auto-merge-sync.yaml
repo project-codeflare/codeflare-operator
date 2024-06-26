@@ -1,0 +1,41 @@
+# Workflow is meant to run in the red-hat-data-services/codeflare-operator repo
+name: Auto-Merge-Sync
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger-auto-merge-sync:
+    runs-on: ubuntu-latest
+    steps:
+    - name: upstream-odh-auto-merge
+      run: |
+        gh workflow run upstream-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --ref main --field repositories=codeflare-upstream
+        sleep 5
+        run_id=$(gh run list --workflow upstream-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo github.com/red-hat-data-services/rhods-devops-infra --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      shell:
+        bash
+    - name: odh-rhds-auto-merge
+      if: ${{ success()}}
+      run: |
+        gh workflow run upstream-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --ref main --field repositories=codeflare-downstream
+        sleep 5
+        run_id=$(gh run list --workflow upstream-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo github.com/red-hat-data-services/rhods-devops-infra --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      shell:
+        bash
+    - name: rhds-release-auto-merge
+      if: ${{ success()}}
+      run: |
+        gh workflow run main-release-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --ref main --field repositories=codeflare-operator
+        sleep 5
+        run_id=$(gh run list --workflow main-release-auto-merge.yaml --repo github.com/red-hat-data-services/rhods-devops-infra --limit 1 --json databaseId --jq .[].databaseId)
+        gh run watch ${run_id} --repo github.com/red-hat-data-services/rhods-devops-infra --interval 10 --exit-status
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+      shell:
+        bash
