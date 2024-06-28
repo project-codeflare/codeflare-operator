@@ -10,7 +10,7 @@ require (
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.20.2
-	github.com/project-codeflare/codeflare-common v0.0.0-20240617130731-0c3f3b3c0e5f
+	github.com/project-codeflare/codeflare-common v0.0.0-20240628111341-56c962a09b7e
 	github.com/ray-project/kuberay/ray-operator v1.1.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
@@ -66,6 +66,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kubeflow/training-operator v1.7.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -73,6 +74,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.411 // indirect
 	github.com/openshift/custom-resource-status v1.1.2 // indirect
