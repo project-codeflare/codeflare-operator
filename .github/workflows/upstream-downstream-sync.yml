@@ -1,4 +1,4 @@
-name: Call sync on OpenDataHub CFO fork sync
+name: Upstream to Downstream - Release Auto-Merge
 on:
   release:
     types:
@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-fork:
+  trigger-auto-sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync-fork
+      - name: call-sync-workflow
         run: |
-          gh workflow run sync-fork.yaml --repo github.com/opendatahub-io/codeflare-operator --ref main
+          gh workflow run auto-merge-sync.yaml --repo github.com/red-hat-data-services/codeflare-operator --ref main
         env:
           GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
         shell:

@@ -1,8 +1,8 @@
 # Build the manager binary
 
-# BEGIN -- workaround lack of go-toolset for golang 1.21
+# BEGIN -- workaround lack of go-toolset for golang 1.22
 
-ARG GOLANG_IMAGE=golang:1.21
+ARG GOLANG_IMAGE=golang:1.22
 
 ARG GOARCH=amd64
 
@@ -20,7 +20,7 @@ RUN dnf upgrade -y && dnf install -y \
 ENV PATH=/usr/local/go/bin:$PATH
 COPY --from=golang /usr/local/go /usr/local/go
 
-# END -- workaround lack of go-toolset for golang 1.21
+# END -- workaround lack of go-toolset for golang 1.22
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
