@@ -313,7 +313,7 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
 			Entrypoint: "python /home/ray/jobs/mnist.py",
 			RuntimeEnvYAML: `
   pip:
-    - pytorch_lightning==1.5.10
+    - pytorch_lightning==1.9.5
     - torchmetrics==0.9.1
     - torchvision==0.12.0
   env_vars:
