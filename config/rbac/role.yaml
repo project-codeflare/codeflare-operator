@@ -113,7 +113,9 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -122,8 +124,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -132,8 +136,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - dscinitialization.opendatahub.io
   resources:
@@ -204,8 +210,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -214,8 +222,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - ray.io
   resources:
@@ -262,8 +272,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - route.openshift.io
   resources:
@@ -273,8 +285,10 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - scheduling.k8s.io
   resources:
