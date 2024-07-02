@@ -1,13 +1,12 @@
 approvers:
-  - anishasthana
   - astefanutti
   - ChristianZaccaria
   - jbusche
   - kpostoffice
   - sutaakar
   - tedhtchang
+
 reviewers:
-  - anishasthana
   - astefanutti
   - Bobbins228
   - ChristianZaccaria
@@ -17,3 +16,6 @@ reviewers:
   - kpostoffice
   - sutaakar
   - tedhtchang
+
+emeritus_approvers:
+  - anishasthana # 2024-07-02
