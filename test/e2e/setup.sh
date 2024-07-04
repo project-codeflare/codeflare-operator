@@ -84,12 +84,14 @@ metadata:
 spec:
   namespaceSelector: {} # match all.
   resourceGroups:
-  - coveredResources: ["cpu","memory"]
+  - coveredResources: ["cpu","memory", "nvidia.com/gpu"]
     flavors:
     - name: "default-flavor"
       resources:
       - name: "cpu"
         nominalQuota: 4
       - name: "memory"
-        nominalQuota: "4G"
+        nominalQuota: "20G"
+      - name: "nvidia.com/gpu"
+        nominalQuota: "1"
 EOF

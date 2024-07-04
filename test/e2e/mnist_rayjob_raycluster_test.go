@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -36,9 +37,17 @@ import (
 
 // Trains the MNIST dataset as a RayJob, executed by a Ray cluster
 // directly managed by Kueue, and asserts successful completion of the training job.
-func TestMNISTRayJobRayCluster(t *testing.T) {
+
+func TestMnistRayJobRayClusterCpu(t *testing.T) {
+	runMnistRayJobRayCluster(t, "cpu", 0)
+}
+
+func TestMnistRayJobRayClusterGpu(t *testing.T) {
+	runMnistRayJobRayCluster(t, "gpu", 1)
+}
+
+func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int) {
 	test := With(t)
-	test.T().Parallel()
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
@@ -51,7 +60,7 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// Create RayCluster and assign it to the localqueue
-	rayCluster := constructRayCluster(test, namespace, mnist)
+	rayCluster := constructRayCluster(test, namespace, mnist, numberOfGpus)
 	AssignToLocalQueue(rayCluster, localQueue)
 	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
@@ -62,7 +71,7 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
 
 	// Create RayJob
-	rayJob := constructRayJob(test, namespace, rayCluster)
+	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, numberOfGpus)
 	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
@@ -88,10 +97,17 @@ func TestMNISTRayJobRayCluster(t *testing.T) {
 		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
 }
 
+func TestMnistRayJobRayClusterAppWrapperCpu(t *testing.T) {
+	runMnistRayJobRayClusterAppWrapper(t, "cpu", 0)
+}
+
+func TestMnistRayJobRayClusterAppWrapperGpu(t *testing.T) {
+	runMnistRayJobRayClusterAppWrapper(t, "gpu", 1)
+}
+
 // Same as TestMNISTRayJobRayCluster, except the RayCluster is wrapped in an AppWrapper
-func TestMNISTRayJobRayClusterAppWrapper(t *testing.T) {
+func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
 	test := With(t)
-	test.T().Parallel()
 
 	// Create a namespace and localqueue in that namespace
 	namespace := test.NewTestNamespace()
@@ -104,7 +120,7 @@ func TestMNISTRayJobRayClusterAppWrapper(t *testing.T) {
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// Create RayCluster, wrap in AppWrapper and assign to localqueue
-	rayCluster := constructRayCluster(test, namespace, mnist)
+	rayCluster := constructRayCluster(test, namespace, mnist, numberOfGpus)
 	aw := &mcadv1beta2.AppWrapper{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: mcadv1beta2.GroupVersion.String(),
@@ -140,7 +156,7 @@ func TestMNISTRayJobRayClusterAppWrapper(t *testing.T) {
 		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
 
 	// Create RayJob
-	rayJob := constructRayJob(test, namespace, rayCluster)
+	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, numberOfGpus)
 	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
@@ -183,7 +199,7 @@ func constructMNISTConfigMap(test Test, namespace *corev1.Namespace) *corev1.Con
 	}
 }
 
-func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.ConfigMap) *rayv1.RayCluster {
+func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.ConfigMap, numberOfGpus int) *rayv1.RayCluster {
 	return &rayv1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
@@ -236,24 +252,6 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 										corev1.ResourceMemory: resource.MustParse("2G"),
 									},
 								},
-								VolumeMounts: []corev1.VolumeMount{
-									{
-										Name:      "mnist",
-										MountPath: "/home/ray/jobs",
-									},
-								},
-							},
-						},
-						Volumes: []corev1.Volume{
-							{
-								Name: "mnist",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: mnist.Name,
-										},
-									},
-								},
 							},
 						},
 					},
@@ -282,11 +280,31 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 									Resources: corev1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("250m"),
-											corev1.ResourceMemory: resource.MustParse("256Mi"),
+											corev1.ResourceMemory: resource.MustParse("1G"),
+											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numberOfGpus)),
 										},
 										Limits: corev1.ResourceList{
-											corev1.ResourceCPU:    resource.MustParse("1"),
-											corev1.ResourceMemory: resource.MustParse("2G"),
+											corev1.ResourceCPU:    resource.MustParse("2"),
+											corev1.ResourceMemory: resource.MustParse("4G"),
+											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numberOfGpus)),
+										},
+									},
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											Name:      "mnist",
+											MountPath: "/home/ray/jobs",
+										},
+									},
+								},
+							},
+							Volumes: []corev1.Volume{
+								{
+									Name: "mnist",
+									VolumeSource: corev1.VolumeSource{
+										ConfigMap: &corev1.ConfigMapVolumeSource{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: mnist.Name,
+											},
 										},
 									},
 								},
@@ -299,7 +317,7 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 	}
 }
 
-func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster) *rayv1.RayJob {
+func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster, accelerator string, numberOfGpus int) *rayv1.RayJob {
 	return &rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
@@ -320,6 +338,7 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
     MNIST_DATASET_URL: "` + GetMnistDatasetURL() + `"
     PIP_INDEX_URL: "` + GetPipIndexURL() + `"
     PIP_TRUSTED_HOST: "` + GetPipTrustedHost() + `"
+    ACCELERATOR: "` + accelerator + `"
 `,
 			ClusterSelector: map[string]string{
 				RayJobDefaultClusterSelectorKey: rayCluster.Name,
@@ -336,6 +355,9 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
 					},
 				},
 			},
+			EntrypointNumCpus: 2,
+			// Using EntrypointNumGpus doesn't seem to work properly on KinD cluster with GPU, EntrypointNumCpus seems reliable
+			EntrypointNumGpus: float32(numberOfGpus),
 		},
 	}
 }
