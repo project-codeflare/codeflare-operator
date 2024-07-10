@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"os"
+
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +15,18 @@ import (
 
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 )
+
+var (
+	CertGeneratorImage = getEnv("CERT_GENERATOR_IMAGE", "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328")
+	OAuthProxyImage    = getEnv("OAUTH_PROXY_IMAGE", "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366")
+)
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
 
 func serviceNameFromCluster(cluster *rayv1.RayCluster) string {
 	return cluster.Name + "-head-svc"
