@@ -166,6 +166,7 @@ func main() {
 	namespace := namespaceOrDie()
 
 	exitOnError(loadIntoOrCreate(ctx, kubeClient, namespace, configMapName, cfg), "unable to initialise configuration")
+	setupLog.Info("Successfully configured operator", "config", *cfg)
 
 	kubeConfig.Burst = int(ptr.Deref(cfg.ClientConnection.Burst, int32(rest.DefaultBurst)))
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
