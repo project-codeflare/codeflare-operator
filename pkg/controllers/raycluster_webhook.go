@@ -231,7 +231,7 @@ func validateHeadGroupServiceAccountName(rayCluster *rayv1.RayCluster) field.Err
 func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
 	return corev1.Container{
 		Name:  oauthProxyContainerName,
-		Image: "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366",
+		Image: OAuthProxyImage,
 		Ports: []corev1.ContainerPort{
 			{ContainerPort: 8443, Name: "oauth-proxy"},
 		},
@@ -349,7 +349,7 @@ func rayHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayCo
 
 	initContainerHead := corev1.Container{
 		Name:  "create-cert",
-		Image: config.CertGeneratorImage,
+		Image: CertGeneratorImage,
 		Command: []string{
 			"sh",
 			"-c",
@@ -363,7 +363,7 @@ func rayHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayCo
 func rayWorkerInitContainer(config *config.KubeRayConfiguration) corev1.Container {
 	initContainerWorker := corev1.Container{
 		Name:  "create-cert",
-		Image: config.CertGeneratorImage,
+		Image: CertGeneratorImage,
 		Command: []string{
 			"sh",
 			"-c",

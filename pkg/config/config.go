@@ -50,8 +50,6 @@ type KubeRayConfiguration struct {
 	IngressDomain string `json:"ingressDomain"`
 
 	MTLSEnabled *bool `json:"mTLSEnabled,omitempty"`
-
-	CertGeneratorImage string `json:"certGeneratorImage"`
 }
 
 type ControllerManager struct {
