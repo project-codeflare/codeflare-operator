@@ -127,9 +127,9 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rayCluster.Name,
-			Namespace: namespace.Name,
-			Labels:    map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
+			GenerateName: rayCluster.Name,
+			Namespace:    namespace.Name,
+			Labels:       map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
@@ -145,11 +145,11 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	unstruct := unstructured.Unstructured{Object: awMap}
 	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.GenerateName)
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
-		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.GenerateName)
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutMedium).
+		Should(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
 	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
 	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
@@ -266,6 +266,12 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
+							Tolerations: []corev1.Toleration{
+								{
+									Key:      "nvidia.com/gpu",
+									Operator: corev1.TolerationOpExists,
+								},
+							},
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",

@@ -75,14 +75,20 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 			Kind:       "Job",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
-			Namespace: namespace.Name,
+			GenerateName: "mnist",
+			Namespace:    namespace.Name,
 		},
 		Spec: batchv1.JobSpec{
 			Completions: Ptr(int32(1)),
 			Parallelism: Ptr(int32(1)),
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "nvidia.com/gpu",
+							Operator: corev1.TolerationOpExists,
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "job",
@@ -139,9 +145,9 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist",
-			Namespace: namespace.Name,
-			Labels:    map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
+			GenerateName: "mnist",
+			Namespace:    namespace.Name,
+			Labels:       map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
@@ -158,16 +164,18 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 	unstruct := unstructured.Unstructured{Object: awMap}
 	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.GenerateName)
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutMedium).
-		Should(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning)))
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.GenerateName)
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutMedium).
+		Should(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
 	test.T().Logf("Waiting for AppWrapper %s/%s to complete", job.Namespace, job.Name)
-	test.Eventually(AppWrapper(test, namespace, aw.Name), TestTimeoutLong).Should(
-		Or(
-			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
-			WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).Should(
+		ContainElement(
+			Or(
+				WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
+				WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
+			),
 		))
 }
