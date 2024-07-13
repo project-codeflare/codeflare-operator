@@ -243,7 +243,7 @@ func TestValidateCreate(t *testing.T) {
 						Containers: []corev1.Container{
 							{
 								Name:  oauthProxyContainerName,
-								Image: "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366",
+								Image: OAuthProxyImage,
 								Ports: []corev1.ContainerPort{
 									{ContainerPort: 8443, Name: "oauth-proxy"},
 								},
@@ -363,7 +363,7 @@ func TestValidateUpdate(t *testing.T) {
 						Containers: []corev1.Container{
 							{
 								Name:  oauthProxyContainerName,
-								Image: "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366",
+								Image: OAuthProxyImage,
 								Ports: []corev1.ContainerPort{
 									{ContainerPort: 8443, Name: "oauth-proxy"},
 								},
@@ -414,7 +414,7 @@ func TestValidateUpdate(t *testing.T) {
 						InitContainers: []corev1.Container{
 							{
 								Name:  "create-cert",
-								Image: "",
+								Image: "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
 								Command: []string{
 									"sh",
 									"-c",
@@ -490,7 +490,7 @@ func TestValidateUpdate(t *testing.T) {
 							InitContainers: []corev1.Container{
 								{
 									Name:  "create-cert",
-									Image: "",
+									Image: "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328",
 									Command: []string{
 										"sh",
 										"-c",
