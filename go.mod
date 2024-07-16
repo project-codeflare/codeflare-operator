@@ -9,11 +9,11 @@ require (
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/appwrapper v0.20.2
+	github.com/project-codeflare/appwrapper v0.21.1
 	github.com/project-codeflare/codeflare-common v0.0.0-20240628111341-56c962a09b7e
 	github.com/ray-project/kuberay/ray-operator v1.1.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	k8s.io/api v0.30.1
 	k8s.io/apiextensions-apiserver v0.29.2
 	k8s.io/apimachinery v0.30.1
@@ -22,7 +22,7 @@ require (
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/controller-runtime v0.17.3
-	sigs.k8s.io/kueue v0.7.0
+	sigs.k8s.io/kueue v0.7.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -34,13 +34,18 @@ replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.open
 
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
+// These replace directives support the backlevel go version required by ODH build
+replace github.com/project-codeflare/appwrapper v0.21.1 => github.com/project-codeflare/appwrapper v0.21.2-0.20240712173553-5b007c947b37
+
+replace sigs.k8s.io/kueue v0.7.1 => github.com/opendatahub-io/kueue v0.7.0-odh-test
+
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
