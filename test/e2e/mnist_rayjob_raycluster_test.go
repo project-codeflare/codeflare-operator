@@ -81,13 +81,6 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
 	rayClient := NewRayClusterClient(rayDashboardURL)
 
-	// Wait for Ray job id to be available, this value is needed for writing logs in defer
-	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
-		Should(WithTransform(RayJobId, Not(BeEmpty())))
-
-	// Retrieving the job logs once it has completed or timed out
-	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
-
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
@@ -95,6 +88,15 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
 		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
+
+	WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
+
+	test.T().Logf("Deleting RayCluster %s/%s", rayCluster.Namespace, rayCluster.Name)
+	err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Delete(test.Ctx(), rayCluster.Name, metav1.DeleteOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	test.T().Logf("Waiting for RayCluster %s/%s to be deleted", rayCluster.Namespace, rayCluster.Name)
+	test.Eventually(RayClusters(test, namespace.Name), TestTimeoutShort).Should(BeEmpty())
 }
 
 func TestMnistRayJobRayClusterAppWrapperCpu(t *testing.T) {
@@ -143,11 +145,13 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	awMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
 	test.Expect(err).NotTo(HaveOccurred())
 	unstruct := unstructured.Unstructured{Object: awMap}
-	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
+	unstructp, err := test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.GenerateName)
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructp.Object, aw)
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.GenerateName)
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutMedium).
 		Should(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
@@ -166,13 +170,6 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	test.T().Logf("Connecting to Ray cluster at: %s", rayDashboardURL.String())
 	rayClient := NewRayClusterClient(rayDashboardURL)
 
-	// Wait for Ray job id to be available, this value is needed for writing logs in defer
-	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutShort).
-		Should(WithTransform(RayJobId, Not(BeEmpty())))
-
-	// Retrieving the job logs once it has completed or timed out
-	defer WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
-
 	test.T().Logf("Waiting for RayJob %s/%s to complete", rayJob.Namespace, rayJob.Name)
 	test.Eventually(RayJob(test, rayJob.Namespace, rayJob.Name), TestTimeoutLong).
 		Should(WithTransform(RayJobStatus, Satisfy(rayv1.IsJobTerminal)))
@@ -180,6 +177,15 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	// Assert the Ray job has completed successfully
 	test.Expect(GetRayJob(test, rayJob.Namespace, rayJob.Name)).
 		To(WithTransform(RayJobStatus, Equal(rayv1.JobStatusSucceeded)))
+
+	WriteRayJobAPILogs(test, rayClient, GetRayJobId(test, rayJob.Namespace, rayJob.Name))
+
+	test.T().Logf("Deleting AppWrapper %s/%s", aw.Namespace, aw.Name)
+	err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	test.T().Logf("Waiting for AppWrapper %s/%s to be deleted", aw.Namespace, aw.Name)
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutShort).Should(BeEmpty())
 }
 
 func constructMNISTConfigMap(test Test, namespace *corev1.Namespace) *corev1.ConfigMap {
