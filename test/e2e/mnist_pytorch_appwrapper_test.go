@@ -145,7 +145,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "mnist",
+			GenerateName: "mnist-",
 			Namespace:    namespace.Name,
 			Labels:       map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
@@ -162,15 +162,17 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 	awMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(aw)
 	test.Expect(err).NotTo(HaveOccurred())
 	unstruct := unstructured.Unstructured{Object: awMap}
-	_, err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
+	unstructp, err := test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Create(test.Ctx(), &unstruct, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.GenerateName)
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructp.Object, aw)
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created AppWrapper %s/%s successfully", aw.Namespace, aw.Name)
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.GenerateName)
+	test.T().Logf("Waiting for AppWrapper %s/%s to be running", aw.Namespace, aw.Name)
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutMedium).
 		Should(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to complete", job.Namespace, job.Name)
+	test.T().Logf("Waiting for AppWrapper %s/%s to complete", aw.Namespace, aw.Name)
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).Should(
 		ContainElement(
 			Or(
@@ -178,4 +180,15 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
 				WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
 			),
 		))
+
+	// Assert the AppWrapper has completed successfully
+	test.Expect(AppWrappers(test, namespace)(test)).
+		To(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded))))
+
+	test.T().Logf("Deleting AppWrapper %s/%s", aw.Namespace, aw.Name)
+	err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+
+	test.T().Logf("Waiting for AppWrapper %s/%s to be deleted", aw.Namespace, aw.Name)
+	test.Eventually(AppWrappers(test, namespace), TestTimeoutShort).Should(BeEmpty())
 }
