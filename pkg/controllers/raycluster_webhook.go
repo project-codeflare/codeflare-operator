@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -45,6 +46,7 @@ var rayclusterlog = logf.Log.WithName("raycluster-resource")
 
 func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConfiguration) error {
 	rayClusterWebhookInstance := &rayClusterWebhook{
+		Client: mgr.GetClient(),
 		Config: cfg,
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -58,6 +60,7 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 // +kubebuilder:webhook:path=/validate-ray-io-v1-raycluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=vraycluster.ray.openshift.ai,admissionReviewVersions=v1
 
 type rayClusterWebhook struct {
+	client.Client
 	Config *config.KubeRayConfiguration
 }
 
@@ -75,6 +78,12 @@ func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) err
 		rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), withVolumeName(oauthProxyVolumeName))
 
 		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
+	}
+
+	// add default queue label if not present
+	err := withDefaultLocalQueue(ctx, rayCluster, w.Client)
+	if err != nil {
+		return err
 	}
 
 	if ptr.Deref(w.Config.MTLSEnabled, true) {

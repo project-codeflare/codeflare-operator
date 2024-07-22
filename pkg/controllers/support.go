@@ -1,25 +1,38 @@
 package controllers
 
 import (
+	"context"
 	"os"
+	"strconv"
 
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	networkingv1ac "k8s.io/client-go/applyconfigurations/networking/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 
 	routeapply "github.com/openshift/client-go/route/applyconfigurations/route/v1"
 )
 
 var (
-	CertGeneratorImage = getEnv("CERT_GENERATOR_IMAGE", "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328")
-	OAuthProxyImage    = getEnv("OAUTH_PROXY_IMAGE", "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366")
+	CertGeneratorImage     = getEnv("CERT_GENERATOR_IMAGE", "registry.redhat.io/ubi9@sha256:770cf07083e1c85ae69c25181a205b7cdef63c11b794c89b3b487d4670b4c328")
+	OAuthProxyImage        = getEnv("OAUTH_PROXY_IMAGE", "registry.redhat.io/openshift4/ose-oauth-proxy@sha256:1ea6a01bf3e63cdcf125c6064cbd4a4a270deaf0f157b3eabb78f60556840366")
+	DefaultLocalQueueLabel = "kueue.x-k8s.io/default-queue"
+	LocalQueueLabel        = "kueue.x-k8s.io/queue-name"
 )
+
+type HasMetadata interface {
+	GetObjectMeta() *metav1.ObjectMeta
+}
 
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
@@ -171,4 +184,60 @@ func withEnvVarName(name string) compare[corev1.EnvVar] {
 	return func(e1, e2 corev1.EnvVar) bool {
 		return e1.Name == name
 	}
+}
+
+func withDefaultLocalQueue(ctx context.Context, k8Obj interface{}, c client.Client) error {
+	logger := ctrl.LoggerFrom(ctx)
+	metaAccessor, err := meta.Accessor(k8Obj)
+	if err != nil {
+		logger.Error(err, "Object does not have required metadata")
+		return err
+	}
+	// k8Meta := k8Obj.GetObjectMeta()
+	labels := metaAccessor.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	_, ok := labels[LocalQueueLabel]
+	if ok {
+		return nil
+	}
+
+	// for accessing default Kind and Version
+	emptyLocalQueue := kueuev1beta1.LocalQueue{}
+
+	localQueueMetaList := metav1.PartialObjectMetadataList{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: emptyLocalQueue.APIVersion,
+			Kind:       emptyLocalQueue.Kind,
+		},
+	}
+	err = c.List(ctx, &localQueueMetaList)
+
+	if client.IgnoreNotFound(err) != nil {
+		logger.Error(err, "Failed to list LocalQueues")
+		return err
+	} else if err != nil {
+		logger.Info("LocalQueue CRD not found")
+		return nil
+	}
+
+	for _, localQMeta := range localQueueMetaList.Items {
+		isDefault, ok := localQMeta.Labels[DefaultLocalQueueLabel]
+		if !ok {
+			continue
+		}
+		boolIsDefault, err := strconv.ParseBool(isDefault)
+		if err != nil {
+			logger.Error(err, "Failed to parse bool")
+			continue
+		}
+		if boolIsDefault {
+			labels[LocalQueueLabel] = localQMeta.Name
+			break
+		}
+	}
+	metaAccessor.SetLabels(labels)
+	return nil
 }
