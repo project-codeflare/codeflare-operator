@@ -309,16 +309,15 @@ func TestValidateCreate(t *testing.T) {
 		test.Expect(err).ShouldNot(HaveOccurred(), "Expected no errors on call to ValidateCreate function")
 	})
 
-	// Negative Test: Invalid RayCluster with EnableIngress set to true
-	invalidRayCluster := validRayCluster.DeepCopy()
-
 	t.Run("Negative: Expected errors on call to ValidateCreate function due to EnableIngress set to True", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		invalidRayCluster.Spec.HeadGroupSpec.EnableIngress = support.Ptr(true)
 		_, err := rcWebhook.ValidateCreate(test.Ctx(), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateCreate function due to EnableIngress set to True")
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateCreate function due to manipulated OAuth Proxy Container", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headContainer := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
 			if headContainer.Name == oauthProxyContainerName {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].Args = []string{"--invalid-arg"}
@@ -330,6 +329,7 @@ func TestValidateCreate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateCreate function due to manipulated OAuth Proxy Volume", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headVolume := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes {
 			if headVolume.Name == oauthProxyVolumeName {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes[i].Secret.SecretName = "invalid-secret-name"
@@ -341,6 +341,7 @@ func TestValidateCreate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateCreate function due to manipulated head group service account name", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = "invalid-service-account-name"
 		_, err = rcWebhook.ValidateCreate(test.Ctx(), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateCreate function due to manipulated head group service account name")
@@ -535,17 +536,15 @@ func TestValidateUpdate(t *testing.T) {
 		test.Expect(err).ShouldNot(HaveOccurred(), "Expected no errors on call to ValidateUpdate function")
 	})
 
-	// Negative Test Cases
-	trueBool := true
-	invalidRayCluster := validRayCluster.DeepCopy()
-
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to EnableIngress set to True", func(t *testing.T) {
-		invalidRayCluster.Spec.HeadGroupSpec.EnableIngress = &trueBool
+		invalidRayCluster := validRayCluster.DeepCopy()
+		invalidRayCluster.Spec.HeadGroupSpec.EnableIngress = support.Ptr(true)
 		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to EnableIngress set to True")
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated OAuth Proxy Container", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headContainer := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers {
 			if headContainer.Name == oauthProxyContainerName {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[i].Args = []string{"--invalid-arg"}
@@ -557,6 +556,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated OAuth Proxy Volume", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headVolume := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes {
 			if headVolume.Name == oauthProxyVolumeName {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes[i].Secret.SecretName = "invalid-secret-name"
@@ -568,12 +568,14 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated head group service account name", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = "invalid-service-account-name"
 		_, err := rcWebhook.ValidateUpdate(test.Ctx(), runtime.Object(validRayCluster), runtime.Object(invalidRayCluster))
 		test.Expect(err).Should(HaveOccurred(), "Expected errors on call to ValidateUpdate function due to manipulated head group service account name")
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated Init Container in the head group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headInitContainer := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers {
 			if headInitContainer.Name == "create-cert" {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.InitContainers[i].Command = []string{"manipulated command"}
@@ -585,6 +587,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated Init Container in the worker group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for _, workerGroup := range invalidRayCluster.Spec.WorkerGroupSpecs {
 			for i, workerInitContainer := range workerGroup.Template.Spec.InitContainers {
 				if workerInitContainer.Name == "create-cert" {
@@ -598,6 +601,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated Volume in the head group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headVolume := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes {
 			if headVolume.Name == "ca-vol" {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes[i].Secret.SecretName = "invalid-secret-name"
@@ -609,6 +613,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated Volume in the worker group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for _, workerGroup := range invalidRayCluster.Spec.WorkerGroupSpecs {
 			for i, workerVolume := range workerGroup.Template.Spec.Volumes {
 				if workerVolume.Name == "ca-vol" {
@@ -622,6 +627,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated env vars in the head group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for i, headEnvVar := range invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env {
 			if headEnvVar.Name == "RAY_USE_TLS" {
 				invalidRayCluster.Spec.HeadGroupSpec.Template.Spec.Containers[0].Env[i].Value = "invalid-value"
@@ -633,6 +639,7 @@ func TestValidateUpdate(t *testing.T) {
 	})
 
 	t.Run("Negative: Expected errors on call to ValidateUpdate function due to manipulated env vars in the worker group", func(t *testing.T) {
+		invalidRayCluster := validRayCluster.DeepCopy()
 		for _, workerGroup := range invalidRayCluster.Spec.WorkerGroupSpecs {
 			for i, workerEnvVar := range workerGroup.Template.Spec.Containers[0].Env {
 				if workerEnvVar.Name == "RAY_USE_TLS" {
