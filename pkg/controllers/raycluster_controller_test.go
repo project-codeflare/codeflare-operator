@@ -33,7 +33,7 @@ import (
 
 var _ = Describe("RayCluster controller", func() {
 	Context("RayCluster controller test", func() {
-		var rayClusterName = "test-raycluster"
+		rayClusterName := "test-raycluster"
 		var namespaceName string
 		BeforeEach(func(ctx SpecContext) {
 			By("Creating a namespace for running the tests.")
@@ -145,6 +145,53 @@ var _ = Describe("RayCluster controller", func() {
 			}).WithTimeout(time.Second * 10).Should(WithTransform(OwnerReferenceName, Equal(foundRayCluster.Name)))
 		})
 
+		It("should delete the head pod if missing image pull secrets", func(ctx SpecContext) {
+			foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Eventually(func() (*corev1.ServiceAccount, error) {
+				return k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, oauthServiceAccountNameFromCluster(foundRayCluster), metav1.GetOptions{})
+			}).WithTimeout(time.Second * 10).Should(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+
+			headPodName := "head-pod"
+			headPod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      headPodName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						"ray.io/node-type": "head",
+						"ray.io/cluster":   foundRayCluster.Name,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "head-container",
+							Image: "busybox",
+						},
+					},
+				},
+			}
+			_, err = k8sClient.CoreV1().Pods(namespaceName).Create(ctx, headPod, metav1.CreateOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Eventually(func() (*corev1.Pod, error) {
+				return k8sClient.CoreV1().Pods(namespaceName).Get(ctx, headPodName, metav1.GetOptions{})
+			}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+
+			sa, err := k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, oauthServiceAccountNameFromCluster(foundRayCluster), metav1.GetOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{Name: "test-image-pull-secret"})
+			_, err = k8sClient.CoreV1().ServiceAccounts(namespaceName).Update(ctx, sa, metav1.UpdateOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Eventually(func() error {
+				_, err := k8sClient.CoreV1().Pods(namespaceName).Get(ctx, headPodName, metav1.GetOptions{})
+				return err
+			}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
+		})
+
 		It("should remove CRB when the RayCluster is deleted", func(ctx SpecContext) {
 			foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
 			Expect(err).To(Not(HaveOccurred()))
@@ -157,7 +204,6 @@ var _ = Describe("RayCluster controller", func() {
 				return err
 			}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
 		})
-
 	})
 })
 
