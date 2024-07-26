@@ -213,6 +213,10 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
+		if err := r.deleteHeadPodIfMissingImagePullSecrets(ctx, cluster); err != nil {
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+
 		_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
 			logger.Error(err, "Failed to update OAuth ClusterRoleBinding")
@@ -470,6 +474,7 @@ func generateCACertificate() ([]byte, []byte, error) {
 
 	return privateKeyPem, certPem, nil
 }
+
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
@@ -486,6 +491,7 @@ func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.Netw
 			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
 		)
 }
+
 func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	allSecuredPorts := []*networkingv1ac.NetworkPolicyPortApplyConfiguration{
 		networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
@@ -544,6 +550,49 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 		)
 }
 
+func (r *RayClusterReconciler) deleteHeadPodIfMissingImagePullSecrets(ctx context.Context, cluster *rayv1.RayCluster) error {
+	serviceAccount, err := r.kubeClient.CoreV1().ServiceAccounts(cluster.Namespace).Get(ctx, oauthServiceAccountNameFromCluster(cluster), metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get OAuth ServiceAccount: %w", err)
+	}
+
+	headPod, err := getHeadPod(ctx, r, cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get head pod: %w", err)
+	}
+
+	if headPod == nil {
+		return nil
+	}
+
+	missingSecrets := map[string]bool{}
+	for _, secret := range serviceAccount.ImagePullSecrets {
+		missingSecrets[secret.Name] = true
+	}
+	for _, secret := range headPod.Spec.ImagePullSecrets {
+		delete(missingSecrets, secret.Name)
+	}
+	if len(missingSecrets) > 0 {
+		if err := r.kubeClient.CoreV1().Pods(headPod.Namespace).Delete(ctx, headPod.Name, metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("failed to delete head pod: %w", err)
+		}
+	}
+	return nil
+}
+
+func getHeadPod(ctx context.Context, r *RayClusterReconciler, cluster *rayv1.RayCluster) (*corev1.Pod, error) {
+	podList, err := r.kubeClient.CoreV1().Pods(cluster.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("ray.io/node-type=head,ray.io/cluster=%s", cluster.Name),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(podList.Items) > 0 {
+		return &podList.Items[0], nil
+	}
+	return nil, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.kubeClient = kubernetes.NewForConfigOrDie(mgr.GetConfig())
@@ -577,7 +626,8 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					NamespacedName: client.ObjectKey{
 						Name:      name,
 						Namespace: namespace,
-					}}}
+					},
+				}}
 			}),
 		)
 	if r.IsOpenShift {
