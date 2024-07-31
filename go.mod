@@ -9,7 +9,7 @@ require (
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
-	github.com/project-codeflare/appwrapper v0.22.0
+	github.com/project-codeflare/appwrapper v0.23.0
 	github.com/project-codeflare/codeflare-common v0.0.0-20240628111341-56c962a09b7e
 	github.com/ray-project/kuberay/ray-operator v1.1.1
 	go.uber.org/zap v1.27.0
@@ -35,7 +35,7 @@ replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.open
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
 // These replace directives support the backlevel go version required by ODH build
-replace github.com/project-codeflare/appwrapper v0.22.0 => github.com/project-codeflare/appwrapper v0.22.1-0.20240719212005-aab106b2126e
+replace github.com/project-codeflare/appwrapper v0.23.0 => github.com/project-codeflare/appwrapper v0.23.1-0.20240731154950-ad486fb7e7ee
 
 replace sigs.k8s.io/kueue v0.7.1 => github.com/opendatahub-io/kueue v0.7.0-odh-test
 
