@@ -3,11 +3,13 @@ package controllers
 import (
 	"os"
 
+	"github.com/go-logr/logr"
 	rayv1 "github.com/ray-project/kuberay/ray-operator/apis/ray/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -171,4 +173,42 @@ func withEnvVarName(name string) compare[corev1.EnvVar] {
 	return func(e1, e2 corev1.EnvVar) bool {
 		return e1.Name == name
 	}
+}
+
+// logSink implements a log sink with an error log filter
+type logSink struct {
+	sink logr.LogSink
+}
+
+func (l logSink) Init(info logr.RuntimeInfo) {
+	l.sink.Init(info)
+}
+
+func (l logSink) Enabled(level int) bool {
+	return l.sink.Enabled(level)
+}
+func (l logSink) Info(level int, msg string, keysAndValues ...any) {
+	l.sink.Info(level, msg, keysAndValues...)
+}
+
+func (l logSink) Error(err error, msg string, keysAndValues ...any) {
+	// downgrade StatusReasonConflict errors to debug messages
+	if errors.IsConflict(err) {
+		l.sink.Info(1, msg, append(keysAndValues, "error", err.Error())...)
+	} else {
+		l.sink.Error(err, msg, keysAndValues...)
+	}
+}
+
+func (l logSink) WithValues(keysAndValues ...any) logr.LogSink {
+	return logSink{l.sink.WithValues(keysAndValues...)}
+}
+
+func (l logSink) WithName(name string) logr.LogSink {
+	return logSink{l.sink.WithName(name)}
+}
+
+// FilteredLogger returns a copy of the logger with an error log filter
+func FilteredLogger(logger logr.Logger) logr.Logger {
+	return logger.WithSink(logSink{logger.GetSink()})
 }
