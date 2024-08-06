@@ -248,7 +248,7 @@ func setupRayClusterController(mgr ctrl.Manager, cfg *config.CodeFlareOperatorCo
 	<-certsReady
 	setupLog.Info("Certs ready")
 
-	err := controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay)
+	err := controllers.SetupRayClusterWebhookWithManager(mgr, cfg.KubeRay, OperatorVersion)
 	if err != nil {
 		return err
 	}
