@@ -304,7 +304,7 @@ func isMTLSEnabled(cfg *config.KubeRayConfiguration) bool {
 }
 
 func crbNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-" + cluster.Namespace + "-auth" // NOTE: potential naming conflicts ie {name: foo, ns: bar-baz} and {name: foo-bar, ns: baz}
+	return getUniqueName(cluster.Name + "-" + cluster.Namespace + "-auth")
 }
 
 func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.ClusterRoleBindingApplyConfiguration {
@@ -326,7 +326,7 @@ func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.Cluster
 }
 
 func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth-proxy"
+	return getUniqueName(cluster.Name + "-oauth-proxy")
 }
 
 func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountApplyConfiguration {
@@ -341,11 +341,11 @@ func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountAp
 }
 
 func dashboardNameFromCluster(cluster *rayv1.RayCluster) string {
-	return "ray-dashboard-" + cluster.Name
+	return getUniqueName("ray-dashboard-" + cluster.Name)
 }
 
 func rayClientNameFromCluster(cluster *rayv1.RayCluster) string {
-	return "rayclient-" + cluster.Name
+	return getUniqueName("rayclient-" + cluster.Name)
 }
 
 func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfiguration {
@@ -363,11 +363,11 @@ func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfigu
 }
 
 func oauthServiceNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth"
+	return getUniqueName(cluster.Name + "-oauth")
 }
 
 func oauthServiceTLSSecretName(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-proxy-tls-secret"
+	return getUniqueName(cluster.Name + "-proxy-tls-secret")
 }
 
 func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfiguration {
@@ -389,7 +389,7 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfig
 }
 
 func oauthSecretNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth-config"
+	return getUniqueName(cluster.Name + "-oauth-config")
 }
 
 // desiredOAuthSecret defines the desired OAuth secret object
@@ -406,7 +406,7 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.
 }
 
 func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
-	return "ca-secret-" + cluster.Name
+	return getUniqueName("ca-secret-" + cluster.Name)
 }
 
 func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.SecretApplyConfiguration {
@@ -463,7 +463,9 @@ func generateCACertificate() ([]byte, []byte, error) {
 }
 
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
-	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
+	return networkingv1ac.NetworkPolicy(
+		getUniqueName(cluster.Name+"-workers"), cluster.Namespace,
+	).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
@@ -484,7 +486,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 	if ptr.Deref(cfg.MTLSEnabled, true) {
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
-	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
+	return networkingv1ac.NetworkPolicy(getUniqueName(cluster.Name+"-head"), cluster.Namespace).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
