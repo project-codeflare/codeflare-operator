@@ -38,14 +38,16 @@ const (
 	oauthProxyContainerName = "oauth-proxy"
 	oauthProxyVolumeName    = "proxy-tls-secret"
 	initContainerName       = "create-cert"
+	versionAnnotation       = "ray.openshift.ai/version"
 )
 
 // log is for logging in this package.
 var rayclusterlog = logf.Log.WithName("raycluster-resource")
 
-func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConfiguration) error {
+func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConfiguration, operatorVersion string) error {
 	rayClusterWebhookInstance := &rayClusterWebhook{
-		Config: cfg,
+		Config:          cfg,
+		OperatorVersion: operatorVersion,
 	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&rayv1.RayCluster{}).
@@ -58,7 +60,8 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 // +kubebuilder:webhook:path=/validate-ray-io-v1-raycluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=vraycluster.ray.openshift.ai,admissionReviewVersions=v1
 
 type rayClusterWebhook struct {
-	Config *config.KubeRayConfiguration
+	Config          *config.KubeRayConfiguration
+	OperatorVersion string
 }
 
 var _ webhook.CustomDefaulter = &rayClusterWebhook{}
@@ -66,15 +69,24 @@ var _ webhook.CustomValidator = &rayClusterWebhook{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (w *rayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
+	logger := ctrl.LoggerFrom(ctx)
 	rayCluster := obj.(*rayv1.RayCluster)
 
+	// add annotation to use new names
+	annotations := rayCluster.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[versionAnnotation] = w.OperatorVersion
+	rayCluster.SetAnnotations(annotations)
+	logger.Info("Ray Cluster annotations", "annotations", rayCluster.GetAnnotations())
 	if ptr.Deref(w.Config.RayDashboardOAuthEnabled, true) {
 		rayclusterlog.V(2).Info("Adding OAuth sidecar container")
 		rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Containers, oauthProxyContainer(rayCluster), withContainerName(oauthProxyContainerName))
 
 		rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes = upsert(rayCluster.Spec.HeadGroupSpec.Template.Spec.Volumes, oauthProxyTLSSecretVolume(rayCluster), withVolumeName(oauthProxyVolumeName))
 
-		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = rayCluster.Name + "-oauth-proxy"
+		rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName = oauthServiceAccountNameFromCluster(rayCluster)
 	}
 
 	if ptr.Deref(w.Config.MTLSEnabled, true) {
@@ -218,7 +230,7 @@ func validateIngress(rayCluster *rayv1.RayCluster) field.ErrorList {
 func validateHeadGroupServiceAccountName(rayCluster *rayv1.RayCluster) field.ErrorList {
 	var allErrors field.ErrorList
 
-	if rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName != rayCluster.Name+"-oauth-proxy" {
+	if rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName != oauthServiceAccountNameFromCluster(rayCluster) {
 		allErrors = append(allErrors, field.Invalid(
 			field.NewPath("spec", "headGroupSpec", "template", "spec", "serviceAccountName"),
 			rayCluster.Spec.HeadGroupSpec.Template.Spec.ServiceAccountName,
@@ -241,7 +253,7 @@ func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: rayCluster.Name + "-oauth-config",
+							Name: oauthSecretNameFromCluster(rayCluster),
 						},
 						Key: "cookie_secret",
 					},
@@ -251,7 +263,7 @@ func oauthProxyContainer(rayCluster *rayv1.RayCluster) corev1.Container {
 		Args: []string{
 			"--https-address=:8443",
 			"--provider=openshift",
-			"--openshift-service-account=" + rayCluster.Name + "-oauth-proxy",
+			"--openshift-service-account=" + oauthServiceAccountNameFromCluster(rayCluster),
 			"--upstream=http://localhost:8265",
 			"--tls-cert=/etc/tls/private/tls.crt",
 			"--tls-key=/etc/tls/private/tls.key",
@@ -273,7 +285,7 @@ func oauthProxyTLSSecretVolume(rayCluster *rayv1.RayCluster) corev1.Volume {
 		Name: oauthProxyVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: rayCluster.Name + "-proxy-tls-secret",
+				SecretName: oauthServiceTLSSecretName(rayCluster),
 			},
 		},
 	}
@@ -329,7 +341,7 @@ func caVolumes(rayCluster *rayv1.RayCluster) []corev1.Volume {
 			Name: "ca-vol",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: `ca-secret-` + rayCluster.Name,
+					SecretName: caSecretNameFromCluster(rayCluster),
 				},
 			},
 		},
@@ -343,9 +355,9 @@ func caVolumes(rayCluster *rayv1.RayCluster) []corev1.Volume {
 }
 
 func rayHeadInitContainer(rayCluster *rayv1.RayCluster, config *config.KubeRayConfiguration) corev1.Container {
-	rayClientRoute := "rayclient-" + rayCluster.Name + "-" + rayCluster.Namespace + "." + config.IngressDomain
+	rayClientRoute := rayClientNameFromCluster(rayCluster) + "-" + rayCluster.Namespace + "." + config.IngressDomain
 	// Service name for basic interactive
-	svcDomain := rayCluster.Name + "-head-svc." + rayCluster.Namespace + ".svc"
+	svcDomain := serviceNameFromCluster(rayCluster) + "." + rayCluster.Namespace + ".svc"
 
 	initContainerHead := corev1.Container{
 		Name:  "create-cert",
