@@ -337,9 +337,7 @@ func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountAp
 				`{"kind":"OAuthRedirectReference","apiVersion":"v1",` +
 				`"reference":{"kind":"Route","name":"` + dashboardNameFromCluster(cluster) + `"}}`,
 		}).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func dashboardNameFromCluster(cluster *rayv1.RayCluster) string {
@@ -361,9 +359,7 @@ func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfigu
 				WithTermination(routev1.TLSTerminationReencrypt),
 			),
 		).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func oauthServiceNameFromCluster(cluster *rayv1.RayCluster) string {
@@ -389,9 +385,7 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfig
 				).
 				WithSelector(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"}),
 		).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func oauthSecretNameFromCluster(cluster *rayv1.RayCluster) string {
@@ -408,9 +402,7 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.
 	return corev1ac.Secret(oauthSecretNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithStringData(map[string]string{"cookie_secret": cookieSecret}).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
@@ -424,12 +416,7 @@ func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.Secr
 			CAPrivateKeyKey: key,
 			CACertKey:       cert,
 		}).
-		WithOwnerReferences(metav1ac.OwnerReference().
-			WithUID(cluster.UID).
-			WithName(cluster.Name).
-			WithKind(cluster.Kind).
-			WithAPIVersion(cluster.APIVersion).
-			WithController(true))
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func generateCACertificate() ([]byte, []byte, error) {
@@ -487,9 +474,7 @@ func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.Netw
 					),
 			),
 		).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
@@ -545,9 +530,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 					),
 			),
 		).
-		WithOwnerReferences(
-			metav1ac.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func (r *RayClusterReconciler) deleteHeadPodIfMissingImagePullSecrets(ctx context.Context, cluster *rayv1.RayCluster) error {

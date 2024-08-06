@@ -42,9 +42,7 @@ func desiredRayClientRoute(cluster *rayv1.RayCluster) *routeapply.RouteApplyConf
 			WithPort(routeapply.RoutePort().WithTargetPort(intstr.FromString("client"))).
 			WithTLS(routeapply.TLSConfig().WithTermination("passthrough")),
 		).
-		WithOwnerReferences(
-			v1.OwnerReference().WithUID(cluster.UID).WithName(cluster.Name).WithKind(cluster.Kind).WithAPIVersion(cluster.APIVersion).WithController(true),
-		)
+		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
 func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
@@ -55,12 +53,7 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 			"nginx.ingress.kubernetes.io/ssl-redirect":    "true",
 			"nginx.ingress.kubernetes.io/ssl-passthrough": "true",
 		}).
-		WithOwnerReferences(v1.OwnerReference().
-			WithAPIVersion(cluster.APIVersion).
-			WithKind(cluster.Kind).
-			WithName(cluster.Name).
-			WithUID(cluster.UID).
-			WithController(true)).
+		WithOwnerReferences(ownerRefForRayCluster(cluster)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithIngressClassName("nginx").
 			WithRules(networkingv1ac.IngressRule().
@@ -86,12 +79,7 @@ func desiredRayClientIngress(cluster *rayv1.RayCluster, ingressHost string) *net
 func desiredClusterIngress(cluster *rayv1.RayCluster, ingressHost string) *networkingv1ac.IngressApplyConfiguration {
 	return networkingv1ac.Ingress(dashboardNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
-		WithOwnerReferences(v1.OwnerReference().
-			WithAPIVersion(cluster.APIVersion).
-			WithKind(cluster.Kind).
-			WithName(cluster.Name).
-			WithUID(cluster.UID).
-			WithController(true)).
+		WithOwnerReferences(ownerRefForRayCluster(cluster)).
 		WithSpec(networkingv1ac.IngressSpec().
 			WithRules(networkingv1ac.IngressRule().
 				WithHost(ingressHost). // Full Hostname
@@ -211,4 +199,13 @@ func (l logSink) WithName(name string) logr.LogSink {
 // FilteredLogger returns a copy of the logger with an error log filter
 func FilteredLogger(logger logr.Logger) logr.Logger {
 	return logger.WithSink(logSink{logger.GetSink()})
+}
+
+func ownerRefForRayCluster(cluster *rayv1.RayCluster) *v1.OwnerReferenceApplyConfiguration {
+	return v1.OwnerReference().
+		WithAPIVersion(cluster.APIVersion).
+		WithKind(cluster.Kind).
+		WithName(cluster.Name).
+		WithUID(cluster.UID).
+		WithController(true)
 }
