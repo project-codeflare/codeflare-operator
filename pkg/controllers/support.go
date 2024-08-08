@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -208,4 +210,17 @@ func ownerRefForRayCluster(cluster *rayv1.RayCluster) *v1.OwnerReferenceApplyCon
 		WithName(cluster.Name).
 		WithUID(cluster.UID).
 		WithController(true)
+}
+
+var (
+	hashConstant = "codeflare-operator"
+	hashLength   = 8
+)
+
+func controllerSpecificHash(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(hashConstant+s)))[:hashLength]
+}
+
+func getUniqueName(s string) string {
+	return s + "-" + controllerSpecificHash(s)
 }
