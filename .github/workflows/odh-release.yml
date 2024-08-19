@@ -39,7 +39,6 @@ jobs:
     - name: Compile tests
       run: |
         go test -c -o compiled-tests/e2e ./test/e2e/
-        go test -c -o compiled-tests/odh ./test/odh/
 
     - name: Creates a release in GitHub
       run: |
