@@ -240,7 +240,7 @@ GH_CLI ?= $(LOCALBIN)/gh
 SED ?= /usr/bin/sed
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v4.5.4
+KUSTOMIZE_VERSION ?= v5.4.3
 CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 YQ_VERSION ?= v4.35.2 ## latest version that works with go1.20

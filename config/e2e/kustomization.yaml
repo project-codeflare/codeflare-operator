@@ -1,6 +1,6 @@
 namespace: openshift-operators
 
-bases:
+resources:
 - config.yaml
 - ../default
 
