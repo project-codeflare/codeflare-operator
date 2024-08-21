@@ -116,7 +116,7 @@ func main() {
 	zapOptions.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
+	ctrl.SetLogger(controllers.FilteredLogger(zap.New(zap.UseFlagOptions(&zapOptions))))
 	klog.SetLogger(ctrl.Log)
 
 	setupLog.Info("Build info",
