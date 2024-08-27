@@ -68,6 +68,7 @@ do
 done
 echo ""
 
+sleep 5
 echo Creating Kueue ResourceFlavor and ClusterQueue
 cat <<EOF | kubectl apply -f -
 apiVersion: kueue.x-k8s.io/v1beta1
