@@ -5,6 +5,7 @@ approvers:
   - kpostoffice
   - sutaakar
   - tedhtchang
+  - varshaprasad96
 
 reviewers:
   - astefanutti
@@ -16,6 +17,7 @@ reviewers:
   - kpostoffice
   - sutaakar
   - tedhtchang
+  - varshaprasad96
 
 emeritus_approvers:
   - anishasthana # 2024-07-02
