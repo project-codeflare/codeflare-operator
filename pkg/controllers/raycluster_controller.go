@@ -114,6 +114,12 @@ var (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.3/pkg/reconcile
 
+func shouldUseOldName(cluster *rayv1.RayCluster) bool {
+	// hashed name code was added in the same commit as the version annotation
+	_, ok := cluster.GetAnnotations()[versionAnnotation]
+	return !ok
+}
+
 func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
@@ -304,7 +310,10 @@ func isMTLSEnabled(cfg *config.KubeRayConfiguration) bool {
 }
 
 func crbNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-" + cluster.Namespace + "-auth" // NOTE: potential naming conflicts ie {name: foo, ns: bar-baz} and {name: foo-bar, ns: baz}
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-" + cluster.Namespace + "-auth"
+	}
+	return RCCUniqueName(cluster.Name + "-" + cluster.Namespace + "-auth")
 }
 
 func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.ClusterRoleBindingApplyConfiguration {
@@ -326,7 +335,10 @@ func desiredOAuthClusterRoleBinding(cluster *rayv1.RayCluster) *rbacv1ac.Cluster
 }
 
 func oauthServiceAccountNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth-proxy"
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-oauth-proxy"
+	}
+	return RCCUniqueName(cluster.Name + "-oauth-proxy")
 }
 
 func desiredServiceAccount(cluster *rayv1.RayCluster) *corev1ac.ServiceAccountApplyConfiguration {
@@ -363,11 +375,17 @@ func desiredClusterRoute(cluster *rayv1.RayCluster) *routev1ac.RouteApplyConfigu
 }
 
 func oauthServiceNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth"
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-oauth"
+	}
+	return RCCUniqueName(cluster.Name + "-oauth")
 }
 
 func oauthServiceTLSSecretName(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-proxy-tls-secret"
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-proxy-tls-secret"
+	}
+	return RCCUniqueName(cluster.Name + "-proxy-tls-secret")
 }
 
 func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfiguration {
@@ -389,7 +407,10 @@ func desiredOAuthService(cluster *rayv1.RayCluster) *corev1ac.ServiceApplyConfig
 }
 
 func oauthSecretNameFromCluster(cluster *rayv1.RayCluster) string {
-	return cluster.Name + "-oauth-config"
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-oauth-config"
+	}
+	return RCCUniqueName(cluster.Name + "-oauth-config")
 }
 
 // desiredOAuthSecret defines the desired OAuth secret object
@@ -406,7 +427,10 @@ func desiredOAuthSecret(cluster *rayv1.RayCluster, cookieSalt string) *corev1ac.
 }
 
 func caSecretNameFromCluster(cluster *rayv1.RayCluster) string {
-	return "ca-secret-" + cluster.Name
+	if shouldUseOldName(cluster) {
+		return "ca-secret-" + cluster.Name
+	}
+	return RCCUniqueName(cluster.Name + "-ca-secret")
 }
 
 func desiredCASecret(cluster *rayv1.RayCluster, key, cert []byte) *corev1ac.SecretApplyConfiguration {
@@ -462,8 +486,17 @@ func generateCACertificate() ([]byte, []byte, error) {
 	return privateKeyPem, certPem, nil
 }
 
+func workerNWPNameFromCluster(cluster *rayv1.RayCluster) string {
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-workers"
+	}
+	return RCCUniqueName(cluster.Name + "-workers")
+}
+
 func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.NetworkPolicyApplyConfiguration {
-	return networkingv1ac.NetworkPolicy(cluster.Name+"-workers", cluster.Namespace).
+	return networkingv1ac.NetworkPolicy(
+		workerNWPNameFromCluster(cluster), cluster.Namespace,
+	).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "worker"})).
@@ -477,6 +510,13 @@ func desiredWorkersNetworkPolicy(cluster *rayv1.RayCluster) *networkingv1ac.Netw
 		WithOwnerReferences(ownerRefForRayCluster(cluster))
 }
 
+func headNWPNameFromCluster(cluster *rayv1.RayCluster) string {
+	if shouldUseOldName(cluster) {
+		return cluster.Name + "-head"
+	}
+	return RCCUniqueName(cluster.Name + "-head")
+}
+
 func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConfiguration, kubeRayNamespaces []string) *networkingv1ac.NetworkPolicyApplyConfiguration {
 	allSecuredPorts := []*networkingv1ac.NetworkPolicyPortApplyConfiguration{
 		networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(8443)),
@@ -484,7 +524,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 	if ptr.Deref(cfg.MTLSEnabled, true) {
 		allSecuredPorts = append(allSecuredPorts, networkingv1ac.NetworkPolicyPort().WithProtocol(corev1.ProtocolTCP).WithPort(intstr.FromInt(10001)))
 	}
-	return networkingv1ac.NetworkPolicy(cluster.Name+"-head", cluster.Namespace).
+	return networkingv1ac.NetworkPolicy(headNWPNameFromCluster(cluster), cluster.Namespace).
 		WithLabels(map[string]string{RayClusterNameLabel: cluster.Name}).
 		WithSpec(networkingv1ac.NetworkPolicySpec().
 			WithPodSelector(metav1ac.LabelSelector().WithMatchLabels(map[string]string{"ray.io/cluster": cluster.Name, "ray.io/node-type": "head"})).
@@ -618,4 +658,8 @@ func (r *RayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return controller.Complete(r)
+}
+
+func RCCUniqueName(s string) string {
+	return s + "-" + seededHash(controllerName, s)
 }

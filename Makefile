@@ -12,7 +12,7 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # APPWRAPPER_VERSION defines the default version of the AppWrapper controller
-APPWRAPPER_VERSION ?= v0.23.0
+APPWRAPPER_VERSION ?= v0.24.0
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
@@ -245,7 +245,7 @@ GH_CLI ?= $(LOCALBIN)/gh
 SED ?= /usr/bin/sed
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v4.5.4
+KUSTOMIZE_VERSION ?= v5.4.3
 CODEGEN_VERSION ?= v0.27.2
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
 YQ_VERSION ?= v4.35.2 ## latest version that works with go1.20
