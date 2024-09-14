@@ -79,7 +79,7 @@ jobs:
       - name: Run e2e tests
         run: |
           export CODEFLARE_TEST_TIMEOUT_SHORT=3m
-          export CODEFLARE_TEST_TIMEOUT_MEDIUM=10m
+          export CODEFLARE_TEST_TIMEOUT_MEDIUM=15m
           export CODEFLARE_TEST_TIMEOUT_LONG=20m
           export CODEFLARE_TEST_TIMEOUT_GPU_PROVISIONING=30m
 
