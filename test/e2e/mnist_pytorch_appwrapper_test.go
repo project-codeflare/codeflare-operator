@@ -28,23 +28,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
 func TestMnistPyTorchAppWrapperCpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "cpu")
+	runMnistPyTorchAppWrapper(t, "cpu", 0)
 }
 
 func TestMnistPyTorchAppWrapperGpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "gpu")
+	runMnistPyTorchAppWrapper(t, "gpu", 1)
 }
 
 // Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
-func runMnistPyTorchAppWrapper(t *testing.T, accelerator string) {
+func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
 	test := With(t)
 
-	// Create a namespace and localqueue in that namespace
+	// Create a namespace
 	namespace := test.NewTestNamespace()
-	localQueue := CreateKueueLocalQueue(test, namespace.Name, "e2e-cluster-queue")
+
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
+	defer test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+	defer test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Test configuration
 	config := &corev1.ConfigMap{
