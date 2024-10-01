@@ -11,7 +11,7 @@ require (
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.25.0
-	github.com/project-codeflare/codeflare-common v0.0.0-20240927111823-758dad4e90d0
+	github.com/project-codeflare/codeflare-common v0.0.0-20240930133152-11fd6e3be6b3
 	github.com/ray-project/kuberay/ray-operator v1.1.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
@@ -40,8 +40,6 @@ replace github.com/project-codeflare/appwrapper v0.25.0 => github.com/project-co
 
 // These replace directives deal with the backlevel ODH kueue version
 replace sigs.k8s.io/kueue v0.8.1 => github.com/opendatahub-io/kueue v0.7.0-odh-2
-
-replace github.com/prometheus/common v0.57.0 => github.com/prometheus/common v0.46.0
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -88,7 +86,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.411 // indirect
 	github.com/openshift/custom-resource-status v1.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.20.2 // indirect
+	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.57.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
