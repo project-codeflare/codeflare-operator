@@ -11,7 +11,7 @@ require (
 	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.25.0
-	github.com/project-codeflare/codeflare-common v0.0.0-20240628111341-56c962a09b7e
+	github.com/project-codeflare/codeflare-common v0.0.0-20240927111823-758dad4e90d0
 	github.com/ray-project/kuberay/ray-operator v1.1.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
