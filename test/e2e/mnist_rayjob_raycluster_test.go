@@ -428,6 +428,7 @@ func getRayDashboardURL(test Test, namespace, rayClusterName string) string {
 }
 
 // Create ClusterQueue
+// Test
 func createClusterQueue(test Test, resourceFlavor *v1beta1.ResourceFlavor, numberOfGpus int) *v1beta1.ClusterQueue {
 	cqSpec := v1beta1.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
