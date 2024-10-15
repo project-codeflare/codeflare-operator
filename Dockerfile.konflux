@@ -1,9 +1,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
-ARG CI_CONTAINER_VERSION="unknown"
 
 FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder@sha256:9576ac41e16b2262d2871a4064394d650d73221ceb07d1877772fbe98c6f0b6f AS golang
-
 
 FROM registry.access.redhat.com/ubi8/ubi@sha256:a965f33ee4ee57dc8e40a1f9350ddf28ed0727b6cf80db46cdad0486a7580f9d AS builder
 
@@ -33,7 +31,6 @@ RUN go mod download
 # Copy the go source
 COPY . .
 
-
 # Copy the Go sources
 COPY main.go main.go
 COPY pkg/ pkg/
@@ -44,7 +41,6 @@ RUN git config --global --add safe.directory /workspace
 USER root
 
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags strictfipsruntime -a -o manager main.go
-
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:7583ca0ea52001562bd81a961da3f75222209e6192e4e413ee226cff97dbd48c
 WORKDIR /
