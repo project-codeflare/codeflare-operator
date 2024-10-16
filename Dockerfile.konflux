@@ -3,7 +3,8 @@ ARG SOURCE_CODE=.
 
 FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder@sha256:9576ac41e16b2262d2871a4064394d650d73221ceb07d1877772fbe98c6f0b6f AS golang
 
-FROM registry.access.redhat.com/ubi8/ubi@sha256:a965f33ee4ee57dc8e40a1f9350ddf28ed0727b6cf80db46cdad0486a7580f9d AS builder
+FROM registry.redhat.io/ubi8/ubi@sha256:a965f33ee4ee57dc8e40a1f9350ddf28ed0727b6cf80db46cdad0486a7580f9d AS builder
+
 
 ARG GOLANG_VERSION=1.22.2
 
