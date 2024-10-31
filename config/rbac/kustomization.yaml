@@ -9,3 +9,5 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
+- appwrapper_editor_role.yaml
+- appwrapper_viewer_role.yaml
