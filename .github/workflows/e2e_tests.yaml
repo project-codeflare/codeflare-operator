@@ -76,6 +76,29 @@ jobs:
           make deploy -e IMG="${IMG}" -e ENV="e2e"
           kubectl wait --timeout=120s --for=condition=Available=true deployment -n openshift-operators codeflare-operator-manager
 
+      - name: Add user to KinD
+        uses: ./common/github-actions/kind-add-user
+        with:
+          user-name: test-user
+
+      - name: Configure RBAC for test user to use namespaced admin role
+        run: |
+          kubectl create clusterrole namespace-creator --verb=get,list,create,delete,patch --resource=namespaces
+          kubectl create clusterrolebinding test-user-namespace-creator --clusterrole=namespace-creator --user=test-user
+          kubectl create clusterrole resourceflavor-creator --verb=get,list,create,delete --resource=resourceflavors
+          kubectl create clusterrolebinding test-user-resourceflavor-creator --clusterrole=resourceflavor-creator --user=test-user
+          kubectl create clusterrole clusterqueue-creator --verb=get,list,create,delete,patch --resource=clusterqueues
+          kubectl create clusterrolebinding test-user-clusterqueue-creator --clusterrole=clusterqueue-creator --user=test-user
+          kubectl create clusterrole localqueue-creator --verb=get,list,create,delete,patch --resource=localqueues
+          kubectl create clusterrolebinding test-user-localqueue-creator --clusterrole=localqueue-creator --user=test-user
+          kubectl create clusterrole event-creator --verb=get,list,create,delete,patch --resource=events.events.k8s.io
+          kubectl create clusterrolebinding test-user-event-creator --clusterrole=event-creator --user=test-user
+
+          kubectl create clusterrolebinding test-user-namespaced-admin --clusterrole=admin --user=test-user
+
+      - name: Switch to test-user for test execution
+        run: kubectl config use-context test-user
+
       - name: Run e2e tests
         run: |
           export CODEFLARE_TEST_TIMEOUT_SHORT=3m
@@ -87,6 +110,10 @@ jobs:
 
           set -euo pipefail
           go test -timeout 60m -v -skip "^Test.*Cpu$" ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+
+      - name: Switch to kind-cluster context to print logs
+        if: always() && steps.deploy.outcome == 'success'
+        run: kubectl config use-context kind-cluster
 
       - name: Print CodeFlare operator logs
         if: always() && steps.deploy.outcome == 'success'
