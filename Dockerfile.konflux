@@ -1,23 +1,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.22.2@sha256:9576ac41e16b2262d2871a4064394d650d73221ceb07d1877772fbe98c6f0b6f AS golang
-
-FROM registry.redhat.io/ubi8/ubi@sha256:8990388831e1b41c9a67389e4b691dae8b1283f77d5fb7263e1f4fc69c0a9d05 AS builder
-
-ARG GOLANG_VERSION=1.22.2
-
-RUN dnf upgrade -y && dnf install -y \
-   gcc \
-   make \
-   openssl-devel \
-   git \
-  && dnf clean all && rm -rf /var/cache/yum
-
-# Install Go
-ENV PATH=/usr/local/go/bin:$PATH
-
-COPY --from=golang /usr/lib/golang /usr/local/go
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22@sha256:780ab5f3874a6e2b1e04bb3719e614e835af3f8ab150922d6e84c2f9fd2bdb27 AS builder
 
 WORKDIR /workspace
 
