@@ -21,7 +21,7 @@ KUEUE_VERSION ?= v0.8.3
 
 USE_RHOAI ?= true
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
-KUBERAY_VERSION ?= v1.1.0
+KUBERAY_VERSION ?= v1.2.1
 
 # RAY_VERSION defines the default version of Ray (used for testing)
 RAY_VERSION ?= 2.5.0

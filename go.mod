@@ -8,11 +8,11 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/open-policy-agent/cert-controller v0.10.1
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
-	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
+	github.com/openshift/api v0.0.0-20240625084701-0689f006bcde
 	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
 	github.com/project-codeflare/appwrapper v0.27.1-0.20241118170252-7cbccf8634cf
 	github.com/project-codeflare/codeflare-common v0.0.0-20240930133152-11fd6e3be6b3
-	github.com/ray-project/kuberay/ray-operator v1.1.1
+	github.com/ray-project/kuberay/ray-operator v1.2.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	k8s.io/api v0.30.2
@@ -35,8 +35,11 @@ replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.open
 
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
-// These replace directives deal with the backlevel ODH kueue version
-replace sigs.k8s.io/kueue v0.8.3 => github.com/opendatahub-io/kueue v0.7.0-odh-2
+// Use the ODH fork of Kueue
+replace sigs.k8s.io/kueue v0.8.3 => github.com/opendatahub-io/kueue v0.8.3
+
+// Hack to avoid picking up newer openshift/api version from kuberay 1.2.1
+replace github.com/openshift/api v0.0.0-20240625084701-0689f006bcde => github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
