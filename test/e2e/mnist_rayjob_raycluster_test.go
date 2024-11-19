@@ -135,6 +135,9 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 
 	// Create RayCluster, wrap in AppWrapper and assign to localqueue
 	rayCluster := constructRayCluster(test, namespace, mnist, numberOfGpus)
+	raw := Raw(test, rayCluster)
+	raw = RemoveCreationTimestamp(test, raw)
+
 	aw := &mcadv1beta2.AppWrapper{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: mcadv1beta2.GroupVersion.String(),
@@ -148,7 +151,7 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
 				{
-					Template: Raw(test, rayCluster),
+					Template: raw,
 				},
 			},
 		},
