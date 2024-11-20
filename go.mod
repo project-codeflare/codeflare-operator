@@ -1,6 +1,6 @@
 module github.com/project-codeflare/codeflare-operator
 
-go 1.22.2
+go 1.22.4
 
 require (
 	github.com/go-logr/logr v1.4.2
@@ -34,9 +34,6 @@ replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apise
 replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.44.0
 
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
-
-// This replace directive supports the backlevel go version required by the ODH build
-replace github.com/project-codeflare/appwrapper v0.27.0 => github.com/project-codeflare/appwrapper v0.27.1-0.20241105160939-f71c6326acce
 
 // This replace directive deal with the backlevel ODH kueue version
 replace sigs.k8s.io/kueue v0.8.3 => github.com/opendatahub-io/kueue v0.8.3
