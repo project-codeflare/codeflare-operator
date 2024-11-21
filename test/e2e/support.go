@@ -18,9 +18,12 @@ package e2e
 
 import (
 	"embed"
+	"strings"
 
 	"github.com/onsi/gomega"
 	"github.com/project-codeflare/codeflare-common/support"
+
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 //go:embed *.py *.txt *.sh
@@ -31,4 +34,12 @@ func ReadFile(t support.Test, fileName string) []byte {
 	file, err := files.ReadFile(fileName)
 	t.Expect(err).NotTo(gomega.HaveOccurred())
 	return file
+}
+
+func RemoveCreationTimestamp(t support.Test, rawExtension runtime.RawExtension) runtime.RawExtension {
+	t.T().Helper()
+	patchedRaw := strings.ReplaceAll(string(rawExtension.Raw), `"metadata":{"creationTimestamp":null},`, "")
+	return runtime.RawExtension{
+		Raw: []byte(patchedRaw),
+	}
 }
