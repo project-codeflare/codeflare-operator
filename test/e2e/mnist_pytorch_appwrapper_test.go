@@ -145,6 +145,9 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 		},
 	}
 
+	raw := Raw(test, job)
+	raw = RemoveCreationTimestamp(test, raw)
+
 	// Create an AppWrapper resource
 	aw := &mcadv1beta2.AppWrapper{
 		TypeMeta: metav1.TypeMeta{
@@ -159,7 +162,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
 				{
-					Template: Raw(test, job),
+					Template: raw,
 				},
 			},
 		},
