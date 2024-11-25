@@ -10,19 +10,25 @@
   "automerge": true,
   "enabledManagers": ["dockerfile", "tekton"],
   "dockerfile": {
+    "schedule": ["at any time"],
     "enabled": true,
     "additionalBranchPrefix": "{{baseBranch}}/",
     "branchPrefix": "konflux/mintmaker/",
+    "ignoreTests": true,
+    "automergeType": "pr",
+    "automerge": true,
     "packageRules": [
       {
-        "matchBaseBranches": ["main"],
-        "schedule": ["at any time"],
-        "matchFileNames": ["*Dockerfile.konflux*"],
+        "matchUpdateTypes": ["major", "minor", "pin", "pinDigest", "patch", "bump"],
+        "enabled": false
+      },
+      {
         "matchUpdateTypes": ["digest"],
-        "enabled": true,
-        "groupName": "Dockerfile Digest Updates",
-        "branchPrefix": "konflux/digest-update/",
-        "prBodyTemplate": "Updates Docker image digest for {{packageName}} to {{newVersion}}"
+        "enabled": true
+      },
+      {
+        "matchFileNames": ["*Dockerfile.konflux*"],
+        "enabled": true
       }
     ]
   },
@@ -36,7 +42,6 @@
     ],
     "packageRules": [
       {
-        "schedule": ["at any time"],
         "matchUpdateTypes": ["major", "minor", "pin", "pinDigest", "patch", "bump"],
         "enabled": false
       },
