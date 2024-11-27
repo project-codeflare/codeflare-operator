@@ -202,3 +202,4 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	test.T().Logf("Waiting for AppWrapper %s/%s to be deleted", aw.Namespace, aw.Name)
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutShort).Should(BeEmpty())
 }
+//test
