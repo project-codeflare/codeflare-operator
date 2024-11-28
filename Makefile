@@ -77,6 +77,10 @@ endif
 
 # Image URL to use all building/pushing image targets
 IMG ?= ${IMAGE_TAG_BASE}:${VERSION}
+
+# IMAGE_BUILD_FLAGS are the flags passed to the podman operator image build command
+IMAGE_BUILD_FLAGS :=
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.2
 
@@ -184,7 +188,7 @@ run: manifests fmt vet ## Run a controller from your host.
 
 .PHONY: image-build
 image-build: test-unit ## Build container image with the manager.
-	podman build -t ${IMG} .
+	podman $(IMAGE_BUILD_FLAGS) build -t ${IMG} .
 
 .PHONY: image-push
 image-push: image-build ## Push container image with the manager.
