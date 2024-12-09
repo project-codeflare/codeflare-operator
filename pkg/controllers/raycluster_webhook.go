@@ -56,7 +56,7 @@ func SetupRayClusterWebhookWithManager(mgr ctrl.Manager, cfg *config.KubeRayConf
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate-ray-io-v1-raycluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create,versions=v1,name=mraycluster.ray.openshift.ai,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-ray-io-v1-raycluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=mraycluster.ray.openshift.ai,admissionReviewVersions=v1
 // +kubebuilder:webhook:path=/validate-ray-io-v1-raycluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=ray.io,resources=rayclusters,verbs=create;update,versions=v1,name=vraycluster.ray.openshift.ai,admissionReviewVersions=v1
 
 type rayClusterWebhook struct {
