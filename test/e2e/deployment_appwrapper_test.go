@@ -1,5 +1,5 @@
 /*
-Copyright 2023.
+Copyright 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,24 +23,18 @@ import (
 	mcadv1beta2 "github.com/project-codeflare/appwrapper/api/v1beta2"
 	. "github.com/project-codeflare/codeflare-common/support"
 
-	batchv1 "k8s.io/api/batch/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
-func TestMnistPyTorchAppWrapperCpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "cpu", 0)
-}
-
-func TestMnistPyTorchAppWrapperGpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "gpu", 1)
-}
-
-// Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
-func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
+// verify that an AppWrapper containing a Deployment and Service can execute successfully
+func TestDeploymentAppWrapper(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
@@ -51,48 +45,33 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+	clusterQueue := createClusterQueue(test, resourceFlavor, 0)
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
-	// Test configuration
-	config := &corev1.ConfigMap{
+	// Deployment + Service (ie, a typical inference setup)
+	test.T().Logf("AppWrapper containing Deployment and Service")
+	job := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist-mcad",
-			Namespace: namespace.Name,
-		},
-		BinaryData: map[string][]byte{
-			// pip requirements
-			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
-			// MNIST training script
-			"mnist.py": ReadFile(test, "mnist.py"),
-		},
-		Immutable: Ptr(true),
-	}
-	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
-
-	// Batch Job
-	job := &batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: batchv1.SchemeGroupVersion.String(),
-			Kind:       "Job",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "mnist",
+			GenerateName: "deployment",
 			Namespace:    namespace.Name,
+			Labels:       map[string]string{"app": "inference"},
 		},
-		Spec: batchv1.JobSpec{
-			Completions: Ptr(int32(1)),
-			Parallelism: Ptr(int32(1)),
+		Spec: appsv1.DeploymentSpec{
+			Replicas: ptr.To(int32(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "inference"},
+			},
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": "inference"},
+				},
 				Spec: corev1.PodSpec{
 					Tolerations: []corev1.Toleration{
 						{
@@ -102,55 +81,38 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "job",
-							Image: GetPyTorchImage(),
-							Env: []corev1.EnvVar{
-								{Name: "PYTHONUSERBASE", Value: "/workdir"},
-								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
-								{Name: "PIP_INDEX_URL", Value: GetPipIndexURL()},
-								{Name: "PIP_TRUSTED_HOST", Value: GetPipTrustedHost()},
-								{Name: "ACCELERATOR", Value: accelerator},
-							},
-							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "test",
-									MountPath: "/test",
-								},
-								{
-									Name:      "workdir",
-									MountPath: "/workdir",
-								},
-							},
-							WorkingDir: "/workdir",
+							Name:    "job",
+							Image:   "quay.io/project-codeflare/busybox:1.36",
+							Command: []string{"/bin/sh", "-c", "sleep 600; exit 0"},
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "test",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: config.Name,
-									},
-								},
-							},
-						},
-						{
-							Name: "workdir",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyNever,
+					RestartPolicy: corev1.RestartPolicyAlways,
 				},
 			},
 		},
 	}
 
-	raw := Raw(test, job)
-	raw = RemoveCreationTimestamp(test, raw)
+	service := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "service",
+			Namespace:    namespace.Name,
+			Labels:       map[string]string{"app": "inference"},
+		},
+		Spec: corev1.ServiceSpec{
+			Type:     corev1.ServiceTypeClusterIP,
+			Selector: map[string]string{"app": "inference"},
+			Ports:    []corev1.ServicePort{{Port: 8080, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt(8080)}},
+		},
+	}
+
+	raw1 := Raw(test, job)
+	raw1 = RemoveCreationTimestamp(test, raw1)
+	raw2 := Raw(test, service)
+	raw2 = RemoveCreationTimestamp(test, raw2)
 
 	// Create an AppWrapper resource
 	aw := &mcadv1beta2.AppWrapper{
@@ -159,14 +121,17 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "mnist-",
+			GenerateName: "infserver-",
 			Namespace:    namespace.Name,
 			Labels:       map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
 		Spec: mcadv1beta2.AppWrapperSpec{
 			Components: []mcadv1beta2.AppWrapperComponent{
 				{
-					Template: raw,
+					Template: raw1,
+				},
+				{
+					Template: raw2,
 				},
 			},
 		},
@@ -186,18 +151,10 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutMedium).
 		Should(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
-	test.T().Logf("Waiting for AppWrapper %s/%s to complete", aw.Namespace, aw.Name)
-	test.Eventually(AppWrappers(test, namespace), TestTimeoutLong).Should(
-		ContainElement(
-			Or(
-				WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded)),
-				WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperFailed)),
-			),
-		))
-
-	// Assert the AppWrapper has completed successfully
-	test.Expect(AppWrappers(test, namespace)(test)).
-		To(ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperSucceeded))))
+	// A deployment will not complete; so simply make sure it keeps running for reasonable interval
+	test.T().Logf("Ensuring the AppWrapper %s/%s continues to run", aw.Namespace, aw.Name)
+	test.Consistently(AppWrappers(test, namespace), TestTimeoutMedium).Should(
+		ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
 	test.T().Logf("Deleting AppWrapper %s/%s", aw.Namespace, aw.Name)
 	err = test.Client().Dynamic().Resource(appWrapperResource).Namespace(namespace.Name).Delete(test.Ctx(), aw.Name, metav1.DeleteOptions{})
