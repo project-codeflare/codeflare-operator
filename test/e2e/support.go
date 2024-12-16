@@ -39,6 +39,8 @@ func ReadFile(t support.Test, fileName string) []byte {
 func RemoveCreationTimestamp(t support.Test, rawExtension runtime.RawExtension) runtime.RawExtension {
 	t.T().Helper()
 	patchedRaw := strings.ReplaceAll(string(rawExtension.Raw), `"metadata":{"creationTimestamp":null},`, "")
+	patchedRaw = strings.ReplaceAll(patchedRaw, `"metadata":{"creationTimestamp":null,`, `"metadata":{`)
+	patchedRaw = strings.ReplaceAll(patchedRaw, `"creationTimestamp":null,`, "")
 	return runtime.RawExtension{
 		Raw: []byte(patchedRaw),
 	}
