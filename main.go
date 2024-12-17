@@ -171,35 +171,33 @@ func main() {
 	kubeConfig.QPS = ptr.Deref(cfg.ClientConnection.QPS, rest.DefaultQPS)
 	setupLog.V(2).Info("REST client", "qps", kubeConfig.QPS, "burst", kubeConfig.Burst)
 
-	selector, err := labels.Parse(controllers.RayClusterNameLabel)
-	exitOnError(err, "unable to parse label selector")
-
-	cacheOpts := cache.Options{
-		ByObject: map[client.Object]cache.ByObject{
-			&corev1.Secret{}: {
-				Label: selector,
-			},
-			&corev1.Service{}: {
-				Label: selector,
-			},
-			&corev1.ServiceAccount{}: {
-				Label: selector,
-			},
-			&networkingv1.Ingress{}: {
-				Label: selector,
-			},
-			&networkingv1.NetworkPolicy{}: {
-				Label: selector,
-			},
-			&rbacv1.ClusterRoleBinding{}: {
-				Label: selector,
-			},
-		},
-	}
-
-	if isOpenShift(ctx, kubeClient.DiscoveryClient) {
-		cacheOpts.ByObject[&routev1.Route{}] = cache.ByObject{
+	cacheOpts := cache.Options{}
+	if cfg.AppWrapper == nil || !ptr.Deref(cfg.AppWrapper.Enabled, false) {
+		selector, err := labels.Parse(controllers.RayClusterNameLabel)
+		exitOnError(err, "unable to parse label selector")
+		cacheOpts.ByObject = make(map[client.Object]cache.ByObject, 7)
+		cacheOpts.ByObject[&corev1.Secret{}] = cache.ByObject{
 			Label: selector,
+		}
+		cacheOpts.ByObject[&corev1.Service{}] = cache.ByObject{
+			Label: selector,
+		}
+		cacheOpts.ByObject[&corev1.ServiceAccount{}] = cache.ByObject{
+			Label: selector,
+		}
+		cacheOpts.ByObject[&networkingv1.Ingress{}] = cache.ByObject{
+			Label: selector,
+		}
+		cacheOpts.ByObject[&networkingv1.NetworkPolicy{}] = cache.ByObject{
+			Label: selector,
+		}
+		cacheOpts.ByObject[&rbacv1.ClusterRoleBinding{}] = cache.ByObject{
+			Label: selector,
+		}
+		if isOpenShift(ctx, kubeClient.DiscoveryClient) {
+			cacheOpts.ByObject[&routev1.Route{}] = cache.ByObject{
+				Label: selector,
+			}
 		}
 	}
 
