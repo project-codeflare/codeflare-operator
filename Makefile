@@ -12,7 +12,7 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # APPWRAPPER_VERSION defines the default version of the AppWrapper controller
-APPWRAPPER_VERSION ?= v0.27.0
+APPWRAPPER_VERSION ?= v0.30.0
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
