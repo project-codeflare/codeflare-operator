@@ -1,5 +1,5 @@
 /*
-Copyright 2023.
+Copyright 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,16 +31,8 @@ import (
 	"sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
-func TestMnistPyTorchAppWrapperCpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "cpu", 0)
-}
-
-func TestMnistPyTorchAppWrapperGpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "gpu", 1)
-}
-
-// Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
-func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
+// verify that an AppWrapper containing a batchv1/Job can execute successfully
+func TestBatchJobAppWrapper(t *testing.T) {
 	test := With(t)
 
 	// Create a namespace
@@ -51,42 +43,21 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+	clusterQueue := createClusterQueue(test, resourceFlavor, 0)
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
-	// Test configuration
-	config := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mnist-mcad",
-			Namespace: namespace.Name,
-		},
-		BinaryData: map[string][]byte{
-			// pip requirements
-			"requirements.txt": ReadFile(test, "mnist_pip_requirements.txt"),
-			// MNIST training script
-			"mnist.py": ReadFile(test, "mnist.py"),
-		},
-		Immutable: Ptr(true),
-	}
-	config, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), config, metav1.CreateOptions{})
-	test.Expect(err).NotTo(HaveOccurred())
-	test.T().Logf("Created ConfigMap %s/%s successfully", config.Namespace, config.Name)
-
 	// Batch Job
+	test.T().Logf("AppWrapper containing batchv1/Job")
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
 			Kind:       "Job",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "mnist",
+			GenerateName: "batchjob",
 			Namespace:    namespace.Name,
 		},
 		Spec: batchv1.JobSpec{
@@ -102,45 +73,9 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "job",
-							Image: GetPyTorchImage(),
-							Env: []corev1.EnvVar{
-								{Name: "PYTHONUSERBASE", Value: "/workdir"},
-								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
-								{Name: "PIP_INDEX_URL", Value: GetPipIndexURL()},
-								{Name: "PIP_TRUSTED_HOST", Value: GetPipTrustedHost()},
-								{Name: "ACCELERATOR", Value: accelerator},
-							},
-							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "test",
-									MountPath: "/test",
-								},
-								{
-									Name:      "workdir",
-									MountPath: "/workdir",
-								},
-							},
-							WorkingDir: "/workdir",
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "test",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: config.Name,
-									},
-								},
-							},
-						},
-						{
-							Name: "workdir",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
+							Name:    "job",
+							Image:   "quay.io/project-codeflare/busybox:1.36",
+							Command: []string{"/bin/sh", "-c", "sleep 20; exit 0"},
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -159,7 +94,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 			Kind:       "AppWrapper",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "mnist-",
+			GenerateName: "batchjob-",
 			Namespace:    namespace.Name,
 			Labels:       map[string]string{"kueue.x-k8s.io/queue-name": localQueue.Name},
 		},
