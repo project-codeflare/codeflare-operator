@@ -400,10 +400,6 @@ test-component: envtest ginkgo ## Run component tests.
 test-e2e: manifests fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
 
-.PHONY: test-odh
-test-odh: manifests fmt vet ## Run e2e ODH tests.
-	go test -timeout 60m -v ./test/odh
-
 .PHONY: store-odh-logs
 store-odh-logs: # Store all ODH relevant logs into artifact directory
 	kubectl logs -n opendatahub deployment/codeflare-operator-manager > ${ARTIFACT_DIR}/codeflare-operator.log
