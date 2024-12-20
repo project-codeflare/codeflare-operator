@@ -23,6 +23,8 @@ spec:
       managementState: Removed
     kserve:
       managementState: Removed
+    kueue:
+      managementState: Managed
     modelmeshserving:
       managementState: Removed
     ray:
