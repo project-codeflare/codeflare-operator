@@ -12,7 +12,7 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # APPWRAPPER_VERSION defines the default version of the AppWrapper controller
-APPWRAPPER_VERSION ?= v0.27.0
+APPWRAPPER_VERSION ?= v0.30.0
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
@@ -399,10 +399,6 @@ test-component: envtest ginkgo ## Run component tests.
 .PHONY: test-e2e
 test-e2e: manifests fmt vet ## Run e2e tests.
 	go test -timeout 30m -v ./test/e2e
-
-.PHONY: test-odh
-test-odh: manifests fmt vet ## Run e2e ODH tests.
-	go test -timeout 60m -v ./test/odh
 
 .PHONY: store-odh-logs
 store-odh-logs: # Store all ODH relevant logs into artifact directory
