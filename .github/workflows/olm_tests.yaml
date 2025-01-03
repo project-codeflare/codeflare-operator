@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   kubernetes-olm-upgrade:
-    runs-on: ubuntu-20.04-4core
+    runs-on: ubuntu-latest-4core
     timeout-minutes: 60
     env:
       OLM_VERSION: v0.25.0
