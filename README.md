@@ -114,6 +114,7 @@ For ODH tests additional environment variables are needed:
 6. In ODH/CFO verify that the [Build and Push action](https://github.com/opendatahub-io/codeflare-operator/actions/workflows/build-and-push.yaml) was triggered and ran successfully.
 7. Make sure that release automation created a PR updating CodeFlare SDK version in [ODH Notebooks repository](https://github.com/opendatahub-io/notebooks). Make sure the PR gets merged.
 8. Run [ODH CodeFlare Operator release workflow](https://github.com/opendatahub-io/codeflare-operator/actions/workflows/odh-release.yml) to produce ODH CodeFlare Operator release.
+9. Ensure that the version details in the `config/component_metadata.yaml` file are updated to reflect the latest upstream CodeFlare Operator release version
 
 ### Releases involving part of the stack
 
