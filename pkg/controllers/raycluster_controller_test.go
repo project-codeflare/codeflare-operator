@@ -192,6 +192,73 @@ var _ = Describe("RayCluster controller", func() {
 			}).WithTimeout(time.Second * 10).Should(Satisfy(errors.IsNotFound))
 		})
 
+		It("should not delete the head pod if RayCluster CR provides image pull secrets", func(ctx SpecContext) {
+			By("creating an instance of the RayCluster CR with imagePullSecret")
+			rayclusterWithPullSecret := &rayv1.RayCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pull-secret-cluster",
+					Namespace: namespaceName,
+				},
+				Spec: rayv1.RayClusterSpec{
+					HeadGroupSpec: rayv1.HeadGroupSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								ImagePullSecrets: []corev1.LocalObjectReference{{Name: "custom-pull-secret"}},
+								Containers:       []corev1.Container{},
+							},
+						},
+						RayStartParams: map[string]string{},
+					},
+				},
+			}
+			_, err := rayClient.RayV1().RayClusters(namespaceName).Create(ctx, rayclusterWithPullSecret, metav1.CreateOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Eventually(func() (*corev1.ServiceAccount, error) {
+				return k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, oauthServiceAccountNameFromCluster(rayclusterWithPullSecret), metav1.GetOptions{})
+			}).WithTimeout(time.Second * 10).Should(WithTransform(OwnerReferenceKind, Equal("RayCluster")))
+
+			headPodName := "head-pod"
+			headPod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      headPodName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						"ray.io/node-type": "head",
+						"ray.io/cluster":   rayclusterWithPullSecret.Name,
+					},
+				},
+				Spec: corev1.PodSpec{
+					ImagePullSecrets: []corev1.LocalObjectReference{
+						{Name: "custom-pull-secret"},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:  "head-container",
+							Image: "busybox",
+						},
+					},
+				},
+			}
+			_, err = k8sClient.CoreV1().Pods(namespaceName).Create(ctx, headPod, metav1.CreateOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Eventually(func() (*corev1.Pod, error) {
+				return k8sClient.CoreV1().Pods(namespaceName).Get(ctx, headPodName, metav1.GetOptions{})
+			}).WithTimeout(time.Second * 10).ShouldNot(BeNil())
+
+			sa, err := k8sClient.CoreV1().ServiceAccounts(namespaceName).Get(ctx, oauthServiceAccountNameFromCluster(rayclusterWithPullSecret), metav1.GetOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{Name: "test-image-pull-secret"})
+			_, err = k8sClient.CoreV1().ServiceAccounts(namespaceName).Update(ctx, sa, metav1.UpdateOptions{})
+			Expect(err).To(Not(HaveOccurred()))
+
+			Consistently(func() (*corev1.Pod, error) {
+				return k8sClient.CoreV1().Pods(namespaceName).Get(ctx, headPodName, metav1.GetOptions{})
+			}).WithTimeout(time.Second * 5).Should(Not(BeNil()))
+		})
+
 		It("should remove CRB when the RayCluster is deleted", func(ctx SpecContext) {
 			foundRayCluster, err := rayClient.RayV1().RayClusters(namespaceName).Get(ctx, rayClusterName, metav1.GetOptions{})
 			Expect(err).To(Not(HaveOccurred()))

@@ -226,8 +226,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-codeflare/appwrapper v0.30.0 h1:tb9LJ/QmC2xyKdM0oVf+WAz9cKIGt3gllDrRgzySgyo=
 github.com/project-codeflare/appwrapper v0.30.0/go.mod h1:7FpO90DLv0BAq4rwZtXKS9aRRfkR9RvXsj3pgYF0HtQ=
-github.com/project-codeflare/codeflare-common v0.0.0-20241216183607-222395d38924 h1:jM+gYqn8eGmUoeQLGGYxlJgXZ1gbZgB2UtpKU9z0x9s=
-github.com/project-codeflare/codeflare-common v0.0.0-20241216183607-222395d38924/go.mod h1:DPSv5khRiRDFUD43SF8da+MrVQTWmxNhuKJmwSLOyO0=
+github.com/project-codeflare/codeflare-common v0.0.0-20250117134355-5748d670cd4a h1:1F5xsxncIL5Bpboup8d5osQ8iWy/hzkCTtGSBZM2tQM=
+github.com/project-codeflare/codeflare-common v0.0.0-20250117134355-5748d670cd4a/go.mod h1:DPSv5khRiRDFUD43SF8da+MrVQTWmxNhuKJmwSLOyO0=
 github.com/prometheus/client_golang v1.20.4 h1:Tgh3Yr67PaOv/uTqloMsCEdeuFTatm5zIq5+qNN23vI=
 github.com/prometheus/client_golang v1.20.4/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
