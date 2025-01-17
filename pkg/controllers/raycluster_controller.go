@@ -219,8 +219,11 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-		if err := r.deleteHeadPodIfMissingImagePullSecrets(ctx, cluster); err != nil {
-			return ctrl.Result{RequeueAfter: requeueTime}, err
+		if len(cluster.Spec.HeadGroupSpec.Template.Spec.ImagePullSecrets) == 0 {
+			// Delete head pod only if user doesn't specify own imagePullSecrets and imagePullSecrets from OAuth ServiceAccount are not present in the head Pod
+			if err := r.deleteHeadPodIfMissingImagePullSecrets(ctx, cluster); err != nil {
+				return ctrl.Result{RequeueAfter: requeueTime}, err
+			}
 		}
 
 		_, err = r.kubeClient.RbacV1().ClusterRoleBindings().Apply(ctx, desiredOAuthClusterRoleBinding(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
