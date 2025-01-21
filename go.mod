@@ -8,8 +8,8 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/open-policy-agent/cert-controller v0.10.1
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
-	github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790
-	github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c
+	github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248
+	github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250
 	github.com/project-codeflare/appwrapper v0.30.0
 	github.com/project-codeflare/codeflare-common v0.0.0-20250117134355-5748d670cd4a
 	github.com/ray-project/kuberay/ray-operator v1.2.1
