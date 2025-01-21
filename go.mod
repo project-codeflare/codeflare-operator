@@ -8,11 +8,11 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/open-policy-agent/cert-controller v0.10.1
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
-	github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248
-	github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250
+	github.com/openshift/api v0.0.0-20240904015708-69df64132c91
+	github.com/openshift/client-go v0.0.0-20240904130219-3795e907a202
 	github.com/project-codeflare/appwrapper v0.30.0
 	github.com/project-codeflare/codeflare-common v0.0.0-20250117134355-5748d670cd4a
-	github.com/ray-project/kuberay/ray-operator v1.2.1
+	github.com/ray-project/kuberay/ray-operator v1.2.2
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	k8s.io/api v0.30.2
@@ -37,9 +37,6 @@ replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
 // This replace directive deal with the backlevel ODH kueue version
 replace sigs.k8s.io/kueue v0.8.3 => github.com/opendatahub-io/kueue v0.8.3
-
-// This replace directive deal with the unaligned Ray operator version transitively pulled by Kueue 0.8.3
-replace github.com/ray-project/kuberay/ray-operator v1.2.1 => github.com/ray-project/kuberay/ray-operator v1.1.1
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
