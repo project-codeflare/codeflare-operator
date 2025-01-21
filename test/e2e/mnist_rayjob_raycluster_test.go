@@ -211,6 +211,44 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	test.Eventually(AppWrappers(test, namespace), TestTimeoutShort).Should(BeEmpty())
 }
 
+// Verifying https://github.com/project-codeflare/codeflare-operator/issues/649
+func TestRayClusterImagePullSecret(t *testing.T) {
+	test := With(t)
+
+	// Create a namespace
+	namespace := test.NewTestNamespace()
+
+	// Create Kueue resources
+	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
+	defer func() {
+		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
+	}()
+	clusterQueue := createClusterQueue(test, resourceFlavor, 0)
+	defer func() {
+		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
+	}()
+	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+
+	// Create MNIST training script
+	mnist := constructMNISTConfigMap(test, namespace)
+	mnist, err := test.Client().Core().CoreV1().ConfigMaps(namespace.Name).Create(test.Ctx(), mnist, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
+
+	// Create RayCluster with imagePullSecret and assign it to the localqueue
+	rayCluster := constructRayCluster(test, namespace, mnist, 0)
+	rayCluster.Spec.HeadGroupSpec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "custom-pull-secret"}}
+	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
+	test.Expect(err).NotTo(HaveOccurred())
+	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
+
+	test.T().Logf("Waiting for RayCluster %s/%s to be running", rayCluster.Namespace, rayCluster.Name)
+	test.Eventually(RayCluster(test, namespace.Name, rayCluster.Name), TestTimeoutMedium).
+		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
+}
+
+// Helper functions
+
 func constructMNISTConfigMap(test Test, namespace *corev1.Namespace) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -274,11 +312,11 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 								Resources: corev1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										corev1.ResourceCPU:    resource.MustParse("250m"),
-										corev1.ResourceMemory: resource.MustParse("512Mi"),
+										corev1.ResourceMemory: resource.MustParse("2G"),
 									},
 									Limits: corev1.ResourceList{
 										corev1.ResourceCPU:    resource.MustParse("1"),
-										corev1.ResourceMemory: resource.MustParse("2G"),
+										corev1.ResourceMemory: resource.MustParse("4G"),
 									},
 								},
 							},
