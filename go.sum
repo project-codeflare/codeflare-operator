@@ -214,10 +214,10 @@ github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0 h1:tOX6R3N41pdyC+E1TeL
 github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0/go.mod h1:Hgy6bUPl29drwjs9F/5PZHUopOOojQpAPv1mWh3jnJQ=
 github.com/openshift-online/ocm-sdk-go v0.1.411 h1:DlNHC3yqmk77Wzc+YJBsd0ccHXn7JFwGC1C1NOp/faw=
 github.com/openshift-online/ocm-sdk-go v0.1.411/go.mod h1:CiAu2jwl3ITKOxkeV0Qnhzv4gs35AmpIzVABQLtcI2Y=
-github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790 h1:e3zIxk67/kiABxGFfFVECqJ4FcQRG5DPF8lgDV9f+MM=
-github.com/openshift/api v0.0.0-20230823114715-5fdd7511b790/go.mod h1:yimSGmjsI+XF1mr+AKBs2//fSXIOhhetHGbMlBEfXbs=
-github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c h1:CV76yFOTXmq9VciBR3Bve5ZWzSxdft7gaMVB3kS0rwg=
-github.com/openshift/client-go v0.0.0-20221019143426-16aed247da5c/go.mod h1:lFMO8mLHXWFzSdYvGNo8ivF9SfF6zInA8ZGw4phRnUE=
+github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248 h1:W0FcSznRzX/R/5AAfaMG1OIdl++6UtwWi/Uy3M45oQM=
+github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248/go.mod h1:CxgbWAlvu2iQB0UmKTtRu1YfepRg1/vJ64n2DlIEVz4=
+github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250 h1:WQ0e89xebsNeChdYw8QrxggYkFtEQOaLBEKJDkMmcUk=
+github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250/go.mod h1:tjGjTE59N1+5W0YE4Wqf0zJpFLIY4d+EpMihDKOn1oA=
 github.com/openshift/custom-resource-status v1.1.2 h1:C3DL44LEbvlbItfd8mT5jWrqPfHnSOQoQf/sypqA6A4=
 github.com/openshift/custom-resource-status v1.1.2/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
