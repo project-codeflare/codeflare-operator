@@ -214,10 +214,10 @@ github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0 h1:tOX6R3N41pdyC+E1TeL
 github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0/go.mod h1:Hgy6bUPl29drwjs9F/5PZHUopOOojQpAPv1mWh3jnJQ=
 github.com/openshift-online/ocm-sdk-go v0.1.411 h1:DlNHC3yqmk77Wzc+YJBsd0ccHXn7JFwGC1C1NOp/faw=
 github.com/openshift-online/ocm-sdk-go v0.1.411/go.mod h1:CiAu2jwl3ITKOxkeV0Qnhzv4gs35AmpIzVABQLtcI2Y=
-github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248 h1:W0FcSznRzX/R/5AAfaMG1OIdl++6UtwWi/Uy3M45oQM=
-github.com/openshift/api v0.0.0-20240509165319-a8a5b79cc248/go.mod h1:CxgbWAlvu2iQB0UmKTtRu1YfepRg1/vJ64n2DlIEVz4=
-github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250 h1:WQ0e89xebsNeChdYw8QrxggYkFtEQOaLBEKJDkMmcUk=
-github.com/openshift/client-go v0.0.0-20240510131258-f646d5f29250/go.mod h1:tjGjTE59N1+5W0YE4Wqf0zJpFLIY4d+EpMihDKOn1oA=
+github.com/openshift/api v0.0.0-20240904015708-69df64132c91 h1:PfPpMwHR8iAxQuLpQt+x9f3PAIeSPG2BLQd69p+NQHw=
+github.com/openshift/api v0.0.0-20240904015708-69df64132c91/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
+github.com/openshift/client-go v0.0.0-20240904130219-3795e907a202 h1:mLJlN8PdZgI5oxwXctB0/IF/2c7F29R5ru1dCLVzEyk=
+github.com/openshift/client-go v0.0.0-20240904130219-3795e907a202/go.mod h1:D3yfotGqRY1LWaHcoSCeadhdyvfrQWYJXui1M+JqKvY=
 github.com/openshift/custom-resource-status v1.1.2 h1:C3DL44LEbvlbItfd8mT5jWrqPfHnSOQoQf/sypqA6A4=
 github.com/openshift/custom-resource-status v1.1.2/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -237,8 +237,8 @@ github.com/prometheus/common v0.57.0 h1:Ro/rKjwdq9mZn1K5QPctzh+MA4Lp0BuYk5ZZEVho
 github.com/prometheus/common v0.57.0/go.mod h1:7uRPFSUTbfZWsJ7MHY56sqt7hLQu3bxXHDnNhl8E9qI=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
-github.com/ray-project/kuberay/ray-operator v1.1.1 h1:mVOA1ddS9aAsPvhhHrpf0ZXgTzccIAyTbeYeDqtcfAk=
-github.com/ray-project/kuberay/ray-operator v1.1.1/go.mod h1:ZqyKKvMP5nKDldQoKmur+Wcx7wVlV9Q98phFqHzr+KY=
+github.com/ray-project/kuberay/ray-operator v1.2.2 h1:wj4qe9SmJfD1ubgEaVPuAsnU/WFDvremzR8j3JslBdk=
+github.com/ray-project/kuberay/ray-operator v1.2.2/go.mod h1:osTiIyaDoWi5IN1f0tOOtZ4TzVf+5kJXZor8VFvcEiI=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
