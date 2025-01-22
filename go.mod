@@ -37,6 +37,9 @@ replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
 replace sigs.k8s.io/kueue v0.10.0 => github.com/opendatahub-io/kueue v0.10.0-odh
 
+// Workaround deprecation of cluster.Status.State in ray-operator v1.2.2
+replace github.com/ray-project/kuberay/ray-operator v1.2.2 => github.com/ray-project/kuberay/ray-operator v1.2.1
+
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
