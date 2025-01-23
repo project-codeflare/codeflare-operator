@@ -165,3 +165,20 @@ jobs:
           echo "Kueue release with version ${{ github.event.inputs.kueue-version }} does not exist. Please select an existing version."
           exit 1
         fi
+
+  generate-component-metadata:
+    needs: [check-appwrapper-version, check-kuberay-version, check-kueue-version]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Generate component_metadata.yaml
+      run: |
+        cat <<EOL > config/component_metadata.yaml
+        releases:
+          - name: CodeFlare Operator
+            version: ${{ github.event.inputs.operator-version }}
+            repoUrl: https://github.com/project-codeflare/codeflare-operator
+        EOL
+
+    - name: Verify generated file
+      run: cat config/component_metadata.yaml
