@@ -1,7 +1,10 @@
 # Build the manager binary
-FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:v1.23@sha256:ca0c771ecd4f606986253f747e2773fe2960a6b5e8e7a52f6a4797b173ac7f56 AS golang
 
-FROM registry.redhat.io/ubi8/ubi@sha256:fd3bf22d0593e2ed26a1c74ce161c52295711a67de677b5938c87704237e49b0 AS builder
+# BEGIN -- workaround lack of go-toolset for golang 1.23
+ARG GOLANG_IMAGE=golang:1.21
+FROM ${GOLANG_IMAGE} AS golang
+
+FROM registry.access.redhat.com/ubi8/ubi@sha256:fd3bf22d0593e2ed26a1c74ce161c52295711a67de677b5938c87704237e49b0 AS builder
 ARG GOLANG_VERSION=1.23.0
 
 # Install system dependencies
@@ -15,7 +18,7 @@ RUN dnf upgrade -y && dnf install -y \
 # Install Go
 ENV PATH=/usr/local/go/bin:$PATH
 
-COPY --from=golang /usr/lib/golang /usr/local/go
+COPY --from=golang /usr/local/go /usr/local/go
 # End of Go versioning workaround
 
 WORKDIR /workspace
