@@ -23,7 +23,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.19.3
-	sigs.k8s.io/kueue v0.10.0
+	sigs.k8s.io/kueue v0.10.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -34,8 +34,6 @@ replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apise
 replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.44.0
 
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
-
-replace sigs.k8s.io/kueue v0.10.0 => github.com/opendatahub-io/kueue v0.10.0-odh
 
 // Workaround deprecation of cluster.Status.State in ray-operator v1.2.2
 replace github.com/ray-project/kuberay/ray-operator v1.2.2 => github.com/ray-project/kuberay/ray-operator v1.2.1
