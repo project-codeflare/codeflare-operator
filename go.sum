@@ -208,8 +208,6 @@ github.com/open-policy-agent/frameworks/constraint v0.0.0-20241101234656-e78c8ab
 github.com/open-policy-agent/frameworks/constraint v0.0.0-20241101234656-e78c8abd754a/go.mod h1:tI7nc6H6os2UYZRvSm9Y7bq4oMoXqhwA0WfnqKpoAgc=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
-github.com/opendatahub-io/kueue v0.10.0-odh h1:egnWIOjXSnaUOzjmXyOM/P1UPTK5OlaltSFf7OJ1qRg=
-github.com/opendatahub-io/kueue v0.10.0-odh/go.mod h1:3yzOvGI0sPOC3VL1ihVIrzc8mkSyCVTL+SrouewwRWw=
 github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0 h1:tOX6R3N41pdyC+E1TeLErVY7KJV0zg9GAd/Z7xLT7no=
 github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0/go.mod h1:Hgy6bUPl29drwjs9F/5PZHUopOOojQpAPv1mWh3jnJQ=
 github.com/openshift-online/ocm-sdk-go v0.1.411 h1:DlNHC3yqmk77Wzc+YJBsd0ccHXn7JFwGC1C1NOp/faw=
@@ -471,6 +469,8 @@ sigs.k8s.io/jobset v0.7.1/go.mod h1:cbBuQ6QrTU88x5PrDqcC5AI28YyTSQCIcRTLNTJoHDE=
 sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6/go.mod h1:p4QtZmO4uMYipTQNzagwnNoseA6OxSUutVw05NhYDRs=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
+sigs.k8s.io/kueue v0.10.1 h1:td+Nae1z9L4IrkqJKOIMsKp2TmwUAvk/hWKhSaFupwk=
+sigs.k8s.io/kueue v0.10.1/go.mod h1:3yzOvGI0sPOC3VL1ihVIrzc8mkSyCVTL+SrouewwRWw=
 sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.1/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
 sigs.k8s.io/structured-merge-diff/v4 v4.4.3 h1:sCP7Vv3xx/CWIuTPVN38lUPx0uw0lcLfzaiDa8Ja01A=
