@@ -1,7 +1,7 @@
 # Build the manager binary
 
 # BEGIN -- workaround lack of go-toolset for golang 1.23
-ARG GOLANG_IMAGE=golang:1.21
+ARG GOLANG_IMAGE=docker.io/library/golang:1.23
 FROM ${GOLANG_IMAGE} AS golang
 
 FROM registry.access.redhat.com/ubi8/ubi@sha256:fd3bf22d0593e2ed26a1c74ce161c52295711a67de677b5938c87704237e49b0 AS builder
