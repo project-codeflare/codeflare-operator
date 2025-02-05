@@ -12,12 +12,12 @@ VERSION ?= v0.0.0-dev
 BUNDLE_VERSION ?= $(VERSION:v%=%)
 
 # APPWRAPPER_VERSION defines the default version of the AppWrapper controller
-APPWRAPPER_VERSION ?= v0.30.0
+APPWRAPPER_VERSION ?= v1.0.0
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
 # KUEUE_VERSION defines the default version of Kueue (used for testing)
-KUEUE_VERSION ?= v0.8.3
+KUEUE_VERSION ?= v0.10.1
 
 USE_RHOAI ?= true
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
