@@ -1,6 +1,25 @@
 # Build the manager binary
 
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22@sha256:076c858c2a7e2d682c3b4098d44575d79c433b39a496b14ca63a723333af212d AS builder
+# BEGIN -- workaround lack of go-toolset for golang 1.23
+ARG GOLANG_IMAGE=docker.io/library/golang:1.23
+FROM ${GOLANG_IMAGE} AS golang
+
+FROM registry.access.redhat.com/ubi8/ubi@sha256:fd3bf22d0593e2ed26a1c74ce161c52295711a67de677b5938c87704237e49b0 AS builder
+ARG GOLANG_VERSION=1.23.0
+
+# Install system dependencies
+RUN dnf upgrade -y && dnf install -y \
+    gcc \
+    make \
+    openssl-devel \
+    git \
+    && dnf clean all && rm -rf /var/cache/yum
+
+# Install Go
+ENV PATH=/usr/local/go/bin:$PATH
+
+COPY --from=golang /usr/local/go /usr/local/go
+# End of Go versioning workaround
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
