@@ -50,6 +50,19 @@ The e2e tests can be executed locally by running the following commands:
    ```
 
    [!NOTE]
+   If you get an error on linux
+   ```
+    Error: rootlessport cannot expose privileged port 80
+   ```
+   You can run the following code to fix it
+
+   ```bash
+    echo "net.ipv4.ip_unprivileged_port_start=80" | sudo tee -a /etc/sysctl.conf > /dev/null
+    sudo sysctl net.ipv4.ip_unprivileged_port_start=80
+   ```
+   
+
+   [!NOTE]
    Kueue will only activate its Ray integration if KubeRay is installed before Kueue (as done by this make target).
 
    [!NOTE]
