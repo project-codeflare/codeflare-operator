@@ -84,15 +84,7 @@ The e2e tests can be executed locally by running the following commands:
       - 'system:serviceaccount:$(namespace):kuberay-operator'
     ```
 
-3. Start the operator locally:
-
-    ```bash
-    NAMESPACE=default make run
-    ```
-
-   Alternatively, You can run the operator from your IDE / debugger.
-
-4.  In a separate terminal, set your output directory for test files, and run the e2e suite:
+3.  In a separate terminal, set your output directory for test files, and run the e2e suite:
     ```bash
     export CODEFLARE_TEST_OUTPUT_DIR=<your_output_directory>
     ```
