@@ -393,7 +393,7 @@ test-component: envtest ginkgo ## Run component tests.
 
 .PHONY: test-e2e
 test-e2e: manifests fmt vet ## Run e2e tests.
-	go test -timeout 30m -v ./test/e2e
+	CODEFLARE_TEST_OUTPUT_DIR=/tmp/ CLUSTER_HOSTNAME=kind CODEFLARE_TEST_TIMEOUT_MEDIUM=5m CODEFLARE_TEST_TIMEOUT_LONG=40m go test -v -skip "^Test.*Gpu$$" ./test/e2e -timeout=60m
 
 .PHONY: kind-e2e
 kind-e2e: ## Set up e2e KinD cluster
