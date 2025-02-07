@@ -24,6 +24,7 @@ Requirements:
   # brew install gnu-sed
   make install -e SED=/usr/local/bin/gsed
   ```
+- Kind - kind is used in the kind-e2e command in the make file. Follow these instructions for the kind setup <a href="https://kind.sigs.k8s.io/docs/user/quick-start/" targe="_blank">here</a>
 
 ### Testing
 
