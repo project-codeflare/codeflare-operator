@@ -193,7 +193,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	if cluster.Status.State != "suspended" && isRayDashboardOAuthEnabled(r.Config) && r.IsOpenShift {
+	if !isRayClusterSuspended(cluster) && isRayDashboardOAuthEnabled(r.Config) && r.IsOpenShift {
 		logger.Info("Creating OAuth Objects")
 		_, err := r.routeClient.Routes(cluster.Namespace).Apply(ctx, desiredClusterRoute(cluster), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 		if err != nil {
@@ -239,7 +239,7 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 
-	} else if cluster.Status.State != "suspended" && !isRayDashboardOAuthEnabled(r.Config) && !r.IsOpenShift {
+	} else if !isRayClusterSuspended(cluster) && !isRayDashboardOAuthEnabled(r.Config) && !r.IsOpenShift {
 		logger.Info("We detected being on Vanilla Kubernetes!")
 		logger.Info("Creating Dashboard Ingress")
 		dashboardName := dashboardNameFromCluster(cluster)
@@ -310,6 +310,10 @@ func isRayDashboardOAuthEnabled(cfg *config.KubeRayConfiguration) bool {
 
 func isMTLSEnabled(cfg *config.KubeRayConfiguration) bool {
 	return cfg == nil || ptr.Deref(cfg.MTLSEnabled, true)
+}
+
+func isRayClusterSuspended(cluster *rayv1.RayCluster) bool {
+	return cluster.Spec.Suspend != nil && ptr.Deref(cluster.Spec.Suspend, false)
 }
 
 func crbNameFromCluster(cluster *rayv1.RayCluster) string {
