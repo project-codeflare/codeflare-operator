@@ -153,7 +153,7 @@ func TestDeploymentAppWrapper(t *testing.T) {
 
 	// A deployment will not complete; so simply make sure it keeps running for reasonable interval
 	test.T().Logf("Ensuring the AppWrapper %s/%s continues to run", aw.Namespace, aw.Name)
-	test.Consistently(AppWrappers(test, namespace), TestTimeoutMedium).Should(
+	test.Consistently(AppWrappers(test, namespace), TestTimeoutShort).Should(
 		ContainElement(WithTransform(AppWrapperPhase, Equal(mcadv1beta2.AppWrapperRunning))))
 
 	test.T().Logf("Deleting AppWrapper %s/%s", aw.Namespace, aw.Name)
