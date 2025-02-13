@@ -2,7 +2,7 @@
 ARG SOURCE_CODE=.
 
 # BEGIN -- workaround lack of go-toolset for golang 1.23
-ARG GOLANG_IMAGE=registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder@sha256:b848cf648a383b6e207ebd150afc7e65a90efe0d7734f4f6d2767144d58d68d0
+ARG GOLANG_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.23@sha256:ca0c771ecd4f606986253f747e2773fe2960a6b5e8e7a52f6a4797b173ac7f56
 FROM ${GOLANG_IMAGE} AS golang
 
 FROM registry.access.redhat.com/ubi8/ubi@sha256:fd93fc09dc09f3d3edae30577460a979bb52df351b826ef3a5c02ec8213b433a AS builder
