@@ -8,11 +8,11 @@ CodeFlare Stack Compatibility Matrix
 
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
-| CodeFlare Operator           | [v1.14.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.14.0)             |
-| CodeFlare-SDK                | [v0.26.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.26.0)                |
-| AppWrapper                   | [v0.30.0](https://github.com/project-codeflare/appwrapper/releases/tag/v0.30.0)                   |
+| CodeFlare Operator           | [v1.15.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.15.0)             |
+| CodeFlare-SDK                | [v0.27.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.27.0)                |
+| AppWrapper                   | [v1.0.4](https://github.com/project-codeflare/appwrapper/releases/tag/v1.0.4)                   |
 | KubeRay                      | [v1.2.2](https://github.com/opendatahub-io/kuberay/releases/tag/v1.2.2)                           |
-| Kueue                        | [v0.8.3](https://github.com/opendatahub-io/kueue/releases/tag/v0.8.3)                             |
+| Kueue                        | [v0.10.1](https://github.com/opendatahub-io/kueue/releases/tag/v0.10.1)                             |
 <!-- Compatibility Matrix end -->
 
 ## Development
