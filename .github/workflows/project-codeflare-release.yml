@@ -167,10 +167,12 @@ jobs:
         fi
 
   generate-component-metadata:
-    needs: [check-appwrapper-version, check-kuberay-version, check-kueue-version]
     runs-on: ubuntu-latest
 
     steps:
+    - name: Ensure config folder exists
+      run: mkdir -p config
+
     - name: Generate component_metadata.yaml
       run: |
         cat <<EOL > config/component_metadata.yaml
