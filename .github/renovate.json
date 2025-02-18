@@ -44,7 +44,7 @@
         "schedule": ["at any time"],
         "branchPrefix": "renovate/rpm/",
        "semanticCommits": "enabled"
-      }    
+      }
     ],
     "dockerfile": {
       "enabled": true,
@@ -112,7 +112,7 @@
       ]
     },
     "rpm": {
-    "enabled": true,   
+    "enabled": true,
     "schedule": ["at any time"]
   },
     "prHourlyLimit": 0
