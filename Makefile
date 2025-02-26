@@ -116,6 +116,8 @@ ifneq ($(shell git status --porcelain),)
 	BUILD_VERSION := $(BUILD_VERSION)-dirty
 endif
 
+
+
 .PHONY: all
 all: build
 
@@ -393,12 +395,8 @@ test-component: envtest ginkgo ## Run component tests.
 
 .PHONY: test-e2e
 test-e2e: manifests fmt vet ## Run e2e tests.
-    
-	export CODEFLARE_TEST_TIMEOUT_SHORT=10m
-	export CODEFLARE_TEST_TIMEOUT_MEDIUM=20m
-	export CODEFLARE_TEST_TIMEOUT_LONG=40m
-	go test -v -skip "^Test.*Gpu$ " ./test/e2e
-
+	CODEFLARE_TEST_TIMEOUT_MEDIUM=5m CODEFLARE_TEST_TIMEOUT_LONG=30m go test -v -skip "^Test.*Gpu$$" ./test/e2e -timeout=60m
+	
 .PHONY: kind-e2e
 kind-e2e: ## Set up e2e KinD cluster
 	test/e2e/kind.sh
