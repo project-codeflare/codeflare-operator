@@ -24,6 +24,7 @@ Requirements:
   # brew install gnu-sed
   make install -e SED=/usr/local/bin/gsed
   ```
+- Kind - kind is used in the kind-e2e command in the make file. Follow these instructions for the kind setup <a href="https://kind.sigs.k8s.io/docs/user/quick-start/" targe="_blank">here</a>
 
 ### Testing
 
@@ -34,8 +35,6 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
-    # Install the CRDs
-    make install
     ```
 
    [!NOTE]
@@ -47,6 +46,19 @@ The e2e tests can be executed locally by running the following commands:
    ```bash
    make setup-e2e
    ```
+
+   [!NOTE]
+   If you get an error on linux
+   ```
+    Error: rootlessport cannot expose privileged port 80
+   ```
+   You can run the following code to fix it
+
+   ```bash
+    echo "net.ipv4.ip_unprivileged_port_start=80" | sudo tee -a /etc/sysctl.conf > /dev/null
+    sudo sysctl net.ipv4.ip_unprivileged_port_start=80
+   ```
+   
 
    [!NOTE]
    Kueue will only activate its Ray integration if KubeRay is installed before Kueue (as done by this make target).
@@ -70,15 +82,7 @@ The e2e tests can be executed locally by running the following commands:
       - 'system:serviceaccount:$(namespace):kuberay-operator'
     ```
 
-3. Start the operator locally:
-
-    ```bash
-    NAMESPACE=default make run
-    ```
-
-   Alternatively, You can run the operator from your IDE / debugger.
-
-4.  In a separate terminal, set your output directory for test files, and run the e2e suite:
+3.  In a separate terminal, set your output directory for test files, and run the e2e suite:
     ```bash
     export CODEFLARE_TEST_OUTPUT_DIR=<your_output_directory>
     ```
