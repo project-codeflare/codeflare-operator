@@ -7,4 +7,4 @@
   path: /spec/template/spec/containers/0/env/-
   value:
     name: CERT_GENERATOR_IMAGE
-    value: quay.io/modh/ray:2.35.0-py39-cu121
+    value: quay.io/modh/ray:2.35.0-py311-cu121
