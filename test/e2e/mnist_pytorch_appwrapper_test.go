@@ -32,15 +32,15 @@ import (
 )
 
 func TestMnistPyTorchAppWrapperCpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "cpu", 0)
+	runMnistPyTorchAppWrapper(t, CPU)
 }
 
 func TestMnistPyTorchAppWrapperGpu(t *testing.T) {
-	runMnistPyTorchAppWrapper(t, "gpu", 1)
+	runMnistPyTorchAppWrapper(t, NVIDIA)
 }
 
 // Trains the MNIST dataset as a batch Job in an AppWrapper, and asserts successful completion of the training job.
-func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
+func runMnistPyTorchAppWrapper(t *testing.T, accelerator Accelerator) {
 	test := With(t)
 
 	// Create a namespace
@@ -51,7 +51,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+	clusterQueue := createClusterQueue(test, resourceFlavor, accelerator)
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
@@ -109,7 +109,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 								{Name: "MNIST_DATASET_URL", Value: GetMnistDatasetURL()},
 								{Name: "PIP_INDEX_URL", Value: GetPipIndexURL()},
 								{Name: "PIP_TRUSTED_HOST", Value: GetPipTrustedHost()},
-								{Name: "ACCELERATOR", Value: accelerator},
+								{Name: "ACCELERATOR", Value: accelerator.Type},
 							},
 							Command: []string{"/bin/sh", "-c", "pip install -r /test/requirements.txt && torchrun /test/mnist.py"},
 							VolumeMounts: []corev1.VolumeMount{

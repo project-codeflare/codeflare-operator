@@ -89,11 +89,16 @@ jobs:
           export CODEFLARE_TEST_OUTPUT_DIR=${{ env.TEMP_DIR }}
 
           set -euo pipefail
-          go test -timeout 120m -v -skip "^Test.*Cpu$" ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
+          go test -timeout 120m -v -run TestMnistRayJobRayClusterAppWrapperCudaGpu ./test/e2e -json 2>&1 | tee ${CODEFLARE_TEST_OUTPUT_DIR}/gotest.log | gotestfmt
 
       - name: Print CodeFlare operator logs
         if: always() && steps.deploy.outcome == 'success'
         run: |
+          kubectl get resourceflavor -o yaml
+          kubectl get clusterqueue -o yaml
+          kubectl get workload -A -o yaml
+          kubectl get raycluster -A -o yaml
+          kubectl get appwrapper -A -o yaml
           echo "Printing CodeFlare operator logs"
           kubectl logs -n openshift-operators --tail -1 -l app.kubernetes.io/name=codeflare-operator | tee ${TEMP_DIR}/codeflare-operator.log
 

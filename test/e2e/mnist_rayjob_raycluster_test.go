@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -40,14 +41,18 @@ import (
 // directly managed by Kueue, and asserts successful completion of the training job.
 
 func TestMnistRayJobRayClusterCpu(t *testing.T) {
-	runMnistRayJobRayCluster(t, "cpu", 0)
+	runMnistRayJobRayCluster(t, CPU, GetRayImage())
 }
 
-func TestMnistRayJobRayClusterGpu(t *testing.T) {
-	runMnistRayJobRayCluster(t, "gpu", 1)
+func TestMnistRayJobRayClusterCudaGpu(t *testing.T) {
+	runMnistRayJobRayCluster(t, NVIDIA, GetRayImage())
 }
 
-func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int) {
+func TestMnistRayJobRayClusterROCmGpu(t *testing.T) {
+	runMnistRayJobRayCluster(t, AMD, GetRayROCmImage())
+}
+
+func runMnistRayJobRayCluster(t *testing.T, accelerator Accelerator, rayImage string) {
 	test := With(t)
 
 	// Create a static namespace to ensure a consistent Ray Dashboard hostname entry in /etc/hosts before executing the test.
@@ -58,11 +63,12 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+
+	clusterQueue := createClusterQueue(test, resourceFlavor, accelerator)
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
-	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create MNIST training script
 	mnist := constructMNISTConfigMap(test, namespace)
@@ -71,7 +77,7 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// Create RayCluster and assign it to the localqueue
-	rayCluster := constructRayCluster(test, namespace, mnist, numberOfGpus)
+	rayCluster := constructRayCluster(test, namespace, localQueue.Name, mnist, accelerator, rayImage)
 	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayCluster %s/%s successfully", rayCluster.Namespace, rayCluster.Name)
@@ -81,7 +87,7 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
 
 	// Create RayJob
-	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, numberOfGpus)
+	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, rayImage)
 	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
@@ -110,29 +116,27 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 }
 
 func TestMnistRayJobRayClusterAppWrapperCpu(t *testing.T) {
-	runMnistRayJobRayClusterAppWrapper(t, "cpu", 0)
+	runMnistRayJobRayClusterAppWrapper(t, CPU, GetRayImage())
 }
 
-func TestMnistRayJobRayClusterAppWrapperGpu(t *testing.T) {
-	runMnistRayJobRayClusterAppWrapper(t, "gpu", 1)
+func TestMnistRayJobRayClusterAppWrapperCudaGpu(t *testing.T) {
+	runMnistRayJobRayClusterAppWrapper(t, NVIDIA, GetRayImage())
+}
+
+func TestMnistRayJobRayClusterAppWrapperROCmGpu(t *testing.T) {
+	runMnistRayJobRayClusterAppWrapper(t, AMD, GetRayROCmImage())
 }
 
 // Same as TestMNISTRayJobRayCluster, except the RayCluster is wrapped in an AppWrapper
-func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
+func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator Accelerator, rayImage string) {
 	test := With(t)
 
 	// Create a static namespace to ensure a consistent Ray Dashboard hostname entry in /etc/hosts before executing the test.
-	namespace := test.NewTestNamespace(WithNamespaceName("test-ns-2"))
+	namespace := CreateTestNamespaceWithName(test, "test-ns-2")
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
-	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
-	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
-	defer func() {
-		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
-	}()
+	clusterQueue := createClusterQueue(test, resourceFlavor, accelerator)
 	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create MNIST training script
@@ -142,7 +146,7 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// Create RayCluster, wrap in AppWrapper and assign to localqueue
-	rayCluster := constructRayCluster(test, namespace, mnist, numberOfGpus)
+	rayCluster := constructRayCluster(test, namespace, localQueue.Name, mnist, accelerator, rayImage)
 	raw := Raw(test, rayCluster)
 	raw = RemoveCreationTimestamp(test, raw)
 
@@ -183,7 +187,7 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 		Should(WithTransform(RayClusterState, Equal(rayv1.Ready)))
 
 	// Create RayJob
-	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, numberOfGpus)
+	rayJob := constructRayJob(test, namespace, rayCluster, accelerator, rayImage)
 	rayJob, err = test.Client().Ray().RayV1().RayJobs(namespace.Name).Create(test.Ctx(), rayJob, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
 	test.T().Logf("Created RayJob %s/%s successfully", rayJob.Namespace, rayJob.Name)
@@ -223,11 +227,11 @@ func TestRayClusterImagePullSecret(t *testing.T) {
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, 0)
+	clusterQueue := createClusterQueue(test, resourceFlavor, CPU)
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
-	CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
+	localQueue := CreateKueueLocalQueue(test, namespace.Name, clusterQueue.Name, AsDefaultQueue)
 
 	// Create MNIST training script
 	mnist := constructMNISTConfigMap(test, namespace)
@@ -236,7 +240,7 @@ func TestRayClusterImagePullSecret(t *testing.T) {
 	test.T().Logf("Created ConfigMap %s/%s successfully", mnist.Namespace, mnist.Name)
 
 	// Create RayCluster with imagePullSecret and assign it to the localqueue
-	rayCluster := constructRayCluster(test, namespace, mnist, 0)
+	rayCluster := constructRayCluster(test, namespace, localQueue.Name, mnist, CPU, GetRayImage())
 	rayCluster.Spec.HeadGroupSpec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "custom-pull-secret"}}
 	rayCluster, err = test.Client().Ray().RayV1().RayClusters(namespace.Name).Create(test.Ctx(), rayCluster, metav1.CreateOptions{})
 	test.Expect(err).NotTo(HaveOccurred())
@@ -266,8 +270,8 @@ func constructMNISTConfigMap(test Test, namespace *corev1.Namespace) *corev1.Con
 	}
 }
 
-func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.ConfigMap, numberOfGpus int) *rayv1.RayCluster {
-	return &rayv1.RayCluster{
+func constructRayCluster(_ Test, namespace *corev1.Namespace, localQueueName string, mnist *corev1.ConfigMap, accelerator Accelerator, rayImage string) *rayv1.RayCluster {
+	raycluster := rayv1.RayCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayCluster",
@@ -287,7 +291,7 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 						Containers: []corev1.Container{
 							{
 								Name:  "ray-head",
-								Image: GetRayImage(),
+								Image: rayImage,
 								Ports: []corev1.ContainerPort{
 									{
 										ContainerPort: 6379,
@@ -333,16 +337,10 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 					RayStartParams: map[string]string{},
 					Template: corev1.PodTemplateSpec{
 						Spec: corev1.PodSpec{
-							Tolerations: []corev1.Toleration{
-								{
-									Key:      "nvidia.com/gpu",
-									Operator: corev1.TolerationOpExists,
-								},
-							},
 							Containers: []corev1.Container{
 								{
 									Name:  "ray-worker",
-									Image: GetRayImage(),
+									Image: rayImage,
 									Lifecycle: &corev1.Lifecycle{
 										PreStop: &corev1.LifecycleHandler{
 											Exec: &corev1.ExecAction{
@@ -354,12 +352,10 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 										Requests: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("250m"),
 											corev1.ResourceMemory: resource.MustParse("1G"),
-											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numberOfGpus)),
 										},
 										Limits: corev1.ResourceList{
 											corev1.ResourceCPU:    resource.MustParse("2"),
 											corev1.ResourceMemory: resource.MustParse("4G"),
-											"nvidia.com/gpu":      resource.MustParse(fmt.Sprint(numberOfGpus)),
 										},
 									},
 									VolumeMounts: []corev1.VolumeMount{
@@ -388,10 +384,37 @@ func constructRayCluster(_ Test, namespace *corev1.Namespace, mnist *corev1.Conf
 			},
 		},
 	}
+	if accelerator.IsGpu() {
+		// Add toleration for the GPU
+		raycluster.Spec.WorkerGroupSpecs[0].Template.Spec.Tolerations = append(raycluster.Spec.WorkerGroupSpecs[0].Template.Spec.Tolerations, corev1.Toleration{
+			Key:      accelerator.ResourceLabel,
+			Operator: corev1.TolerationOpExists,
+		})
+		// Add GPU resource quota
+		raycluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Resources.Requests[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse("1")
+		raycluster.Spec.WorkerGroupSpecs[0].Template.Spec.Containers[0].Resources.Limits[corev1.ResourceName(accelerator.ResourceLabel)] = resource.MustParse("1")
+	}
+
+	return &raycluster
 }
 
-func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster, accelerator string, numberOfGpus int) *rayv1.RayJob {
-	return &rayv1.RayJob{
+func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayCluster, accelerator Accelerator, rayImage string) *rayv1.RayJob {
+	pipPackages := []string{
+		"pytorch_lightning==2.4.0",
+		"torchmetrics==1.6.0",
+		"torchvision==0.19.1",
+	}
+
+	// Append AMD-specific packages
+	if accelerator.ResourceLabel == "amd.com/gpu" {
+		pipPackages = append(pipPackages,
+			"--extra-index-url https://download.pytorch.org/whl/rocm6.1",
+			"torch==2.4.1+rocm6.1",
+		)
+	}
+
+	// Construct RayJob with the final pip list
+	rayJob := rayv1.RayJob{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rayv1.GroupVersion.String(),
 			Kind:       "RayJob",
@@ -402,17 +425,15 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
 		},
 		Spec: rayv1.RayJobSpec{
 			Entrypoint: "python /home/ray/jobs/mnist.py",
-			RuntimeEnvYAML: `
-  pip:
-    - pytorch_lightning==2.4.0
-    - torchmetrics==1.6.0
-    - torchvision==0.20.1
-  env_vars:
-    MNIST_DATASET_URL: "` + GetMnistDatasetURL() + `"
-    PIP_INDEX_URL: "` + GetPipIndexURL() + `"
-    PIP_TRUSTED_HOST: "` + GetPipTrustedHost() + `"
-    ACCELERATOR: "` + accelerator + `"
-`,
+			RuntimeEnvYAML: fmt.Sprintf(`
+pip:
+  - %s
+env_vars:
+  MNIST_DATASET_URL: "%s"
+  PIP_INDEX_URL: "%s"
+  PIP_TRUSTED_HOST: "%s"
+  ACCELERATOR: "%s"
+`, strings.Join(pipPackages, "\n  - "), GetMnistDatasetURL(), GetPipIndexURL(), GetPipTrustedHost(), accelerator.Type),
 			ClusterSelector: map[string]string{
 				RayJobDefaultClusterSelectorKey: rayCluster.Name,
 			},
@@ -422,7 +443,7 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Image: GetRayImage(),
+							Image: rayImage,
 							Name:  "rayjob-submitter-pod",
 						},
 					},
@@ -430,9 +451,15 @@ func constructRayJob(_ Test, namespace *corev1.Namespace, rayCluster *rayv1.RayC
 			},
 			EntrypointNumCpus: 2,
 			// Using EntrypointNumGpus doesn't seem to work properly on KinD cluster with GPU, EntrypointNumCpus seems reliable
-			EntrypointNumGpus: float32(numberOfGpus),
+			EntrypointNumGpus: 0,
 		},
 	}
+
+	if accelerator.IsGpu() {
+		rayJob.Spec.EntrypointNumGpus = 1
+	}
+
+	return &rayJob
 }
 
 func getRayDashboardURL(test Test, namespace, rayClusterName string) string {
@@ -477,12 +504,12 @@ func getRayDashboardURL(test Test, namespace, rayClusterName string) string {
 }
 
 // Create ClusterQueue
-func createClusterQueue(test Test, resourceFlavor *v1beta1.ResourceFlavor, numberOfGpus int) *v1beta1.ClusterQueue {
+func createClusterQueue(test Test, resourceFlavor *v1beta1.ResourceFlavor, accelerator Accelerator) *v1beta1.ClusterQueue {
 	cqSpec := v1beta1.ClusterQueueSpec{
 		NamespaceSelector: &metav1.LabelSelector{},
 		ResourceGroups: []v1beta1.ResourceGroup{
 			{
-				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory"), corev1.ResourceName("nvidia.com/gpu")},
+				CoveredResources: []corev1.ResourceName{corev1.ResourceName("cpu"), corev1.ResourceName("memory")},
 				Flavors: []v1beta1.FlavorQuotas{
 					{
 						Name: v1beta1.ResourceFlavorReference(resourceFlavor.Name),
@@ -495,15 +522,23 @@ func createClusterQueue(test Test, resourceFlavor *v1beta1.ResourceFlavor, numbe
 								Name:         corev1.ResourceMemory,
 								NominalQuota: resource.MustParse("12Gi"),
 							},
-							{
-								Name:         corev1.ResourceName("nvidia.com/gpu"),
-								NominalQuota: resource.MustParse(fmt.Sprint(numberOfGpus)),
-							},
 						},
 					},
 				},
 			},
 		},
 	}
+
+	if accelerator.IsGpu() {
+		// Add ResourceLabel to CoveredResources
+		cqSpec.ResourceGroups[0].CoveredResources = append(cqSpec.ResourceGroups[0].CoveredResources, corev1.ResourceName(accelerator.ResourceLabel))
+
+		// Add GPU resource quota
+		cqSpec.ResourceGroups[0].Flavors[0].Resources = append(cqSpec.ResourceGroups[0].Flavors[0].Resources, v1beta1.ResourceQuota{
+			Name:         corev1.ResourceName(accelerator.ResourceLabel),
+			NominalQuota: resource.MustParse("1"),
+		})
+	}
+
 	return CreateKueueClusterQueue(test, cqSpec)
 }
