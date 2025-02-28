@@ -51,7 +51,7 @@ func runMnistPyTorchAppWrapper(t *testing.T, accelerator string, numberOfGpus in
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ResourceFlavors().Delete(test.Ctx(), resourceFlavor.Name, metav1.DeleteOptions{})
 	}()
-	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus)
+	clusterQueue := createClusterQueue(test, resourceFlavor, numberOfGpus, "nvidia.com/gpu")
 	defer func() {
 		_ = test.Client().Kueue().KueueV1beta1().ClusterQueues().Delete(test.Ctx(), clusterQueue.Name, metav1.DeleteOptions{})
 	}()
