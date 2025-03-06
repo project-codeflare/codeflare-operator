@@ -51,7 +51,7 @@ func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int
 	test := With(t)
 
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithNamespaceName("test-ns-1"))
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
@@ -122,7 +122,7 @@ func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, number
 	test := With(t)
 
 	// Create a namespace
-	namespace := test.NewTestNamespace()
+	namespace := test.NewTestNamespace(WithNamespaceName("test-ns-2"))
 
 	// Create Kueue resources
 	resourceFlavor := CreateKueueResourceFlavor(test, v1beta1.ResourceFlavorSpec{})
