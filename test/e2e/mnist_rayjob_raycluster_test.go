@@ -50,7 +50,7 @@ func TestMnistRayJobRayClusterGpu(t *testing.T) {
 func runMnistRayJobRayCluster(t *testing.T, accelerator string, numberOfGpus int) {
 	test := With(t)
 
-	// Create a namespace
+	// Create a static namespace to ensure a consistent Ray Dashboard hostname entry in /etc/hosts before executing the test.
 	namespace := test.NewTestNamespace(WithNamespaceName("test-ns-1"))
 
 	// Create Kueue resources
@@ -121,7 +121,7 @@ func TestMnistRayJobRayClusterAppWrapperGpu(t *testing.T) {
 func runMnistRayJobRayClusterAppWrapper(t *testing.T, accelerator string, numberOfGpus int) {
 	test := With(t)
 
-	// Create a namespace
+	// Create a static namespace to ensure a consistent Ray Dashboard hostname entry in /etc/hosts before executing the test.
 	namespace := test.NewTestNamespace(WithNamespaceName("test-ns-2"))
 
 	// Create Kueue resources
