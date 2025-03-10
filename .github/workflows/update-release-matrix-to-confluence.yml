@@ -1,0 +1,121 @@
+name: Update Release Matrix to Confluence
+
+on:
+  workflow_dispatch:
+    inputs:
+      rhoai-release-version:
+        description: 'RHOAI Release Version'
+        required: true
+      kueue-version:
+        description: 'Kueue Version'
+        required: true
+      codeflare-sdk-version:
+        description: 'CodeFlare SDK Version'
+        required: true
+      codeflare-operator-version:
+        description: 'CodeFlare operator Version'
+        required: true
+      kuberay-version:
+        description: 'Tested KubeRay version'
+        required: true
+      appwrapper-version:
+        description: 'Tested appwrapper version'
+        required: true
+
+jobs:
+  update-confluence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Release info Parameters
+        run: |
+          echo "RHOAI_RELEASE_VERSION=${{ github.event.inputs.rhoai-release-version }}" >> $GITHUB_ENV
+          echo "KUEUE_VERSION=${{ github.event.inputs.kueue-version }}" >> $GITHUB_ENV
+          echo "CODEFLARE_SDK_VERSION=${{ github.event.inputs.codeflare-sdk-version }}" >> $GITHUB_ENV
+          echo "CODEFLARE_OPERATOR_VERSION=${{ github.event.inputs.codeflare-operator-version }}" >> $GITHUB_ENV
+          echo "KUBERAY_VERSION=${{ github.event.inputs.kuberay-version }}" >> $GITHUB_ENV
+          echo "APPWRAPPER_VERSION=${{ github.event.inputs.appwrapper-version }}" >> $GITHUB_ENV
+
+      - name: Fetch and Update Existing Release Matrix Page Content
+        run: |
+          echo "Fetching Release Matrix Confluence Page..."
+          response=$(curl  -H "Authorization: Bearer ${{ secrets.CONFLUENCE_API_TOKEN }}" \
+            "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content?title=${{ secrets.PAGE_TITLE }}&spaceKey=${{ secrets.SPACE_KEY }}&expand=body.storage,version")
+
+          echo "$response" | jq '.' > page_data.json
+          echo "Raw API Response: $response"
+
+          PAGE_VERSION=$(jq '.results[0].version.number' page_data.json)
+
+          if [[ -z "$PAGE_VERSION" || "$PAGE_VERSION" == "null" ]]; then
+            echo "Error: Could not retrieve current page version."
+            exit 1
+          fi
+          echo "PAGE_VERSION=$PAGE_VERSION" >> $GITHUB_ENV
+
+          EXISTING_CONTENT=$(jq -r '.results[0].body.storage.value' page_data.json)
+
+          echo "Existing Release Matrix Page Content: $EXISTING_CONTENT"
+
+          if [[ -z "$EXISTING_CONTENT" || "$EXISTING_CONTENT" == "null" ]]; then
+            echo "Error: Could not retrieve existing page content."
+            exit 1
+          fi
+
+          # Convert newlines to a placeholder to handle multi-line processing
+          PLACEHOLDER="__NL__"
+          MODIFIED_CONTENT=$(echo "$EXISTING_CONTENT" | tr '\n' "$PLACEHOLDER")
+
+          # Update the page content with release info also check and update if the release version already exists in the table
+          if echo "$MODIFIED_CONTENT" | grep -q "<tr[^>]*><td>$RHOAI_RELEASE_VERSION</td>"; then
+            UPDATED_PAGE_CONTENT=$(echo "$MODIFIED_CONTENT" | sed -E "s|(<tr[^>]*><td>$RHOAI_RELEASE_VERSION</td><td>)[^<]+(</td><td>)[^<]+(</td><td>)[^<]+(</td><td>)[^<]+(</td><td>)[^<]+(</td></tr>)|\1$KUEUE_VERSION\2$CODEFLARE_SDK_VERSION\3$CODEFLARE_OPERATOR_VERSION\4$KUBERAY_VERSION\5$APPWRAPPER_VERSION\6|")
+          else
+            UPDATED_ROW="<tr class=\"\"><td>$RHOAI_RELEASE_VERSION</td><td>$KUEUE_VERSION</td><td>$CODEFLARE_SDK_VERSION</td><td>$CODEFLARE_OPERATOR_VERSION</td><td>$KUBERAY_VERSION</td><td>$APPWRAPPER_VERSION</td></tr>"
+            UPDATED_PAGE_CONTENT=$(echo "$MODIFIED_CONTENT" | sed "s|</tbody>|$UPDATED_ROW</tbody>|")
+          fi
+
+          # Correct JSON encoding without double escaping
+          UPDATED_PAGE_CONTENT=$(echo "$UPDATED_PAGE_CONTENT" | sed 's/_$//')  # Remove trailing underscores
+          UPDATED_PAGE_CONTENT=$(jq -n --arg content "$UPDATED_PAGE_CONTENT" '$content' | tr -d '\r')
+          # Store as output
+          echo "UPDATED_PAGE_CONTENT=$UPDATED_PAGE_CONTENT" >> "$GITHUB_ENV"
+
+      - name: Publish updated page content to confluence
+        run: |
+
+          NEW_VERSION=$(( PAGE_VERSION + 1 ))
+
+          if [[ -n "$UPDATED_PAGE_CONTENT" && "$UPDATED_PAGE_CONTENT" != "null" ]]; then
+              echo "Updating Confluence Page using PUT request..."
+              HTTP_RESPONSE=$(curl -s -o response.json -w "%{http_code}" -X PUT "${{ secrets.CONFLUENCE_BASE_URL }}/rest/api/content/${{ secrets.CONFLUENCE_PAGE_ID }}" \
+                  -H "Authorization: Bearer ${{ secrets.CONFLUENCE_API_TOKEN }}" \
+                  -H "Content-Type: application/json" \
+                  -d "{
+                    \"id\": \"${{ secrets.CONFLUENCE_PAGE_ID }}\",
+                    \"type\": \"page\",
+                    \"title\": \"Distributed Workloads Release Details\",
+                    \"space\": { \"key\": \"${{ secrets.SPACE_KEY }}\" },
+                    \"body\": {
+                    \"storage\": {
+                    \"value\": $UPDATED_PAGE_CONTENT,
+                    \"representation\": \"storage\"
+                    }
+                  },
+                  \"version\": {
+                    \"number\": $NEW_VERSION
+                  }
+                }")
+              if [[ "$HTTP_RESPONSE" == "200" || "$HTTP_RESPONSE" == "201" ]]; then
+                echo "Successfully updated Confluence Page with release version details !"
+                echo "Response from Confluence:"
+                cat response.json
+              else
+                echo "Error: Failed to update Confluence page. HTTP Response Code: $HTTP_RESPONSE"
+                exit 1
+              fi
+          else
+              echo "Error: UPDATED_PAGE_CONTENT is null or empty."
+              exit 1
+          fi
