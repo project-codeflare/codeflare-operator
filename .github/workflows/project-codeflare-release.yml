@@ -30,14 +30,13 @@ on:
         description: 'GitHub organization/user containing repositories used for release'
         required: true
         default: 'project-codeflare'
-      quay-organization:
-        description: 'Quay organization used to push the built images to'
-        required: true
-        default: 'project-codeflare'
       community-operators-prod-organization:
         description: 'Owner of target community-operators-prod repository used to open a PR against'
         required: true
         default: 'redhat-openshift-ecosystem'
+      rhoai-release-version:
+        description: "RHOAI Release version for updating Component Release Matrix Versions Info "
+        required: true
 
 jobs:
   release-parameters:
@@ -54,7 +53,6 @@ jobs:
         echo "Tested Kueue Version: ${{ github.event.inputs.kueue-version }}"
         echo "Is Stable: ${{ github.event.inputs.is-stable }}"
         echo "CodeFlare Repository Organization: ${{ github.event.inputs.codeflare-repository-organization }}"
-        echo "Quay Organization: ${{ github.event.inputs.quay-organization }}"
         echo "Community Operators Prod Organization: ${{ github.event.inputs.community-operators-prod-organization }}"
 
   release-codeflare-sdk:
@@ -74,7 +72,7 @@ jobs:
       run: |
         semver_version="${{ github.event.inputs.codeflare-sdk-version }}"
         plain_version="${semver_version:1}"
-        gh workflow run release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --ref ${{ github.ref }} --field release-version=${plain_version} --field is-stable=${{ github.event.inputs.is-stable }} --field quay-organization=${{ github.event.inputs.quay-organization }}
+        gh workflow run release.yaml --repo ${{ github.event.inputs.codeflare-repository-organization }}/codeflare-sdk --ref ${{ github.ref }} --field release-version=${plain_version} --field is-stable=${{ github.event.inputs.is-stable }} --field quay-organization=project-codeflare
       env:
         GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
       shell: bash
@@ -107,7 +105,7 @@ jobs:
         --field appwrapper-version=${{ github.event.inputs.appwrapper-version }} \
         --field kuberay-version=${{ github.event.inputs.kuberay-version }} \
         --field kueue-version=${{ github.event.inputs.kueue-version }} \
-        --field quay-organization=${{ github.event.inputs.quay-organization }} \
+        --field quay-organization=project-codeflare \
         --field community-operators-prod-fork-organization=${{ github.event.inputs.codeflare-repository-organization }} \
         --field community-operators-prod-organization=${{ github.event.inputs.community-operators-prod-organization }}
       env:
@@ -184,3 +182,27 @@ jobs:
 
     - name: Verify generated file
       run: cat config/component_metadata.yaml
+
+  Update_release_version_info_to_confluence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Trigger and Update Component Release Matrix Versions Info to Confluence
+        run: |
+            gh workflow run update-release-matrix-to-confluence.yml --ref ${{ github.ref }}  \
+              --field rhoai-release-version=${{ github.event.inputs.rhoai-release-version }} \
+              --field kueue-version=${{ github.event.inputs.kueue-version }} \
+              --field codeflare-sdk-version=${{ github.event.inputs.codeflare-sdk-version }} \
+              --field codeflare-operator-version=${{ github.event.inputs.operator-version }} \
+              --field kuberay-version=${{ github.event.inputs.kuberay-version }} \
+              --field appwrapper-version=${{ github.event.inputs.appwrapper-version }}
+
+            # wait for a while for Run to be started
+            sleep 5
+            run_id=$(gh run list --workflow update-release-matrix-to-confluence.yml --repo https://github.com/project-codeflare/codeflare-operator --limit 1 --json databaseId --jq .[].databaseId)
+            gh run watch ${run_id} --repo https://github.com/project-codeflare/codeflare-operator --interval 10 --exit-status
+        env:
+          GITHUB_TOKEN: ${{ secrets.CODEFLARE_MACHINE_ACCOUNT_TOKEN }}
+        shell: bash
