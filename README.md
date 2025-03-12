@@ -1,6 +1,10 @@
 # codeflare-operator
 
-Operator for installation and lifecycle management of CodeFlare distributed workload stack.
+The CodeFlare-Operator has embedded two controllers, a [RayCluster controller](https://github.com/project-codeflare/codeflare-operator/blob/main/pkg/controllers/raycluster_controller.go) which creates resources including secrets, ingress, routes, service, serviceaccounts, clusterrolebinding resources; all needed for the RayClusters created to work as expected.
+
+There's an [AppWrapper Controller](https://github.com/project-codeflare/appwrapper/blob/main/internal/controller/appwrapper/appwrapper_controller.go), which is a flexible and workload-agnostic mechanism to enable Kueue to manage a group of Kubernetes resources as a single logical unit and to provide an additional level of automatic fault detection and recovery.
+
+For each controller, there are webhooks in place that can be found [here](https://github.com/project-codeflare/codeflare-operator/tree/main/pkg/controllers).
 
 <!-- Don't delete these comments, they are used to generate Compatibility Matrix table for release automation -->
 <!-- Compatibility Matrix start -->
@@ -24,6 +28,7 @@ Requirements:
   # brew install gnu-sed
   make install -e SED=/usr/local/bin/gsed
   ```
+- Kind - Kind is used in the kind-e2e command in the Makefile. Follow these instructions for the kind setup <a href="https://kind.sigs.k8s.io/docs/user/quick-start/" target="_blank">here</a>
 
 ### Testing
 
@@ -34,11 +39,9 @@ The e2e tests can be executed locally by running the following commands:
     ```bash
     # Create a KinD cluster
     make kind-e2e
-    # Install the CRDs
-    make install
     ```
 
-   [!NOTE]
+> [!NOTE]
    Some e2e tests cover the access to services via Ingresses, as end-users would do, which requires access to the Ingress controller load balancer by its IP.
    For it to work on macOS, this requires installing [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect).
 
@@ -47,16 +50,16 @@ The e2e tests can be executed locally by running the following commands:
    ```bash
    make setup-e2e
    ```
-
-   [!NOTE]
+   
+> [!NOTE]
    Kueue will only activate its Ray integration if KubeRay is installed before Kueue (as done by this make target).
 
-   [!NOTE]
+> [!NOTE]
    In OpenShift the KubeRay operator pod gets random user assigned. This user is then used to run Ray cluster.
    However the random user assigned by OpenShift doesn't have rights to store dataset downloaded as part of test execution, causing tests to fail.
    To prevent this failure on OpenShift user should enforce user 1000 for KubeRay and Ray cluster by creating this SCC in KubeRay operator namespace (replace the namespace placeholder):
 
-    ```yaml
+   ```yaml
     kind: SecurityContextConstraints
     apiVersion: security.openshift.io/v1
     metadata:
@@ -68,21 +71,21 @@ The e2e tests can be executed locally by running the following commands:
       uid: 1000
     users:
       - 'system:serviceaccount:$(namespace):kuberay-operator'
-    ```
+   ```
 
-3. Start the operator locally:
-
+3.  In the /etc/hosts file add the following lines:
     ```bash
-    NAMESPACE=default make run
+    127.0.0.1 ray-dashboard-raycluster-test-ns-1.kind
+    127.0.0.1 ray-dashboard-raycluster-test-ns-2.kind
     ```
 
-   Alternatively, You can run the operator from your IDE / debugger.
-
-4.  In a separate terminal, set your output directory for test files, and run the e2e suite:
+4.  Build, push and deploy the codeflare-operator image:
     ```bash
-    export CODEFLARE_TEST_OUTPUT_DIR=<your_output_directory>
+    make image-push IMG=<full-registry>:<tag>
+    make deploy -e IMG=<full-registry>:<tag> -e ENV="e2e"
     ```
 
+5.  To run the tests run the command
     ```bash
     make test-e2e
     ```
