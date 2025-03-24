@@ -16,7 +16,7 @@ APPWRAPPER_VERSION ?= v1.1.1
 APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
-# KUEUE_VERSION defines the default version of Kueue (used for testing)
+# KUEUE_VERSION defines the version of Kueue deployed for testing
 KUEUE_VERSION ?= v0.11.0
 
 USE_RHOAI ?= true
@@ -160,7 +160,6 @@ vet: ## Run go vet against code.
 .PHONY: modules
 modules: ## Update Go dependencies.
 	go get github.com/ray-project/kuberay/ray-operator@$(KUBERAY_VERSION)
-	go get sigs.k8s.io/kueue@$(KUEUE_VERSION)
 	go get github.com/project-codeflare/appwrapper@$(APPWRAPPER_VERSION)
 	go mod tidy
 
