@@ -266,21 +266,35 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// Locate the KubeRay operator deployment:
-	// - First try to get the ODH / RHOAI application namespace from the DSCInitialization
-	// - Or fallback to the well-known defaults
 	var kubeRayNamespaces []string
-	dsci := &dsciv1.DSCInitialization{}
-	err := r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
-	if errors.IsNotFound(err) {
-		kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
-	} else if err != nil {
-		return ctrl.Result{}, err
+	if r.IsOpenShift {
+		// Locate the KubeRay operator deployment:
+		// - First try to get the ODH / RHOAI application namespace from the DSCInitialization
+		// - Or fallback to the well-known defaults
+		dsci := &dsciv1.DSCInitialization{}
+
+		// TODO it wont find the dsci if it is named something else (which is entirely possible) - find it some other way
+		err := r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
+		if err != nil {
+			return ctrl.Result{}, err
+		} else {
+			kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+		}
 	} else {
-		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+		var pods corev1.PodList
+		err := r.Client.List(ctx, &pods,
+			client.MatchingLabels{"app.kubernetes.io/name": "kuberay"},
+		)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		for _, pod := range pods.Items {
+			kubeRayNamespaces = []string{pod.Namespace}
+		}
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err := r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
