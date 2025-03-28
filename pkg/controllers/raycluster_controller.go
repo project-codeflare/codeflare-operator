@@ -281,8 +281,9 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
 		} else if err != nil {
 			return ctrl.Result{}, err
+		} else {
+			kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 		}
-		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 
 	}
 
