@@ -271,16 +271,19 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// - Or fallback to the well-known defaults
 	// add check if running on openshift or vanilla kubernetes
 	var kubeRayNamespaces []string
-	kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
+	kubeRayNamespaces = []string{cluster.Namespace}
 
 	if r.IsOpenShift {
 		dsci := &dsciv1.DSCInitialization{}
+
 		err := r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
-		if err != nil {
+		if errors.IsNotFound(err) {
+			kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
+		} else if err != nil {
 			return ctrl.Result{}, err
-		} else {
-			kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
 		}
+		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+
 	}
 
 	_, err := r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
