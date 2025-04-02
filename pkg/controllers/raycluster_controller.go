@@ -269,18 +269,25 @@ func (r *RayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Locate the KubeRay operator deployment:
 	// - First try to get the ODH / RHOAI application namespace from the DSCInitialization
 	// - Or fallback to the well-known defaults
+	// add check if running on openshift or vanilla kubernetes
 	var kubeRayNamespaces []string
-	dsci := &dsciv1.DSCInitialization{}
-	err := r.Client.Get(ctx, client.ObjectKey{Name: "default-dsci"}, dsci)
-	if errors.IsNotFound(err) {
-		kubeRayNamespaces = []string{"opendatahub", "redhat-ods-applications"}
-	} else if err != nil {
-		return ctrl.Result{}, err
-	} else {
-		kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+	kubeRayNamespaces = []string{kubeRayDefaultNamespace}
+
+	if r.IsOpenShift {
+		dsci := &dsciv1.DSCInitialization{}
+
+		err := r.Client.Get(ctx, client.ObjectKey{Name: defaultDSCINamespace}, dsci)
+		if errors.IsNotFound(err) {
+			kubeRayNamespaces = []string{odhNamespace, rhdsAppsNamespace}
+		} else if err != nil {
+			return ctrl.Result{}, err
+		} else {
+			kubeRayNamespaces = []string{dsci.Spec.ApplicationsNamespace}
+		}
+
 	}
 
-	_, err = r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
+	_, err := r.kubeClient.NetworkingV1().NetworkPolicies(cluster.Namespace).Apply(ctx, desiredHeadNetworkPolicy(cluster, r.Config, kubeRayNamespaces), metav1.ApplyOptions{FieldManager: controllerName, Force: true})
 	if err != nil {
 		logger.Error(err, "Failed to update NetworkPolicy")
 	}
@@ -550,7 +557,7 @@ func desiredHeadNetworkPolicy(cluster *rayv1.RayCluster, cfg *config.KubeRayConf
 				networkingv1ac.NetworkPolicyIngressRule().
 					WithFrom(
 						networkingv1ac.NetworkPolicyPeer().WithPodSelector(metav1ac.LabelSelector().
-							WithMatchLabels(map[string]string{"app.kubernetes.io/component": "kuberay-operator"})).
+							WithMatchLabels(map[string]string{"app.kubernetes.io/component": kubeRayOperatorNamespace})).
 							WithNamespaceSelector(metav1ac.LabelSelector().
 								WithMatchExpressions(metav1ac.LabelSelectorRequirement().
 									WithKey(corev1.LabelMetadataName).
