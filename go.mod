@@ -10,11 +10,11 @@ require (
 	github.com/opendatahub-io/opendatahub-operator/v2 v2.10.0
 	github.com/openshift/api v0.0.0-20240904015708-69df64132c91
 	github.com/openshift/client-go v0.0.0-20240904130219-3795e907a202
-	github.com/project-codeflare/appwrapper v1.0.4
+	github.com/project-codeflare/appwrapper v1.0.7
 	github.com/project-codeflare/codeflare-common v0.0.0-20250321141415-67bb8bd932df
 	github.com/ray-project/kuberay/ray-operator v1.2.2
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	k8s.io/api v0.31.4
 	k8s.io/apiextensions-apiserver v0.31.2
 	k8s.io/apimachinery v0.31.4
@@ -23,7 +23,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.19.3
-	sigs.k8s.io/kueue v0.10.1
+	sigs.k8s.io/kueue v0.10.2
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -99,7 +99,7 @@ require (
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.28.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
