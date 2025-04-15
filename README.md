@@ -1,6 +1,6 @@
 # codeflare-operator
 
-The CodeFlare-Operator has embedded two controllers, a [RayCluster controller](https://github.com/project-codeflare/codeflare-operator/blob/main/pkg/controllers/raycluster_controller.go) which creates resources including secrets, ingress, routes, service, serviceaccounts, clusterrolebinding resources; all needed for the RayClusters created to work as expected.
+The CodeFlare-Operator has embedded two controllers, a [RayCluster controller](https://github.com/project-codeflare/codeflare-operator/blob/main/pkg/controllers/raycluster_controller.go) which creates resources including secrets, ingress, routes, service, serviceaccounts, clusterrolebinding resources; all needed for the RayClusters created to work as expected. (TEST PR)
 
 There's an [AppWrapper Controller](https://github.com/project-codeflare/appwrapper/blob/main/internal/controller/appwrapper/appwrapper_controller.go), which is a flexible and workload-agnostic mechanism to enable Kueue to manage a group of Kubernetes resources as a single logical unit and to provide an additional level of automatic fault detection and recovery.
 
