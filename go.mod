@@ -12,7 +12,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20240904130219-3795e907a202
 	github.com/project-codeflare/appwrapper v1.0.7
 	github.com/project-codeflare/codeflare-common v0.0.0-20250321141415-67bb8bd932df
-	github.com/ray-project/kuberay/ray-operator v1.2.2
+	github.com/ray-project/kuberay/ray-operator v1.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	k8s.io/api v0.31.4
@@ -34,9 +34,6 @@ replace sigs.k8s.io/custom-metrics-apiserver => sigs.k8s.io/custom-metrics-apise
 replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.44.0
 
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
-
-// Workaround deprecation of cluster.Status.State in ray-operator v1.2.2
-replace github.com/ray-project/kuberay/ray-operator v1.2.2 => github.com/ray-project/kuberay/ray-operator v1.2.1
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
