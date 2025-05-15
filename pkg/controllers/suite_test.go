@@ -61,7 +61,7 @@ func TestAPIs(t *testing.T) {
 
 const (
 	RayClusterCRDFileDownload = "https://raw.githubusercontent.com/ray-project/kuberay/master/ray-operator/config/crd/bases/ray.io_rayclusters.yaml"
-	RouteCRDFileDownload      = "https://raw.githubusercontent.com/openshift/api/master/route/v1/zz_generated.crd-manifests/routes-Default.crd.yaml"
+	RouteCRDFileDownload      = "https://raw.githubusercontent.com/openshift/api/master/route/v1/zz_generated.crd-manifests/routes.crd.yaml"
 )
 
 var _ = BeforeSuite(func() {
@@ -79,6 +79,8 @@ var _ = BeforeSuite(func() {
 	defer fRoute.Close()
 	resp, err := http.Get(RouteCRDFileDownload)
 	Expect(err).ToNot(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(http.StatusOK), "Failed to download Route CRD: %s", RouteCRDFileDownload)
+	defer resp.Body.Close()
 	_, err = io.Copy(fRoute, resp.Body)
 	Expect(err).ToNot(HaveOccurred())
 	fRaycluster, err = os.Create("./test-crds/raycluster.yaml")
@@ -86,6 +88,8 @@ var _ = BeforeSuite(func() {
 	defer fRaycluster.Close()
 	resp, err = http.Get(RayClusterCRDFileDownload)
 	Expect(err).ToNot(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(http.StatusOK), "Failed to download RayCluster CRD: %s", RayClusterCRDFileDownload)
+	defer resp.Body.Close()
 	_, err = io.Copy(fRaycluster, resp.Body)
 	Expect(err).ToNot(HaveOccurred())
 
