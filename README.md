@@ -13,10 +13,10 @@ CodeFlare Stack Compatibility Matrix
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
 | CodeFlare Operator           | [v1.15.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.15.0)             |
-| CodeFlare-SDK                | [v0.27.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.27.0)                |
-| AppWrapper                   | [v1.0.4](https://github.com/project-codeflare/appwrapper/releases/tag/v1.0.4)                   |
-| KubeRay                      | [v1.2.2](https://github.com/ray-project/kuberay/releases/tag/v1.2.2)                           |
-| Kueue                        | [v0.10.1](https://github.com/kubernetes-sigs/kueue/releases/tag/v0.10.1)                             |
+| CodeFlare-SDK                | [v0.28.1](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.28.1)                |
+| AppWrapper                   | [v1.1.2](https://github.com/project-codeflare/appwrapper/releases/tag/v1.1.2)                   |
+| KubeRay                      | [v1.3.2](https://github.com/ray-project/kuberay/releases/tag/v1.3.2)                           |
+| Kueue                        | [v0.11.4](https://github.com/kubernetes-sigs/kueue/releases/tag/v0.11.4)                             |
 <!-- Compatibility Matrix end -->
 
 ## Development
