@@ -287,8 +287,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/project-codeflare/appwrapper v1.1.1 h1:ymFtH4bWpFyf4MgLvzONEgJ5A9utjAU5kSMLpSyeaBU=
-github.com/project-codeflare/appwrapper v1.1.1/go.mod h1:+Pfxe92YSxrFqO1ovRZTQ1PRrQqkdq5fLCxn1Ok6ZlQ=
+github.com/project-codeflare/appwrapper v1.1.2 h1:iEEyYGSDXOxMXc/AZEvTDDXy1DNi+cWUQ93uM6XAXJc=
+github.com/project-codeflare/appwrapper v1.1.2/go.mod h1:+Pfxe92YSxrFqO1ovRZTQ1PRrQqkdq5fLCxn1Ok6ZlQ=
 github.com/project-codeflare/codeflare-common v0.0.0-20250321141415-67bb8bd932df h1:na2yAFNrALqd1+EtfejXtAMOXNTHJvKb6+8TLKnfopc=
 github.com/project-codeflare/codeflare-common v0.0.0-20250321141415-67bb8bd932df/go.mod h1:tu2Wk/RgUlTaSPk7TKadn4DEIjz0qhBCF/qSq2ZqVp0=
 github.com/prometheus/client_golang v1.21.1 h1:DOvXXTqVzvkIewV/CDPFdejpMCGeMcbGCQ8YOmu+Ibk=
