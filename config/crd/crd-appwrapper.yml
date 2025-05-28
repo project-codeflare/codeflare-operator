@@ -144,9 +144,9 @@ spec:
                           type: object
                         type: array
                       podSets:
-                        description: DeclaredPodSets for the Component (optional for known PodCreating GVKs)
+                        description: DeclaredPodSets for the Component (optional for known GVKs whose PodSets can be automatically inferred)
                         items:
-                          description: AppWrapperPodSet describes an homogeneous set of pods
+                          description: AppWrapperPodSet describes a homogeneous set of pods
                           properties:
                             annotations:
                               additionalProperties:
@@ -156,7 +156,7 @@ spec:
                                 arbitrary metadata about the PodSet to customize its treatment by the AppWrapper controller.
                               type: object
                             path:
-                              description: Path is the path Component.Template to the PodTemplateSpec for this PodSet
+                              description: Path is the path within Component.Template to the PodTemplateSpec for this PodSet
                               type: string
                             replicas:
                               description: Replicas is the number of pods in this PodSet
@@ -185,7 +185,7 @@ spec:
                 - components
               type: object
             status:
-              description: AppWrapperStatus defines the observed state of the appwrapper
+              description: AppWrapperStatus defines the observed state of the AppWrapper
               properties:
                 componentStatus:
                   description: ComponentStatus parallels the Components array in the Spec and tracks the actually deployed resources
@@ -268,7 +268,7 @@ spec:
                       podSets:
                         description: PodSets is the validated PodSets for the Component (either from AppWrapperComponent.DeclaredPodSets or inferred by the controller)
                         items:
-                          description: AppWrapperPodSet describes an homogeneous set of pods
+                          description: AppWrapperPodSet describes a homogeneous set of pods
                           properties:
                             annotations:
                               additionalProperties:
@@ -278,7 +278,7 @@ spec:
                                 arbitrary metadata about the PodSet to customize its treatment by the AppWrapper controller.
                               type: object
                             path:
-                              description: Path is the path Component.Template to the PodTemplateSpec for this PodSet
+                              description: Path is the path within Component.Template to the PodTemplateSpec for this PodSet
                               type: string
                             replicas:
                               description: Replicas is the number of pods in this PodSet
