@@ -17,7 +17,7 @@ APPWRAPPER_REPO ?= github.com/project-codeflare/appwrapper
 APPWRAPPER_CRD ?= ${APPWRAPPER_REPO}/config/crd?ref=${APPWRAPPER_VERSION}
 
 # KUEUE_VERSION defines the version of Kueue deployed for testing
-KUEUE_VERSION ?= v0.11.5
+KUEUE_VERSION ?= v0.11.6
 
 USE_RHOAI ?= true
 # KUBERAY_VERSION defines the default version of the KubeRay operator (used for testing)
