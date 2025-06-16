@@ -1,8 +1,6 @@
 module github.com/project-codeflare/codeflare-operator
 
-go 1.24.0
-
-toolchain go1.24.4
+go 1.23.0
 
 require (
 	github.com/go-logr/logr v1.4.2
@@ -25,7 +23,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.20.3
-	sigs.k8s.io/kueue v0.11.6
+	sigs.k8s.io/kueue v0.10.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -46,7 +44,7 @@ replace go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.open
 replace github.com/jackc/pgx/v4 => github.com/jackc/pgx/v5 v5.5.4
 
 // Workaround deprecation of cluster.Status.State in ray-operator v1.3.2
-replace github.com/ray-project/kuberay/ray-operator v1.3.2 => github.com/ray-project/kuberay/ray-operator v1.2.2
+replace github.com/ray-project/kuberay/ray-operator v1.3.2 => github.com/ray-project/kuberay/ray-operator v1.2.1
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
