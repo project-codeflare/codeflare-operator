@@ -1,0 +1,50 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/codeflare-operator?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-target-branch: "[test]"
+    pipelinesascode.tekton.dev/on-event: "[pull_request]"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "main"
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: opendatahub-release
+    appstudio.openshift.io/component: odh-codeflare-operator
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-codeflare-operator-on-pull-request
+  namespace: open-data-hub-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: image-expires-after
+    value: 5d
+  - name: output-image
+    value: quay.io/opendatahub/codeflare-operator:pr-v1.16.0
+  - name: dockerfile
+    value: Dockerfile
+  - name: path-context
+    value: .
+  pipelineRef:
+    resolver: git
+    params:
+    - name: url
+      value: https://github.com/red-hat-data-services/konflux-central.git
+    - name: revision
+      value: '{{ target_branch }}'
+    - name: pathInRepo
+      value: pipelines/container-build.yaml
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-codeflare-operator
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+status: {}
