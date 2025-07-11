@@ -13,9 +13,9 @@ CodeFlare Stack Compatibility Matrix
 | Component                    | Version                                                                                           |
 |------------------------------|---------------------------------------------------------------------------------------------------|
 | CodeFlare Operator           | [v1.16.0](https://github.com/project-codeflare/codeflare-operator/releases/tag/v1.16.0)             |
-| CodeFlare-SDK                | [v0.29.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.29.0)                |
+| CodeFlare-SDK                | [v0.30.0](https://github.com/project-codeflare/codeflare-sdk/releases/tag/v0.30.0)                |
 | AppWrapper                   | [v1.1.2](https://github.com/project-codeflare/appwrapper/releases/tag/v1.1.2)                   |
-| KubeRay                      | [v1.3.2](https://github.com/ray-project/kuberay/releases/tag/v1.3.2)                           |
+| KubeRay                      | [v1.4.0](https://github.com/ray-project/kuberay/releases/tag/v1.4.0)                           |
 | Kueue                        | [v0.11.6](https://github.com/kubernetes-sigs/kueue/releases/tag/v0.11.6)                             |
 <!-- Compatibility Matrix end -->
 
