@@ -19,6 +19,38 @@ CodeFlare Stack Compatibility Matrix
 | Kueue                        | [v0.11.6](https://github.com/kubernetes-sigs/kueue/releases/tag/v0.11.6)                             |
 <!-- Compatibility Matrix end -->
 
+## Installation
+
+The CodeFlare Operator can be installed on its own, without the wider Open Data Hub stack.
+It expects [KubeRay](https://github.com/ray-project/kuberay) and
+[Kueue](https://github.com/kubernetes-sigs/kueue) to be installed and configured in the
+cluster first (see the compatibility matrix above for the versions validated with each
+release).
+
+### OpenShift
+
+Install the operator from OperatorHub. In the OpenShift console, go to
+**Operators → OperatorHub**, search for **CodeFlare Operator**, and follow the guided
+installation. This creates a `Subscription` that keeps the operator up to date via OLM.
+
+### Kubernetes
+
+Deploy the operator with the release manifests using `kustomize` (bundled via the
+Makefile). From a checkout of the tag you want to install:
+
+```sh
+# Deploy the controller using the default overlay (config/default)
+make deploy IMG=quay.io/project-codeflare/codeflare-operator:stable
+```
+
+Pin `IMG` to a specific released tag (for example
+`quay.io/project-codeflare/codeflare-operator:v1.16.0`) instead of `stable` to install a
+fixed version. To remove the operator again:
+
+```sh
+make undeploy
+```
+
 ## Development
 
 Requirements:
